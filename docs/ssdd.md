@@ -117,8 +117,8 @@ at Approve SSDD.
 | `FileHandlingCfdp.Subtopology` | subtopology | CFDP class 2 file transfer, file manager, parameters; reads product files | Ground CFDP entity |
 | `DataProducts.Subtopology` | subtopology | Data product buffers and writer; writes product files | Pi 5 file system (SD card) |
 | `Bmp280.Subtopology` | subtopology | Reads BMP280 temperature; checks its identity register | BMP280 on SPI |
-| `MpuImu.Subtopology` | subtopology | Reads MPU6050 acceleration and gyro rates; checks its identity register | MPU6050 on I2C bus 1, address 0x68 |
-| `NmeaGps.Subtopology` | subtopology | Reads NMEA sentences, reports location and fix status; member `frameAccumulator` checks checksums | GPS receiver on a UART |
+| `MpuImu.Subtopology` | subtopology | Reads MPU6050 acceleration and gyro rates; checks its identity register (not in the catalog element at the pin; fixed at allocation) | MPU6050 on I2C bus 1, address 0x68 |
+| `NmeaGps.Subtopology` | subtopology | Reads NMEA sentences, reports location and fix status (fix status not in the catalog element at the pin; fixed at allocation); member `frameAccumulator`, as configured with `NmeaDetector`, checks checksums | GPS receiver on a UART |
 | `Rfm69.Subtopology` | subtopology | Sends and receives frames by packet radio (flight configuration) | RFM69 on SPI0 CE1 and its reset GPIO |
 | `groundRadio` | ground element | Passes frames between the ground RFM69 and fprime-yamcs (flight configuration) | Ground Pi with RFM69 |
 | `tcpLink` | component | Sends and receives frames over TCP (prototype configuration) | TCP socket to the ground host |
@@ -136,7 +136,7 @@ Two link configurations, never run together:
 | Prototype | `ComCcsds.Subtopology` (its `comStub` over a byte stream) and `tcpLink` |
 | Flight | `ComCcsds.FramingSubtopology`, `Rfm69.Subtopology` (in place of `comStub` and `tcpLink`) and `groundRadio` |
 
-Three elements are bespoke. The constraint for each:
+Four elements are bespoke. The constraint for each:
 
 - `sensorMonitor`: no standard element computes roll and pitch or marks a
   metric invalid. The sensor elements report a failed bus read, but not a
@@ -148,6 +148,10 @@ Three elements are bespoke. The constraint for each:
   build the product, reject a missing or busy product (030, 032, 033, 041)
   or report no progress (034). The catalog member of `Dp` is not used: it
   sends all stored products, not one named product.
+- `groundRadio`: no catalog has a ground-side RFM69 element. It is a second
+  small deployment on the ground Pi that reuses `Rfm69.Subtopology` and a
+  standard byte-stream driver towards fprime-yamcs; allocation decides its
+  parts.
 
 ### Topology
 
@@ -271,7 +275,7 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-001 | set | `Bmp`, `Cdh`, `sensorMonitor`, `Com`, `link`, `sched` | Interval between temperature channel samples at the ground | system test |
 | REQ-PiSensor-002 | set | `Imu`, `Cdh`, `sensorMonitor`, `Com`, `link`, `sched` | Interval between attitude channel samples at the ground | system test |
 | REQ-PiSensor-003 | set | `Gps`, `Cdh`, `sensorMonitor`, `Com`, `link`, `sched` | Interval between location channel samples at the ground | system test |
-| REQ-PiSensor-004 | set | `productManager`, `piCamera` | JPEG markers and pixel size of the picture record of the product written after the command | system test |
+| REQ-PiSensor-004 | set | `productManager`, `piCamera`, `Dp` | JPEG markers and pixel size of the picture record of the product written after the command | system test |
 | REQ-PiSensor-005 | set | `productManager`, `piCamera`, `Cdh`, `sensorMonitor`, `Dp` | Records in the data product file | system test |
 | REQ-PiSensor-006 | set | `piCamera`, `posixTime`, `productManager` | Capture time record against bench time of the capture | system test |
 | REQ-PiSensor-007 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor`, `piCamera`, `productManager` | Sample time and capture time records of the data product | system test |
@@ -279,8 +283,8 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-009 | set | `Gps`, `sensorMonitor`, `productManager` | Location validity record of a product captured with no fix | system test |
 | REQ-PiSensor-010 | set | `productManager`, `piCamera`, `Dp` | Time from command dispatch to command response | system test |
 | REQ-PiSensor-011 | component | `productManager` | `ACTIVITY_HI` event and its product name argument | component test |
-| REQ-PiSensor-012 | set | `productManager`, `Cfdp`, `Com` | Class 2 transaction and file at the ground | system test |
-| REQ-PiSensor-013 | set | `Cfdp`, `Com` | Hash of the ground file against the on-board file | system test |
+| REQ-PiSensor-012 | set | `productManager`, `Cfdp`, `Com`, `link` | Class 2 transaction and file at the ground | system test |
+| REQ-PiSensor-013 | set | `Cfdp`, `Com`, `link` | Hash of the ground file against the on-board file | system test |
 | REQ-PiSensor-014 | component | `productManager` | Product file absent after the command response | component test |
 | REQ-PiSensor-015 | set | `Rfm`, `groundRadio`, `Com`, `sched` | Command response, channel, event and file at the ground; no TCP socket open on the Pi | system test |
 | REQ-PiSensor-016 | set | `tcpLink`, `Com` | Command response, channel, event and file at the ground over TCP | system test |
@@ -292,7 +296,7 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-022 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channel of each metric while its sensor is failed | system test |
 | REQ-PiSensor-023 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channels after each sensor returns, no restart | system test |
 | REQ-PiSensor-024 | set | `Gps`, `Cdh`, `sensorMonitor` | Fix validity channel while the receiver reports no fix | system test |
-| REQ-PiSensor-025 | component | `NmeaGps.frameAccumulator` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
+| REQ-PiSensor-025 | component | `NmeaGps.frameAccumulator` as configured with `NmeaDetector` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
 | REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | component test |
 | REQ-PiSensor-027 | component | `ComCcsds.tcDeframer` | A corrupted frame is not passed on; the same frame uncorrupted is | component test |
 | REQ-PiSensor-028 | set | `piCamera`, `productManager` | Command response and `WARNING_HI` event | system test |
