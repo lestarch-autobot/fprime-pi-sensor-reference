@@ -118,7 +118,7 @@ at Approve SSDD.
 | `DataProducts.Subtopology` | subtopology | Data product buffers and writer; writes product files | Pi 5 file system (SD card) |
 | `Bmp280.Subtopology` | subtopology | Reads BMP280 temperature; checks its identity register | BMP280 on SPI |
 | `MpuImu.Subtopology` | subtopology | Reads MPU6050 acceleration and gyro rates | MPU6050 on I2C bus 1, address 0x68 |
-| `PiGps` | subtopology | Reads NMEA sentences and reports location; passes each sentence through `sensorMonitor`; member `frameAccumulator`, as configured with `NmeaDetector`, checks checksums | GPS receiver on a UART |
+| `PiGps` | subtopology | Reads NMEA sentences and reports location; passes each sentence through `sensorMonitor`; member `NmeaGps.frameAccumulator`, as configured with `NmeaDetector`, checks checksums | GPS receiver on a UART |
 | `Rfm69.Subtopology` | subtopology | Sends and receives frames by packet radio (flight configuration) | RFM69 on SPI0 CE1 and its reset GPIO |
 | `groundRadio` | ground element | Passes frames between the ground RFM69 and fprime-yamcs (flight configuration) | Ground Pi with RFM69 |
 | `tcpLink` | component | Sends and receives frames over TCP (prototype configuration) | TCP socket to the ground host |
@@ -136,7 +136,7 @@ Two link configurations, never run together:
 | Prototype | `ComCcsds.Subtopology` (its `comStub` over a byte stream) and `tcpLink` |
 | Flight | `ComCcsds.FramingSubtopology`, `Rfm69.Subtopology` (in place of `comStub` and `tcpLink`) and `groundRadio` |
 
-Four elements are bespoke. The constraint for each:
+Five elements are bespoke. The constraint for each:
 
 - `sensorMonitor`: no standard element computes roll and pitch or marks a
   metric invalid. The sensor elements report a failed bus read, but not a
@@ -150,6 +150,9 @@ Four elements are bespoke. The constraint for each:
   build the product, reject a missing or busy product (030, 032, 033, 041)
   or report no progress (034). The catalog member of `Dp` is not used: it
   sends all stored products, not one named product.
+- `PiGps`: `NmeaGps.Subtopology` wires `frameAccumulator` to `gpsAdapter`
+  inside itself, so the sentence cannot be read from outside; `PiGps` is the
+  same members with that one connection opened.
 - `groundRadio`: no catalog has a ground-side RFM69 element. It is a second
   small deployment on the ground Pi that reuses `Rfm69.Subtopology` and a
   standard byte-stream driver towards fprime-yamcs; allocation decides its
@@ -298,8 +301,8 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-022 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channel of each metric while its sensor is failed | system test |
 | REQ-PiSensor-023 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channels after each sensor returns, no restart | system test |
 | REQ-PiSensor-024 | set | `Gps`, `Cdh`, `sensorMonitor` | Fix validity channel while the receiver reports no fix | system test |
-| REQ-PiSensor-025 | component | `PiGps.frameAccumulator` as configured with `NmeaDetector` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
-| REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | system test |
+| REQ-PiSensor-025 | component | member `NmeaGps.frameAccumulator` of `PiGps`, as configured with `NmeaDetector` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
+| REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | component test |
 | REQ-PiSensor-027 | component | `ComCcsds.tcDeframer` | A corrupted frame is not passed on; the same frame uncorrupted is | component test |
 | REQ-PiSensor-028 | set | `piCamera`, `productManager` | Command response and `WARNING_HI` event | system test |
 | REQ-PiSensor-029 | set | `productManager`, `piCamera`, `Dp` | No product file after the failed or interrupted capture | system test |
@@ -316,7 +319,7 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-040 | component | `piCamera` | Build inputs and linked libraries of the camera software | inspection |
 | REQ-PiSensor-041 | component | `productManager` | `WARNING_LO` event; product file present; downlink completes | component test |
 | REQ-PiSensor-042 | system | system | Board model and OS release recorded with each system test run | system test |
-| REQ-PiSensor-043 | component | `sensorMonitor` | Read-failure event on a wrong identity value; none on the right value | component test |
+| REQ-PiSensor-043 | component | `sensorMonitor` | Read-failure event and attitude validity channel invalid on a wrong identity value; neither on the right value | component test |
 
 ### Faults
 
@@ -327,8 +330,8 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | GPS sentences stop | `sensorMonitor` (sentence age) | `sensorMonitor` (event, metric invalid) | 021, 022 |
 | Sensor returns | `Bmp`, `Imu`, `Gps` (next good read) | `sensorMonitor` (metric valid) | 023 |
 | GPS no fix | `sensorMonitor` (fix field of the sentence) | `sensorMonitor` (fix invalid); `productManager` (location invalid) | 024, 009 |
-| Bad NMEA checksum | `PiGps.frameAccumulator` | the same (sentence discarded) | 025 |
-| Wrong identity register | `Bmp280.bmpManager` (BMP280), `sensorMonitor` (MPU6050) | the same (read failure) | 026, 043 |
+| Bad NMEA checksum | member `NmeaGps.frameAccumulator` of `PiGps` | the same (sentence discarded) | 025 |
+| Wrong identity register | `Bmp280.bmpManager` (BMP280), `sensorMonitor` (MPU6050) | `Bmp280.bmpManager` (read failure); `sensorMonitor` (event, attitude invalid) | 026, 043 |
 | Corrupt uplink frame | `ComCcsds.tcDeframer` | the same (frame discarded) | 027 |
 | Stale metric at capture | `productManager` (sample age) | `productManager` (metric invalid) | 008 |
 | Camera absent or failed | `piCamera` | `productManager` (command fails, event, no product) | 028, 029 |
@@ -360,20 +363,20 @@ each is `platform: unverified` until the base deployment builds.
 | Element | Class | Origin | Configuration / adapter / change | SDD | Grade | Upstream evidence | Campaign id | Requirements |
 |---|---|---|---|---|---|---|---|---|
 | `CdhCore.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | Topology wiring; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/CdhCore/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/CdhCore/index.html) | checklist no; ut no; int yes | — | 001, 002, 003, 005, 007, 008, 019, 020, 022, 023, 024 |
-| `ComCcsds.Subtopology` (prototype) | INHERITED | nasa/fprime@v4.4.2 | `ComCcsdsConfig` override; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 015, 016, 036 |
-| `ComCcsds.FramingSubtopology` (flight) | INHERITED | nasa/fprime@v4.4.2 | `ComCfg.TmFrameFixedSize` of 255 or less, the RFM69 payload limit; same value in the ground configuration; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 015, 016, 036 |
+| `ComCcsds.Subtopology` (prototype) | INHERITED | nasa/fprime@v4.4.2 | `ComCcsdsConfig` override; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 016, 036 |
+| `ComCcsds.FramingSubtopology` (flight) | INHERITED | nasa/fprime@v4.4.2 | `ComCfg.TmFrameFixedSize` of 255 or less, the RFM69 payload limit; same value in the ground configuration; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 015, 036 |
 | `ComCcsds.tcDeframer` (`Svc.Ccsds.TcDeframer`) | INHERITED | nasa/fprime@v4.4.2 | Member of both `ComCcsds` variants; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Ccsds/TcDeframer/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Ccsds/TcDeframer/index.html) | checklist no; ut yes; int no | — | 027 |
 | `FileHandlingCfdp.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | CFDP parameters: class 2, 60 s inactivity; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/FileHandlingCfdp/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/FileHandlingCfdp/index.html) | checklist no; ut no; int no | — | 012, 013, 034, 035, 038 |
 | `DataProducts.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | Product directory in `config/`; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/DataProducts/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/DataProducts/index.html) | checklist no; ut no; int no (members `DpWriter`, `DpManager`, `DpCatalog`: int yes) | — | 004, 005, 010, 029, 031, 035, 038 |
 | `Bmp280.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | SPI device in `Bmp280Config`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Bmp280/Components/BmpManager/docs/sdd.md) | unavailable | checklist no; ut no; int no | — | 001, 007, 008, 019, 022, 023, 026 |
 | `MpuImu.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | I2C bus 1, address 0x68; its bus driver also serves `sensorMonitor`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/MpuImu/Components/ImuManager/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | 002, 007, 008, 020, 022, 023 |
 | `PiGps` | NEW-SUBTOPOLOGY | new: this repository | The six member rows below, wired as `NmeaGps.Subtopology` except that `frameAccumulator.dataOut` goes to `sensorMonitor.gpsSentenceIn` and `sensorMonitor.gpsSentenceOut` to `gpsAdapter.commLikeIn` | — | — | — | — | 003, 007, 008, 009, 021, 022, 023, 024 |
-| `PiGps.gpsManager` (`NmeaGps.GpsManager`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/NmeaGps/Components/GpsManager/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | — |
-| `PiGps.frameAccumulator` detector (`NmeaGps.NmeaDetector`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/NmeaGps/Components/NmeaDetector/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | 025 |
-| `PiGps.gpsAdapter`, `PiGps.driverInterface` (`FprimeSensors.AccumulatorAdapter`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Helpers/Components/AccumulatorAdapter/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | — |
-| `PiGps.frameAccumulator` (`Svc.FrameAccumulator`) | INHERITED | nasa/fprime@v4.4.2 | Configured with `NmeaDetector`; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/FrameAccumulator/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/FrameAccumulator/index.html) | checklist no; ut yes; int no | — | 025 |
-| `PiGps.driver` (`Drv.PosixUartDriver`) | INHERITED | nasa/fprime@v4.4.2 | GPS UART device and baud rate; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Drv/PosixUartDriver/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Drv/PosixUartDriver/index.html) | checklist no; ut no; int no | — | — |
-| `PiGps.bufferManager` (`Svc.BufferManager`) | INHERITED | nasa/fprime@v4.4.2 | Buffer sizes; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/BufferManager/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/BufferManager/index.html) | checklist yes (legacy spreadsheet); ut yes; int no | — | — |
+| `NmeaGps.gpsManager` in `PiGps` (`NmeaGps.GpsManager`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/NmeaGps/Components/GpsManager/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | — |
+| `NmeaGps.frameAccumulator` detector in `PiGps` (`NmeaGps.NmeaDetector`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/NmeaGps/Components/NmeaDetector/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | 025 |
+| `NmeaGps.gpsAdapter`, `NmeaGps.driverInterface` in `PiGps` (`FprimeSensors.AccumulatorAdapter`) | INHERITED | fprime-community/fprime-sensors@e5d83d1 | Unchanged; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Helpers/Components/AccumulatorAdapter/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | — |
+| `NmeaGps.frameAccumulator` in `PiGps` (`Svc.FrameAccumulator`) | INHERITED | nasa/fprime@v4.4.2 | Configured with `NmeaDetector`; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/FrameAccumulator/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/FrameAccumulator/index.html) | checklist no; ut yes; int no | — | 025 |
+| `NmeaGps.driver` in `PiGps` (`Drv.PosixUartDriver`) | INHERITED | nasa/fprime@v4.4.2 | GPS UART device and baud rate; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Drv/PosixUartDriver/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Drv/PosixUartDriver/index.html) | checklist no; ut no; int no | — | — |
+| `NmeaGps.bufferManager` in `PiGps` (`Svc.BufferManager`) | INHERITED | nasa/fprime@v4.4.2 | Buffer sizes; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/BufferManager/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/BufferManager/index.html) | checklist yes (legacy spreadsheet); ut yes; int no | — | — |
 | `Rfm69.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | SPI0 CE1 and reset GPIO in `Rfm69Config`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Rfm69/Components/Rfm69Manager/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | 001, 002, 003, 012, 013, 015, 036 |
 | `tcpLink` (`Drv.TcpClient`) | INHERITED | nasa/fprime@v4.4.2 | Ground host and port; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Drv/TcpClient/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Drv/TcpClient/index.html) | checklist no; ut yes; int no | — | 001, 002, 003, 012, 013, 016, 036 |
 | `posixTime` (`Svc.PosixTime`) | INHERITED | nasa/fprime@v4.4.2 | —; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/PosixTime/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/PosixTime/index.html) | checklist no; ut yes; int no | — | 006 |
@@ -405,8 +408,10 @@ fprime-sensors; fprime-devices. Nearest candidates rejected:
 value and of the fix field, so separate adapters would add two components
 and two interfaces for no reuse.
 
-Evidence gaps, moved to system tests: `Bmp280.BmpManager` has no unit
-tests, so REQ-PiSensor-026 is verified by a system test.
+Evidence gap: `Bmp280.BmpManager` has no unit tests. A system test cannot
+make the stimulus of REQ-PiSensor-026 (a real BMP280 returns the right
+identity value), so it is verified by a component test written in this
+repository for the unchanged catalog component.
 
 ### Red flags
 
@@ -423,4 +428,5 @@ Risks to close in the base-deployment lane, before Approve SSDD:
   `INHERITED-MODIFIED` and is listed here.
 - `groundRadio` wiring. The RFM69 manager and `Svc.ComStub` are both
   `Svc.Com` adapters; the element joining them back to back is not yet
-  shown to exist in the catalogs.
+  shown to exist in the catalogs. If none exists, a `NEW` row with a
+  campaign id is added here before Approve SSDD.
