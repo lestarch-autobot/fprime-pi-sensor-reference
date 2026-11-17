@@ -1,0 +1,22 @@
+# Project ledger — run fvp-2026-11-17-1
+- 2026-11-17 setup: skills source lestarch-autobot/fprime@system-campaign-skills sha aa3ab031a6c67d40652e8047a2e1f9a8a8c2b26c (head of nasa/fprime#6388), checkout ~/campaign/skills-src. Read: project-campaign SKILL, contract (§0-§9), phase-review-loop, fprime-development.agent, development-campaign, system-decomposition, system-allocation. Still to read at their lane: component-requirements, requirements-review, system-test-design, topology-development, cmake-build-system, system-test-harness, run-for-record, test-oracle, maintenance.
+- Tooling pin (contract §8): fprime-testing-harness v0.1.2 (commit 855dd4f).
+- Process bookkeeping: tags proc:fvp-2026-11-17-1 + node:<id>; transition lines `[PROC run=fvp-2026-11-17-1 node=<id> pass=<k|-> status=...]`; children carry same tags + role title. Session log: ~/session_report.py + ~/push_report.py on every prompt/response (context devin-5996e34f779241ed90272de133db9181).
+- Bench access: hub `ssh -i ~/.ssh/lestarch_ed25519 -o IdentitiesOnly=yes -p 4112 devin@$WINDOWS_SSH_HOST` (key from $LESTARCH_SSH_KEY); flight Pi from hub: `ssh pi` (soakee, 192.168.10.2, user fprime).
+- Bench probe 2026-11-17 14:44 PST, read-only [V]:
+  - soakee = Raspberry Pi 5 Model B Rev 1.0, aarch64, Debian kernel 6.18.39, 4 GB RAM, 221 GB free; groups incl. i2c spi gpio video dialout.
+  - No soak FSW process running; no holder (fuser) on i2c-1, spidev0.0/0.1, ttyAMA0, ttyAMA10. Home has soak-fsw, soak-fsw.*.bak, fprime-soak-ref-v440, DpCat, soak-logs (foreign: leave untouched).
+  - MPU6050: i2c-1 addr 0x68, WHO_AM_I(0x75)=0x68.
+  - RFM69: /dev/spidev0.1 reg 0x10 (RegVersion) = 0x24. spidev0.0 reads 0xFF (nothing).
+  - BMP280: NOT found on SPI0 (chip id 0xD0 expected 0x58). SPI1 not enabled: no /dev/spidev1.*, config.txt has dtparam=spi=on only (plus [pi5] dtoverlay=nospi10); GPIO16-21 unconfigured. Needs `dtoverlay=spi1-1cs` (+reboot) or wiring check -> human.
+  - GPS: 0 bytes on /dev/ttyAMA0 (uart0, GPIO14/15, dtparam=uart0=on) and ttyAMA10 at 9600/38400/115200 over 2.5 s each -> not wired/powered or other port -> human.
+  - Camera: `rpicam-still --list-cameras` -> "No cameras available!" (expected; arrives after SSDD approval). rpicam-apps installed.
+  - Hub (devin): no spidev; /dev/ground-radio -> ttyACM1 (LoRa ground radio, foreign), FT232, Zephyr USB dev. RFM69 ground Pi not yet attached.
+- 2026-11-17 setup: project repository https://github.com/lestarch-autobot/fprime-pi-sensor-reference (created by lestarch-autobot). Workflow: feature branches, PRs to `main`; design work on `design/ssdd`. Commits: author+committer lestarch-autobot, trailer `Co-authored-by: M Starch <LeStarch@googlemail.com>`, pushed with the autobot token.
+- 2026-11-17 setup: catalogs pinned [V by git ls-remote]:
+  - fprime: nasa/fprime tag v4.4.2 = f22ce8f2f2943e641d454e9daa7f129e6c878d32 (latest release; devel head b9d46b64 noted, not used).
+  - fprime-sensors: fprime-community/fprime-sensors devel @ e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f (Bmp280, MpuImu, NmeaGps, Rfm69, XBee, Helpers).
+  - fprime-devices: fprime-community/fprime-devices main @ 0a372b220e639d00265f8232638ad9d8872aa6a6 (KissCam, Fram).
+  - ground: fprime-community/fprime-yamcs main @ f6f0e1976abf43258666f7d8a5da92001146e583.
+- 2026-11-17 setup: tools: fpp-diagram-render from JPL-Devin/fpp-tools PR #4 head devin/1794944630-ssdd-diagrams @ d6643be09987c681ab1de48103b3ca738a430eba; rdd from LeStarch/rdd-creator main @ 60481b7ff446da16e66712a4bbf345505caadd75.
+- 2026-11-17 setup: needs checklist sent to human: (1) BMP280 not answering on SPI0 and SPI1 not enabled on soakee; (2) GPS silent on ttyAMA0/ttyAMA10; (3) permission to stop/replace foreign soak FSW not needed now (none running), files left untouched; (4) camera + RFM69 ground Pi after SSDD approval; (5) master seed before RfR lane.
