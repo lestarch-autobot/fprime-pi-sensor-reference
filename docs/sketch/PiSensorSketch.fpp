@@ -22,9 +22,14 @@ module PiSensor {
   }
 
   @ Sensor monitor: reads the latest sensor readings, publishes Table 1 telemetry
-  @ with validity, reports sensor loss and return, serves samples to products
+  @ with validity, reports sensor loss and return, serves samples to products.
+  @ Adapter: reads the MPU6050 identity register, and the fix field and
+  @ arrival time of each GPS sentence passing through it.
   passive component SensorMonitor {
     output port tlmGetOut: Fw.TlmGet
+    output port imuIdentityOut: Drv.I2cWriteRead
+    guarded input port gpsSentenceIn: Svc.ComDataWithContext
+    output port gpsSentenceOut: Svc.ComDataWithContext
     guarded input port samplesGetIn: SamplesGet
     sync input port run: Svc.Sched
     event port eventOut
@@ -64,6 +69,29 @@ module PiSensor {
   instance sensorMonitor: SensorMonitor base id 0x10009000
   instance productManager: ProductManager base id 0x1000A000 queue size 10 stack size 65536 priority 31
 
+  @ GPS subtopology: the members of NmeaGps.Subtopology, with the sentence
+  @ path from the accumulator to the GPS manager opened for sensorMonitor
+  topology PiGps {
+    instance NmeaGps.gpsManager
+    instance NmeaGps.gpsAdapter
+    instance NmeaGps.frameAccumulator
+    instance NmeaGps.driverInterface
+    instance NmeaGps.driver
+    instance NmeaGps.bufferManager
+
+    connections Gps {
+      NmeaGps.gpsAdapter.bufferLikeOut -> NmeaGps.gpsManager.dataIn
+      NmeaGps.gpsManager.dataReturnOut -> NmeaGps.gpsAdapter.bufferLikeIn
+      NmeaGps.frameAccumulator.bufferAllocate -> NmeaGps.bufferManager.bufferGetCallee
+      NmeaGps.frameAccumulator.bufferDeallocate -> NmeaGps.bufferManager.bufferSendIn
+      NmeaGps.gpsAdapter.commLikeOut -> NmeaGps.frameAccumulator.dataReturnIn
+      NmeaGps.driverInterface.commLikeOut -> NmeaGps.frameAccumulator.dataIn
+      NmeaGps.frameAccumulator.dataReturnOut -> NmeaGps.driverInterface.commLikeIn
+      NmeaGps.driver.$recv -> NmeaGps.driverInterface.byteStreamLikeIn
+      NmeaGps.driverInterface.bufferLikeOut -> NmeaGps.driver.recvReturnIn
+    }
+  }
+
   topology PiSensor {
     instance CdhCore.Subtopology
     instance ComCcsds.Subtopology
@@ -71,7 +99,7 @@ module PiSensor {
     instance DataProducts.Subtopology
     instance Bmp280.Subtopology
     instance MpuImu.Subtopology
-    instance NmeaGps.Subtopology
+    instance PiGps
     instance Rfm69.Subtopology
 
     instance linuxTimer
@@ -101,9 +129,12 @@ module PiSensor {
 
     connections Sensors {
       # Latest BMP280, MPU6050 and GPS readings with their sample times.
-      # GPS fix status and sentence arrival also reach sensorMonitor; that
-      # path is fixed at allocation.
       sensorMonitor.tlmGetOut -> CdhCore.tlmSend.TlmGet
+      # MPU6050 identity register, through the IMU bus driver.
+      sensorMonitor.imuIdentityOut -> MpuImu.imuDriver.writeRead
+      # Each GPS sentence passes through sensorMonitor (fix field, arrival time).
+      NmeaGps.frameAccumulator.dataOut -> sensorMonitor.gpsSentenceIn
+      sensorMonitor.gpsSentenceOut -> NmeaGps.gpsAdapter.commLikeIn
     }
 
     connections Products {

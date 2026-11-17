@@ -64,9 +64,9 @@
 </details>
 
 <details>
-<summary>Subtopology <code>NmeaGps.Subtopology</code></summary>
+<summary>Subtopology <code>PiSensor.PiGps</code></summary>
 
-> ![Topology NmeaGps.Subtopology](NmeaGps.Subtopology.svg)
+> ![Topology PiSensor.PiGps](PiSensor.PiGps.svg)
 >
 </details>
 
