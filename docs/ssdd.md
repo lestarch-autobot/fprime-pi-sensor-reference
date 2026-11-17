@@ -105,6 +105,7 @@ at Approve SSDD.
 | D8 | Bench parts | Identified on the bench and named in the Introduction | - |
 | D9 | BMP280 pressure | Not required: the ask names temperature only | 001 |
 | D10 | Storage | Delete command; no automatic storage bound; delete during that product's downlink rejected | 014, 041 |
+| D11 | BMP280 wrong-identity test | The catalog BMP280 manager has no unit tests. The base-deployment lane writes one in this repository for the unchanged component, instead of a system test (a real BMP280 cannot return a wrong identity value) | 026 |
 
 ## Architecture
 
@@ -410,8 +411,10 @@ and two interfaces for no reuse.
 
 Evidence gap: `Bmp280.BmpManager` has no unit tests. A system test cannot
 make the stimulus of REQ-PiSensor-026 (a real BMP280 returns the right
-identity value), so it is verified by a component test written in this
-repository for the unchanged catalog component.
+identity value). The base-deployment lane writes a unit test for the
+unchanged catalog component in this repository and records its result in
+the ledger. This departs from the rule that a missing inherited test
+becomes a system test; see decision D11.
 
 ### Red flags
 
