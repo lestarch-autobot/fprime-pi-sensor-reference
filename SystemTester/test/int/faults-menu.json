@@ -2,159 +2,68 @@
   "max_count": 2,
   "knobs": [
     {
-      "name": "camera_left_on",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-11"
-      ],
-      "fails": {
-        "L5-11": [
-          "event productManager.CaptureFailed count == 1"
-        ]
-      },
-      "mechanism": "the camera is left available, so the capture succeeds",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
       "name": "capture_twice",
-      "class": "uut-state",
+      "class": "stimulus",
       "applies_to": [
         "L2-3"
       ],
       "fails": {
         "L2-3": [
-          "commands completed with error == 0"
+          "event productManager.ProductWritten count == 1"
         ]
       },
-      "mechanism": "a second CAPTURE is sent while the first is in progress; a WARNING_LO rejection and a failed command response appear in a window that expects none",
+      "mechanism": "CAPTURE is sent twice in a row (command productManager.CAPTURE, inserted copy); two products are written where the test expects one",
       "kind": "insert",
       "ripples_to": {}
     },
     {
-      "name": "cfdp_left_running",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-15"
-      ],
-      "fails": {
-        "L5-15": [
-          "event productManager.DownlinkStalled count == 1"
-        ]
-      },
-      "mechanism": "the ground CFDP service is left running, so the transfer finishes",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "downlink_other_product",
-      "class": "harness-expectation",
+      "name": "corrupt_product",
+      "class": "uut-state",
       "applies_to": [
         "L2-5",
+        "L2-6",
         "L2-9"
       ],
       "fails": {
         "L2-5": [
-          "ground file sha256 == on-board sha256 of the named product"
+          "sha256 of record/raw/files/<P2> == hash in the sysTester.Sha256 event"
+        ],
+        "L2-6": [
+          "ground file starts FFD8 and ends FFD9"
         ],
         "L2-9": [
-          "ground file sha256 == on-board sha256 of the named product"
+          "sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event"
         ]
       },
-      "mechanism": "DOWNLINK names the previous product, so the ground file differs from the product whose hash the test compares",
-      "kind": "rewrite",
+      "mechanism": "sysTester.CORRUPT_PRODUCT(name) is inserted before productManager.DOWNLINK (after any DUMP_SHA256): the first two bytes of the picture record of the stored product are overwritten on board, so the file sent differs from the file hashed and is no JPEG; each test removes its products at teardown, so no later test or the final state sees it",
+      "kind": "insert",
       "ripples_to": {}
     },
     {
-      "name": "frame_not_corrupted",
-      "class": "stimulus",
-      "applies_to": [
-        "L6-1"
-      ],
-      "fails": {
-        "L6-1": [
-          "event cmdDisp.NoOpReceived count == 1"
-        ]
-      },
-      "mechanism": "the first frame is injected intact, so two commands are dispatched",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "gps_good_checksum",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-21"
-      ],
-      "fails": {
-        "L5-21": [
-          "position B never reported"
-        ]
-      },
-      "mechanism": "position B is sent with a correct checksum, so it is reported",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "gps_keep_fix",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-7"
-      ],
-      "fails": {
-        "L5-7": [
-          "last(sensorMonitor.FixValid) == INVALID"
-        ]
-      },
-      "mechanism": "the GPS source keeps sending fix sentences",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "outage_skipped",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-17",
-        "L5-19"
-      ],
-      "fails": {
-        "L5-17": [
-          "telemetry gap in the window >= 60 s"
-        ],
-        "L5-19": [
-          "telemetry gap in the window >= 60 s"
-        ]
-      },
-      "mechanism": "the outage action is skipped; telemetry never stops",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "period_window_cut",
+      "name": "dump_sha_other",
       "class": "harness-expectation",
       "applies_to": [
-        "L2-1",
-        "L2-7"
+        "L3-1",
+        "L5-15"
       ],
       "fails": {
-        "L2-1": [
-          "max gap of temperature, attitude and location samples <= 2 s"
+        "L3-1": [
+          "the two Sha256 events are equal"
         ],
-        "L2-7": [
-          "max gap of temperature, attitude and location samples <= 10 s"
+        "L5-15": [
+          "the two Sha256 events are equal"
         ]
       },
-      "mechanism": "the harness stops the ground telemetry feed for 15 s inside the window, so the ground sees a gap above the bound",
+      "mechanism": "argument `name` of the second sysTester.DUMP_SHA256 of the test is rewritten to the deployment's own executable file, so the second hash differs from the first",
       "kind": "rewrite",
       "ripples_to": {}
     },
     {
-      "name": "skip_sensor_off",
+      "name": "sensor_line_kept_on",
       "class": "stimulus",
       "applies_to": [
         "L5-1",
         "L5-3",
-        "L5-5",
         "L5-9"
       ],
       "fails": {
@@ -164,50 +73,24 @@
         "L5-3": [
           "event sensorMonitor.Mpu6050Lost count == 1"
         ],
-        "L5-5": [
-          "event sensorMonitor.GpsSilent count == 1"
-        ],
         "L5-9": [
-          "attitude validity record == invalid"
+          "attitude validity record INVALID"
         ]
       },
-      "mechanism": "the bench action that removes the sensor is skipped; the sensor keeps answering",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
-      "name": "storage_left_writable",
-      "class": "stimulus",
-      "applies_to": [
-        "L5-13"
-      ],
-      "fails": {
-        "L5-13": [
-          "event productManager.StorageFailed count == 1"
-        ]
-      },
-      "mechanism": "the product directory is left writable, so the capture succeeds",
+      "mechanism": "argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering",
       "kind": "rewrite",
       "ripples_to": {}
     }
   ],
   "tests_covered": [
-    "L2-1",
     "L2-3",
     "L2-5",
-    "L2-7",
+    "L2-6",
     "L2-9",
+    "L3-1",
     "L5-1",
-    "L5-11",
-    "L5-13",
     "L5-15",
-    "L5-17",
-    "L5-19",
-    "L5-21",
     "L5-3",
-    "L5-5",
-    "L5-7",
-    "L5-9",
-    "L6-1"
+    "L5-9"
   ]
 }

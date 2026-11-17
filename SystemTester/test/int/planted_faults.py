@@ -1,52 +1,86 @@
-"""Planted faults for the PiSensor system test plan.
+"""Helpers and planted faults for the PiSensor system test plan (design phase).
 
-Loaded by ``fth`` through ``plan.json: helpers_module``. Each fault rewrites or drops one
-step of the stimulus of the tests it applies to; ``fails`` names the checks it must break.
-The check names are placeholders of the design phase: the harness phase replaces them with
-the names declared in ``test_pisensor_plan.py``.
+Loaded by ``fth`` through ``plan.json: helpers_module``.
+
+Planted faults rewrite or insert commands that pass through ``send()``; none changes a bench
+action. ``fails`` names the checks each fault must break; the names are those of the plan's
+evidence lines and are replaced by the names declared in the stimulus module in the harness
+phase (``fth verify-plan --tests`` then refuses any name no test declares).
+
+Helpers are declared here so the plan's metrics name them; their bodies are written in the
+harness phase against the record layout of the plan's scope ("Record content"). Until then each
+returns UNVERIFIED, never a pass.
 """
-from fth.registry import planted_fault
+from fth.registry import helper, planted_fault
 
 
 def _is(command_name, short):
     return command_name == short or command_name.endswith("." + short)
 
 
-def _fault(name, applies_to, cls, mechanism, fails, match=None, kind="rewrite"):
-    @planted_fault(name, applies_to=applies_to, cls=cls, mechanism=mechanism, fails=fails, kind=kind)
-    def fault(test_id, command_name, args):
-        return match(command_name, args) if match else None
-    fault.__name__ = name
-    return fault
+def _declare(name, doc):
+    @helper(name)
+    def _h(ctx, **kwargs):
+        return None, "helper body not written (design phase)", [], True
+    _h.__name__ = name
+    _h.__doc__ = doc
 
 
-_fault("period_window_cut", ["L2-1", "L2-7"], "harness-expectation",
-       "the harness stops the ground telemetry feed for 15 s inside the window, so the ground sees a gap above the bound",
-       {"L2-1": ["max gap of temperature, attitude and location samples <= 2 s"],
-        "L2-7": ["max gap of temperature, attitude and location samples <= 10 s"]})
-_fault("capture_twice", ["L2-3"], "uut-state",
-       "a second CAPTURE is sent while the first is in progress; a WARNING_LO rejection and a failed command response appear in a window that expects none",
-       {"L2-3": ["commands completed with error == 0"]},
-       match=lambda c, a: [(c, a), (c, a)] if _is(c, "CAPTURE") else None, kind="insert")
-_fault("downlink_other_product", ["L2-5", "L2-9"], "harness-expectation",
-       "DOWNLINK names the previous product, so the ground file differs from the product whose hash the test compares",
-       {"L2-5": ["ground file sha256 == on-board sha256 of the named product"],
-        "L2-9": ["ground file sha256 == on-board sha256 of the named product"]})
-_fault("skip_sensor_off", ["L5-1", "L5-3", "L5-5", "L5-9"], "stimulus",
-       "the bench action that removes the sensor is skipped; the sensor keeps answering",
-       {"L5-1": ["event sensorMonitor.Bmp280Lost count == 1"], "L5-3": ["event sensorMonitor.Mpu6050Lost count == 1"],
-        "L5-5": ["event sensorMonitor.GpsSilent count == 1"], "L5-9": ["attitude validity record == invalid"]})
-_fault("gps_keep_fix", ["L5-7"], "stimulus", "the GPS source keeps sending fix sentences",
-       {"L5-7": ["last(sensorMonitor.FixValid) == INVALID"]})
-_fault("camera_left_on", ["L5-11"], "stimulus", "the camera is left available, so the capture succeeds",
-       {"L5-11": ["event productManager.CaptureFailed count == 1"]})
-_fault("storage_left_writable", ["L5-13"], "stimulus", "the product directory is left writable, so the capture succeeds",
-       {"L5-13": ["event productManager.StorageFailed count == 1"]})
-_fault("cfdp_left_running", ["L5-15"], "stimulus", "the ground CFDP service is left running, so the transfer finishes",
-       {"L5-15": ["event productManager.DownlinkStalled count == 1"]})
-_fault("outage_skipped", ["L5-17", "L5-19"], "stimulus", "the outage action is skipped; telemetry never stops",
-       {"L5-17": ["telemetry gap in the window >= 60 s"], "L5-19": ["telemetry gap in the window >= 60 s"]})
-_fault("gps_good_checksum", ["L5-21"], "stimulus", "position B is sent with a correct checksum, so it is reported",
-       {"L5-21": ["position B never reported"]})
-_fault("frame_not_corrupted", ["L6-1"], "stimulus", "the first frame is injected intact, so two commands are dispatched",
-       {"L6-1": ["event cmdDisp.NoOpReceived count == 1"]})
+for _name, _doc in [
+    ("max_ground_gap", "Largest gap between ground reception times of each listed channel <= bound_s."),
+    ("ground_gap_at_least", "Ground reception of the listed channels stops for at least bound_s inside the window."),
+    ("command_completed_within", "OpCodeCompleted of the command's opcode - its dispatch <= bound_s (FSW clock)."),
+    ("product_time_within", "Capture time record of the ground file against the bench time of the CAPTURE, bound_s."),
+    ("product_sample_age_within", "Sample time of each valid metric record against the capture time record, bound_s."),
+    ("first_samples_after_action_within", "First sample of each Table 1 channel after a bench action, bound_s; no command between."),
+    ("valid_after_return_within", "First VALID sample of a validity channel after the return command or action, bound_s."),
+    ("event_after_each_command_within", "Each loss event follows its BENCH_LINE OFF command within bound_s."),
+    ("event_after_action_within", "Event time against the bench time of a bench action (bench-actions.log), bound_s."),
+    ("resume_after_action_within", "First sample received and first command completion after a bench action, bound_s."),
+    ("stall_time_between", "Stall event time against the start of the no-progress period, between lo_s and hi_s."),
+    ("downlink_duration_at_least", "CFDP transaction duration from the ground transfer record >= bound_s."),
+    ("no_frame_gaps", "Telemetry frame counter of the ground recorder has no gap inside the window."),
+]:
+    _declare(_name, _doc)
+
+
+@planted_fault("capture_twice", applies_to=["L2-3"], cls="stimulus", kind="insert",
+               mechanism="CAPTURE is sent twice in a row (command productManager.CAPTURE, inserted copy); two products are written where the test expects one",
+               fails={"L2-3": ["event productManager.ProductWritten count == 1"]})
+def capture_twice(test_id, command_name, args):
+    if _is(command_name, "CAPTURE"):
+        return [(command_name, args), (command_name, args)]
+    return None
+
+
+@planted_fault("corrupt_product", applies_to=["L2-5", "L2-6", "L2-9"], cls="uut-state", kind="insert",
+               mechanism="sysTester.CORRUPT_PRODUCT(name) is inserted before productManager.DOWNLINK (after any DUMP_SHA256): the first two bytes of the picture record of the stored product are overwritten on board, so the file sent differs from the file hashed and is no JPEG; each test removes its products at teardown, so no later test or the final state sees it",
+               fails={"L2-5": ["sha256 of record/raw/files/<P2> == hash in the sysTester.Sha256 event"],
+                      "L2-6": ["ground file starts FFD8 and ends FFD9"],
+                      "L2-9": ["sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event"]})
+def corrupt_product(test_id, command_name, args):
+    if _is(command_name, "DOWNLINK"):
+        return [("sysTester.CORRUPT_PRODUCT", [args[0]]), (command_name, args)]
+    return None
+
+
+@planted_fault("sensor_line_kept_on", applies_to=["L5-1", "L5-3", "L5-9"], cls="stimulus",
+               mechanism="argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering",
+               fails={"L5-1": ["event sensorMonitor.Bmp280Lost count == 1"],
+                      "L5-3": ["event sensorMonitor.Mpu6050Lost count == 1"],
+                      "L5-9": ["attitude validity record INVALID"]})
+def sensor_line_kept_on(test_id, command_name, args):
+    if _is(command_name, "BENCH_LINE") and len(args) == 2 and str(args[1]) == "OFF":
+        return [args[0], "ON"]
+    return None
+
+
+@planted_fault("dump_sha_other", applies_to=["L3-1", "L5-15"], cls="harness-expectation",
+               mechanism="argument `name` of the second sysTester.DUMP_SHA256 of the test is rewritten to the deployment's own executable file, so the second hash differs from the first",
+               fails={"L3-1": ["the two Sha256 events are equal"], "L5-15": ["the two Sha256 events are equal"]})
+def dump_sha_other(test_id, command_name, args, _seen={}):
+    if _is(command_name, "DUMP_SHA256"):
+        _seen[test_id] = _seen.get(test_id, 0) + 1
+        if _seen[test_id] == 2:
+            return ["/proc/self/exe"]
+    return None

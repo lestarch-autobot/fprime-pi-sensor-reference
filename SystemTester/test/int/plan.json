@@ -10,25 +10,59 @@
   "sysTester.Marker": "SystemTester marker (?P<id>\\d+)$"
  },
  "packets": {
-  "Sensors": [
+  "Heartbeat": [
+   "sysTester.UptimeS",
+   "cmdDisp.CommandsDispatched"
+  ],
+  "Table1": [
    "sensorMonitor.Temperature",
+   "sensorMonitor.TemperatureValid",
    "sensorMonitor.Roll",
    "sensorMonitor.Pitch",
+   "sensorMonitor.AttitudeValid",
+   "sensorMonitor.GyroX",
+   "sensorMonitor.GyroY",
+   "sensorMonitor.GyroZ",
    "sensorMonitor.Latitude",
-   "sensorMonitor.Longitude"
+   "sensorMonitor.Longitude",
+   "sensorMonitor.Altitude",
+   "sensorMonitor.FixValid"
   ]
  },
  "std_complete": [
   "both markers present",
   "commands_sent == count(event cmdDisp.OpCodeDispatched)",
   "event cmdDisp.OpCodeError count == 0",
-  "Sensors samples >= 2"
+  "event cmdDisp.TooManyCommands count == 0",
+  "event comQueue.QueueOverflow count == 0",
+  "Heartbeat samples >= 2"
  ],
  "abs": {
   "ABS": [
    "event productManager.CaptureFailed count == 0",
    "event productManager.StorageFailed count == 0",
-   "event productManager.DownlinkStalled count == 0"
+   "event productManager.DownlinkStalled count == 0",
+   "event sysTester.Started count == 0"
+  ],
+  "STD-OUT": [
+   "both markers present",
+   "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+   "event cmdDisp.OpCodeError count == 0",
+   "event cmdDisp.TooManyCommands count == 0",
+   "Heartbeat samples >= 2"
+  ],
+  "STD-ERR": [
+   "both markers present",
+   "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+   "event cmdDisp.OpCodeError count == 1",
+   "event cmdDisp.TooManyCommands count == 0",
+   "event comQueue.QueueOverflow count == 0",
+   "Heartbeat samples >= 2"
+  ],
+  "STD-RST": [
+   "both markers present",
+   "event comQueue.QueueOverflow count == 0",
+   "Heartbeat samples >= 2"
   ]
  },
  "helpers_module": "planted_faults.py",
@@ -41,7 +75,7 @@
   }
  ],
  "uut": "PiSensor deployment (docs/ssdd.md)",
- "deployment": "PiSensor, the project's full system deployment, with the harness component sysTester and the coverage-dump component",
+ "deployment": "PiSensor full system deployment plus the harness component sysTester; two images: prototype (TCP) and flight (RFM69)",
  "coverage": {
   "ut": {
    "lines_min": 95
@@ -52,90 +86,85 @@
   "not_covered_ack": [
    "Error branches of inherited components that need a bus or driver fault not plantable on this bench: unit tests of the catalog cover them."
   ],
-  "rationale": "Baselines of the skill; thresholds apply to the three new components, whose campaigns report unit-test coverage."
+  "rationale": "Baselines of the skill; thresholds apply to the three new components, whose campaigns report unit-test coverage. The coverage-dump component is in the development-campaign image only, never in the images of the run-for-record."
  },
- "reboot_min_backstep_s": 1,
  "image_version": {
   "policy": "required"
+ },
+ "final_state": {
+  "accepted_evidence": "bench sha256sum of the L7-1 product file, taken over ssh after the run into record/raw/final-state.txt, compared by the auditor with the sha256 of the ground file in record/raw/files/",
+  "rationale": "The on-board hash command runs inside the UUT process; the bench reads the file itself, outside the UUT's reporting path."
  },
  "requirements": {
   "REQ-PiSensor-001": {
    "tests": [
     "L2-1",
     "L2-2",
-    "L2-9",
-    "L2-10"
+    "L2-9"
    ],
-   "verification": "L2-1, L2-2, L2-9, L2-10",
+   "verification": "L2-1, L2-2, L2-9",
    "note": ""
   },
   "REQ-PiSensor-002": {
    "tests": [
     "L2-1",
     "L2-2",
-    "L2-9",
-    "L2-10"
+    "L2-9"
    ],
-   "verification": "L2-1, L2-2, L2-9, L2-10",
+   "verification": "L2-1, L2-2, L2-9",
    "note": ""
   },
   "REQ-PiSensor-003": {
    "tests": [
     "L2-1",
     "L2-2",
-    "L2-9",
-    "L2-10"
+    "L2-9"
    ],
-   "verification": "L2-1, L2-2, L2-9, L2-10",
+   "verification": "L2-1, L2-2, L2-9",
    "note": ""
   },
   "REQ-PiSensor-004": {
    "tests": [
     "L2-3",
     "L2-4",
-    "L2-5",
     "L2-6"
    ],
-   "verification": "L2-3, L2-4, L2-5, L2-6",
+   "verification": "L2-3, L2-4, L2-6",
    "note": ""
   },
   "REQ-PiSensor-005": {
    "tests": [
     "L2-3",
     "L2-4",
-    "L2-5",
     "L2-6",
     "L7-1"
    ],
-   "verification": "L2-3, L2-4, L2-5, L2-6, L7-1",
+   "verification": "L2-3, L2-4, L2-6, L7-1",
    "note": ""
   },
   "REQ-PiSensor-006": {
    "tests": [
     "L2-3",
-    "L2-4",
-    "L2-5",
-    "L2-6"
+    "L2-4"
    ],
-   "verification": "L2-3, L2-4, L2-5, L2-6",
+   "verification": "L2-3, L2-4",
    "note": ""
   },
   "REQ-PiSensor-007": {
    "tests": [
     "L2-3",
-    "L2-4",
-    "L2-5",
-    "L2-6"
+    "L2-4"
    ],
-   "verification": "L2-3, L2-4, L2-5, L2-6",
+   "verification": "L2-3, L2-4",
    "note": ""
   },
   "REQ-PiSensor-008": {
    "tests": [
+    "L5-2",
     "L5-9",
     "L5-10"
    ],
-   "verification": "L5-9, L5-10",
+   "verification": "L5-2, L5-9, L5-10",
    "note": ""
   },
   "REQ-PiSensor-009": {
@@ -161,23 +190,25 @@
   },
   "REQ-PiSensor-012": {
    "tests": [
+    "L2-3",
+    "L2-4",
     "L2-5",
-    "L2-6",
     "L2-9",
     "L2-10"
    ],
-   "verification": "L2-5, L2-6, L2-9, L2-10",
+   "verification": "L2-3, L2-4, L2-5, L2-9, L2-10",
    "note": ""
   },
   "REQ-PiSensor-013": {
    "tests": [
+    "L2-3",
+    "L2-4",
     "L2-5",
-    "L2-6",
     "L2-9",
     "L2-10",
     "L7-1"
    ],
-   "verification": "L2-5, L2-6, L2-9, L2-10, L7-1",
+   "verification": "L2-3, L2-4, L2-5, L2-9, L2-10, L7-1",
    "note": ""
   },
   "REQ-PiSensor-014": {
@@ -187,40 +218,41 @@
   },
   "REQ-PiSensor-015": {
    "tests": [
+    "L0-3",
     "L2-9",
     "L2-10"
    ],
-   "verification": "L2-9, L2-10",
+   "verification": "L0-3, L2-9, L2-10",
    "note": ""
   },
   "REQ-PiSensor-016": {
    "tests": [
     "L2-1",
     "L2-2",
-    "L2-5",
-    "L2-6"
+    "L2-3",
+    "L2-4"
    ],
-   "verification": "L2-1, L2-2, L2-5, L2-6",
+   "verification": "L2-1, L2-2, L2-3, L2-4",
    "note": ""
   },
   "REQ-PiSensor-017": {
    "tests": [
     "L2-1",
     "L2-2",
-    "L2-5",
-    "L2-6",
+    "L2-3",
+    "L2-4",
     "L2-9",
     "L2-10"
    ],
-   "verification": "L2-1, L2-2, L2-5, L2-6, L2-9, L2-10",
+   "verification": "L2-1, L2-2, L2-3, L2-4, L2-9, L2-10",
    "note": ""
   },
   "REQ-PiSensor-018": {
    "tests": [
-    "L2-7",
-    "L2-8"
+    "L2-9",
+    "L2-10"
    ],
-   "verification": "L2-7, L2-8",
+   "verification": "L2-9, L2-10",
    "note": ""
   },
   "REQ-PiSensor-019": {
@@ -310,12 +342,14 @@
   },
   "REQ-PiSensor-029": {
    "tests": [
+    "L3-3",
+    "L3-4",
     "L5-11",
     "L5-12",
     "L5-13",
     "L5-14"
    ],
-   "verification": "L5-11, L5-12, L5-13, L5-14",
+   "verification": "L3-3, L3-4, L5-11, L5-12, L5-13, L5-14",
    "note": ""
   },
   "REQ-PiSensor-030": {
@@ -360,9 +394,10 @@
   "REQ-PiSensor-036": {
    "tests": [
     "L5-17",
-    "L5-18"
+    "L5-18",
+    "L5-23"
    ],
-   "verification": "L5-17, L5-18",
+   "verification": "L5-17, L5-18, L5-23",
    "note": ""
   },
   "REQ-PiSensor-037": {
@@ -377,14 +412,10 @@
    "tests": [
     "L3-1",
     "L3-2",
-    "L5-15",
-    "L5-16",
     "L5-17",
-    "L5-18",
-    "L5-19",
-    "L5-20"
+    "L5-19"
    ],
-   "verification": "L3-1, L3-2, L5-15, L5-16, L5-17, L5-18, L5-19, L5-20",
+   "verification": "L3-1, L3-2, L5-17, L5-19",
    "note": ""
   },
   "REQ-PiSensor-039": {
@@ -408,9 +439,9 @@
   "REQ-PiSensor-042": {
    "tests": [
     "L0-1",
-    "L2-1"
+    "L0-3"
    ],
-   "verification": "L0-1, L2-1",
+   "verification": "L0-1, L0-3",
    "note": ""
   },
   "REQ-PiSensor-043": {
@@ -420,17 +451,24 @@
   }
  },
  "scope": [
-  "L0: desk-checked; bench confirmation pending (marker `sysTester.MARK(U32)`; event rate at most 5 per second against a 255-byte RFM69 frame).",
+  "L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> event `sysTester.Marker(id)` (the deployment has no command with a free 32-bit argument that echoes). Event rate: at most 5 events per second in any window. Link budget [I]: RFM69 at the catalog default `DATA_RATE` 19200 bit/s (`Rfm69Manager.fpp`) carries 2400 byte/s, about nine 255-byte frames; Table 1 telemetry at 1 Hz and 5 events/s are estimated at under 800 byte/s, leaving 1600 byte/s for CFDP, so a 100 kB JPEG takes at least 60 s. The bench check at L0 replaces this estimate.",
   "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS 13.",
-  "- Ground system: fprime-yamcs at the ledger pin, with the project YAMCS configuration directory (CFDP service).",
-  "- Prototype configuration (TCP through `fprime-comm-bridge`) for every test except L2-9 and L2-10, which run the flight configuration over the RFM69.",
+  "- Test deployment (SSDD decision D13, the human's ruling): the full deployment plus the harness component `sysTester`. Constraint: without it there is no marker command, no on-board file hash, no directory listing outside `productManager` and no commandable bench line. Images named in the manifest `images[]`: `PiSensor-prototype` (TCP) and `PiSensor-flight` (RFM69).",
+  "- `sysTester` commands: `MARK(id)`, `PLATFORM()`, `LIST_DIR(dir)`, `DUMP_SHA256(name)`, `BENCH_LINE(line, state)`, `CORRUPT_PRODUCT(name)`. Events: `Marker`, `Started` (once per process start), `Platform`, `DirListing`, `Sha256`. Channel `UptimeS` every second (always written).",
+  "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service).",
+  "- Order: the prototype block (L0-1 to L6-2, TCP) runs first; the flight block (L0-3, L2-9, L2-10, L5-16, L5-23, L7-1, RFM69) runs last. The switch is the bench action at the head of L0-3.",
+  "- Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time and, for the GPS source, its byte counter; every CFDP file received is copied to `record/raw/files/` before it is hashed; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json` and from the F Prime CFDP events; frames are recorded at `fprime-comm-bridge`, which stays up when YAMCS is stopped.",
+  "- Completeness: every window requires STD and the helper `no_frame_gaps` (no gap in the telemetry frame counter of the ground recorder); a dropped frame or an overflowed queue makes the window UNVERIFIED, never a pass of an absence check. Windows that expect a queue overflow (link and ground outages) or a failed command require the named variant `STD-OUT`, `STD-ERR` or `STD-RST` given in their rationale, and judge no absence across the outage.",
+  "- Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 (`PLATFORM()` event time against bench time) and must be under 0.5 s; time tolerances that compare the two clocks use 2 s (SSDD decision D12).",
+  "- Validity channels (`TemperatureValid`, `AttitudeValid`, `FixValid`) are written every period, not on change; a window without samples of them fails.",
   "- Out of scope: BMP280 pressure (decision D9); yaw."
  ],
  "entry_gates": [
   "- Component campaigns `sensmon`, `picam`, `prodmgr` closed; their unit tests pass.",
-  "- Images built from the manifest SHAs; L0-1 and L0-2 pass on the bench.",
-  "- Event rate fits the downlink: at most 5 events per second in any window.",
-  "- Bench recipe: BMP280, MPU6050, GPS sentence source and Pi Camera attached; bench switches for the BMP280 chip select and the MPU6050 bus; ground Pi with RFM69 for L2-9 and L2-10."
+  "- Images built from the manifest SHAs; L0-1, L0-2 and L0-3 pass on the bench.",
+  "- Product directory on its own 64 MB file system (loop-mounted image file, kept across a reboot), empty at the start of each test (bench teardown removes the products of the test). The fill and read-only actions touch only that file system.",
+  "- Bench recipe: BMP280, MPU6050, Pi Camera attached; bench line BMP280 = a switch on the BMP280 supply driven by a Pi GPIO; bench line MPU6050 = the same on the MPU6050 supply; a GPS sentence source (workstation USB serial adapter on the GPS UART, 9600 baud, driven by a bench script) in place of the receiver for every test but L2-1 and L2-2; ground Pi with RFM69 for the flight block, its radio supply switchable from the workstation.",
+  "- Privileges on `soakee` (none today: user `fprime` has no passwordless sudo): root for the service units, the reboot, the loop mount and remount, and the camera driver unbind. The TCP link block and the YAMCS and CFDP service actions run on the workstation and need none."
  ],
  "levels": [
   "L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L6 negative controls · L7 final state. No L4 endurance test: no requirement has an endurance bound."
@@ -440,29 +478,36 @@
   "- delegated: sensmon — REQ-PiSensor-043 (component row of `sensorMonitor`).",
   "- delegated: picam — REQ-PiSensor-040 (inspection of the camera library).",
   "- REQ-PiSensor-026: unit test only (decision D11).",
-  "- A sensor fault is planted by removing the device from its bus; a device that answers with wrong data is not planted (out-of-range data is waived in the requirements rationale).",
-  "- Radio interference and range: the RFM69 link is tested on the bench at short range only.",
-  "- The BMP280 and the GPS receiver do not answer on the bench yet; L2-1, L2-2, L5-1, L5-2, L5-5 to L5-10, L5-21, L5-22 cannot run until they are wired."
+  "- A sensor fault is planted by removing the sensor's supply or its sentence stream; a sensor that answers with wrong data is not planted.",
+  "- REQ-PiSensor-008 at its 2 s boundary: the tests use 3 s; a case just under 2 s is not run because the bench action timing error is of the size of the margin. The boundary is a unit test of `productManager`.",
+  "- REQ-PiSensor-037 in the prototype configuration: the flight software sees a stopped ground system as the same TCP drop as a link outage; L5-19 and L5-20 differ from L5-17 and L5-18 on the ground side only.",
+  "- REQ-PiSensor-018 over TCP: a file finishes in about a second, so the bound is tested in the flight block only.",
+  "- Radio interference and range: the RFM69 link is tested at bench range only.",
+  "- Today's bench cannot run these tests: the BMP280 and GPS receiver do not answer (L2-1, L2-2 and every test whose setup needs four sensors), and the bench lines, the GPS sentence source, the camera, the ground Pi and root on `soakee` are absent."
  ],
  "decision_log": [
-  "1. 2026-11-17 designer — deployment = the project's full system deployment plus the harness component `sysTester` (`MARK(U32)`) and the coverage-dump component.",
-  "2. 2026-11-17 designer — product content is judged on the ground copy of the file (evidence outside the UUT's own reporting path); `DUMP_SHA256` is a `sysTester` command that hashes the on-board file.",
-  "3. 2026-11-17 designer — GPS faults are planted with a bench sentence source on the GPS UART in place of the receiver; the receiver itself is used in L2-1 and L2-2.",
-  "4. 2026-11-17 designer — corrupted uplink frames are injected at the ground side of the link by a bench script, not by fprime-yamcs."
+  "1. 2026-11-17 designer — test deployment = full deployment + `sysTester`; proposed to the human as SSDD decision D13.",
+  "2. 2026-11-17 designer — product content and identity are judged on the ground copy of the file; `DUMP_SHA256` gives the on-board hash and the bench `sha256sum` the independent final state.",
+  "3. 2026-11-17 designer — GPS faults are planted with a bench sentence source in place of the receiver; the receiver itself is used in L2-1 and L2-2.",
+  "4. 2026-11-17 designer — corrupted uplink frames are injected at `fprime-comm-bridge` by a bench script; the intact command that follows is sent by the harness.",
+  "5. 2026-11-17 designer, review round 1 — a restart is judged by `sysTester.Started` and `UptimeS`, not by a clock epoch: the time source is the Pi system clock, which does not step back. All windows are `reset: false`.",
+  "6. 2026-11-17 designer, review round 1 — planted faults rewrite or insert commands only; bench actions that a fault must change are `sysTester.BENCH_LINE` commands. Tests whose fault stimulus is a bench script carry no planted fault.",
+  "7. 2026-11-17 designer, review round 1 — every test makes its own product; no test depends on a product of another test."
  ],
  "tests": [
   {
    "id": "L0-1",
-   "title": "Image identity",
-   "purpose": "Proves the running image is the one named in the manifest.",
+   "title": "Image and platform identity, prototype image",
+   "purpose": "Proves the running image is the manifest's prototype image and runs on a Raspberry Pi 5 under Raspberry Pi OS 13.",
    "covers": [
     "REQ-PiSensor-042"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5; link up.",
+   "setup": "Prototype image running on the Raspberry Pi 5; link up.",
    "procedure": [
     "MARK(10)",
     "VERSION(ALL)",
-    "bracket (2 Sensors samples)",
+    "PLATFORM()",
+    "bracket (2 Heartbeat samples)",
     "MARK(11)"
    ],
    "windows": [
@@ -476,7 +521,7 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Version events equal to the manifest describe strings; board model and OS release in the run record."
+   "evidence": "Version events equal the manifest describe strings; check: sysTester.Platform model starts with \"Raspberry Pi 5\" and os_version == 13."
   },
   {
    "id": "L0-2",
@@ -486,7 +531,7 @@
    "setup": "As L0-1.",
    "procedure": [
     "MARK(20)",
-    "bracket (2 Sensors samples)",
+    "bracket (2 Heartbeat samples)",
     "MARK(0xA5A5)",
     "MARK(21)"
    ],
@@ -501,21 +546,20 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Three Marker events in order."
+   "evidence": "Three Marker events in order, ids byte-exact."
   },
   {
    "id": "L2-1",
    "title": "Sensor telemetry period",
-   "purpose": "Proves temperature, attitude and location telemetry each arrive at the ground at least every 2 s.",
+   "purpose": "Proves every Table 1 channel arrives at the ground at least every 2 s.",
    "covers": [
     "REQ-PiSensor-001",
     "REQ-PiSensor-002",
     "REQ-PiSensor-003",
     "REQ-PiSensor-016",
-    "REQ-PiSensor-017",
-    "REQ-PiSensor-042"
+    "REQ-PiSensor-017"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(30)",
     "wait 60 s",
@@ -529,17 +573,24 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "period_window_cut"
+   "metrics": [
+    {
+     "helper": "max_ground_gap",
+     "text": "largest gap between ground reception times of every Table 1 channel in the window <= 2 s",
+     "args": {
+      "channels": "Table1",
+      "bound_s": 2
+     }
+    }
    ],
-   "evidence": "Channel strips over 60 s; check: largest gap between ground receipt times of temperature, attitude and location samples <= 2 s."
+   "rationale": [],
+   "knobs": [],
+   "evidence": "Channel strips over 60 s; check: every Table 1 channel has samples and all three validity channels read VALID."
   },
   {
    "id": "L2-2",
-   "title": "Sensor telemetry period, repeated after commanding",
-   "purpose": "Proves the 2 s telemetry period holds again after command traffic.",
+   "title": "Sensor telemetry period under command traffic",
+   "purpose": "Proves the 2 s telemetry period holds while commands are dispatched.",
    "covers": [
     "REQ-PiSensor-001",
     "REQ-PiSensor-002",
@@ -547,13 +598,15 @@
     "REQ-PiSensor-016",
     "REQ-PiSensor-017"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(32)",
     "NO_OP()",
+    "wait 10 s",
     "NO_OP()",
+    "wait 10 s",
     "NO_OP()",
-    "wait 30 s",
+    "wait 10 s",
     "MARK(33)"
    ],
    "windows": [
@@ -564,27 +617,42 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "max_ground_gap",
+     "text": "largest gap between ground reception times of every Table 1 channel in the window <= 2 s",
+     "args": {
+      "channels": "Table1",
+      "bound_s": 2
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Channel strips over 30 s; same 2 s gap check; three NoOpReceived events."
+   "evidence": "As L2-1; check: event cmdDisp.NoOpReceived count == 3."
   },
   {
    "id": "L2-3",
-   "title": "Capture makes one correlated product",
-   "purpose": "Proves one capture command makes one product holding a JPEG of at least 640x480 and valid, timed metrics.",
+   "title": "Capture and downlink of one product",
+   "purpose": "Proves one capture makes one product with a JPEG of at least 640x480 and valid, timed metrics, delivered byte-identical by CFDP class 2.",
    "covers": [
     "REQ-PiSensor-004",
     "REQ-PiSensor-005",
     "REQ-PiSensor-006",
     "REQ-PiSensor-007",
-    "REQ-PiSensor-010"
+    "REQ-PiSensor-010",
+    "REQ-PiSensor-012",
+    "REQ-PiSensor-013",
+    "REQ-PiSensor-016",
+    "REQ-PiSensor-017"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(40)",
     "CAPTURE()",
-    "bracket (2 Sensors samples)",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(41)"
    ],
    "windows": [
@@ -596,30 +664,59 @@
     }
    ],
    "metrics": [
-    "t(event productManager.ProductWritten) - t(productManager.CAPTURE sent) <= 30 s"
+    {
+     "helper": "command_completed_within",
+     "text": "CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s",
+     "args": {
+      "command": "productManager.CAPTURE",
+      "bound_s": 30
+     }
+    },
+    {
+     "helper": "product_time_within",
+     "text": "|capture time record - bench time of CAPTURE sent| <= 2 s",
+     "args": {
+      "bound_s": 2
+     }
+    },
+    {
+     "helper": "product_sample_age_within",
+     "text": "|sample time - capture time| <= 2 s for temperature, attitude and location",
+     "args": {
+      "bound_s": 2
+     }
+    }
    ],
    "rationale": [],
    "knobs": [
     "capture_twice"
    ],
-   "evidence": "ProductWritten event naming the file; product records read from the downlinked copy in L2-5."
+   "evidence": "check: event productManager.ProductWritten count == 1 (names P); check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event; check: CFDP transaction of P at the ground is class 2 and finished complete; checks on the ground file: starts FFD8 and ends FFD9; SOF0 width >= 640 and height >= 480; one picture, location, attitude and temperature record; all three validity records VALID."
   },
   {
    "id": "L2-4",
-   "title": "Second capture makes a second product",
-   "purpose": "Proves a later capture makes a new product with its own capture time and fresh metrics.",
+   "title": "Capture and downlink, repeated",
+   "purpose": "Proves a second capture makes a new product with its own name and capture time, delivered byte-identical.",
    "covers": [
     "REQ-PiSensor-004",
     "REQ-PiSensor-005",
     "REQ-PiSensor-006",
     "REQ-PiSensor-007",
-    "REQ-PiSensor-010"
+    "REQ-PiSensor-010",
+    "REQ-PiSensor-012",
+    "REQ-PiSensor-013",
+    "REQ-PiSensor-016",
+    "REQ-PiSensor-017"
    ],
-   "setup": "As L2-3, one product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(42)",
     "CAPTURE()",
-    "bracket (2 Sensors samples)",
+    "wait 5 s",
+    "CAPTURE()",
+    "DUMP_SHA256(P2)",
+    "DOWNLINK(P2)",
+    "wait CFDP transaction finished at the ground",
     "MARK(43)"
    ],
    "windows": [
@@ -631,304 +728,310 @@
     }
    ],
    "metrics": [
-    "t(event productManager.ProductWritten) - t(productManager.CAPTURE sent) <= 30 s"
+    {
+     "helper": "command_completed_within",
+     "text": "CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s",
+     "args": {
+      "command": "productManager.CAPTURE",
+      "bound_s": 30
+     }
+    },
+    {
+     "helper": "product_time_within",
+     "text": "|capture time record - bench time of CAPTURE sent| <= 2 s",
+     "args": {
+      "bound_s": 2
+     }
+    },
+    {
+     "helper": "product_sample_age_within",
+     "text": "|sample time - capture time| <= 2 s for temperature, attitude and location",
+     "args": {
+      "bound_s": 2
+     }
+    }
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Second ProductWritten event with a different name; records read from the downlinked copy in L2-6."
+   "evidence": "check: event productManager.ProductWritten count == 2 with different names; capture time of P2 later than the first; check: sha256 of record/raw/files/<P2> == hash in the sysTester.Sha256 event; class 2 check; checks on the ground file: starts FFD8 and ends FFD9; SOF0 width >= 640 and height >= 480; one picture, location, attitude and temperature record; all three validity records VALID."
   },
   {
    "id": "L2-5",
-   "title": "Downlink of the first product",
-   "purpose": "Proves a downlink command delivers the named product by CFDP class 2, byte-identical, to fprime-yamcs.",
+   "title": "Downlink selects the named product",
+   "purpose": "Proves a downlink command sends the product it names and no other.",
    "covers": [
     "REQ-PiSensor-012",
-    "REQ-PiSensor-013",
-    "REQ-PiSensor-016",
-    "REQ-PiSensor-017",
-    "REQ-PiSensor-004",
-    "REQ-PiSensor-005",
-    "REQ-PiSensor-006",
-    "REQ-PiSensor-007"
+    "REQ-PiSensor-013"
    ],
-   "setup": "Product of L2-3 stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
-    "MARK(50)",
-    "DOWNLINK(product of L2-3)",
-    "wait CFDP transfer finished",
-    "DUMP_SHA256(product of L2-3)",
-    "MARK(51)"
+    "MARK(44)",
+    "CAPTURE()",
+    "wait 5 s",
+    "CAPTURE()",
+    "DUMP_SHA256(P2)",
+    "DOWNLINK(P2)",
+    "wait CFDP transaction finished at the ground",
+    "MARK(45)"
    ],
    "windows": [
     {
      "name": "W",
-     "start_id": 50,
-     "end_id": 51,
+     "start_id": 44,
+     "end_id": 45,
      "reset": false
     }
    ],
    "metrics": [],
    "rationale": [],
    "knobs": [
-    "downlink_other_product"
+    "corrupt_product"
    ],
-   "evidence": "CFDP class 2 transaction finished at YAMCS; ground file sha256 equals the on-board sha256 event; product records decoded from the ground file."
+   "evidence": "check: exactly one file arrived and its name is P2; check: sha256 of record/raw/files/<P2> == hash in the sysTester.Sha256 event; class 2 check."
   },
   {
    "id": "L2-6",
-   "title": "Downlink of the second product",
-   "purpose": "Proves a second downlink delivers the second product byte-identical.",
+   "title": "Product content at the ground",
+   "purpose": "Proves the picture and the three metric records of a product are intact in the ground copy.",
    "covers": [
-    "REQ-PiSensor-012",
-    "REQ-PiSensor-013",
-    "REQ-PiSensor-016",
-    "REQ-PiSensor-017",
     "REQ-PiSensor-004",
-    "REQ-PiSensor-005",
-    "REQ-PiSensor-006",
-    "REQ-PiSensor-007"
+    "REQ-PiSensor-005"
    ],
-   "setup": "Product of L2-4 stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
-    "MARK(52)",
-    "DOWNLINK(product of L2-4)",
-    "wait CFDP transfer finished",
-    "DUMP_SHA256(product of L2-4)",
-    "MARK(53)"
-   ],
-   "windows": [
-    {
-     "name": "W",
-     "start_id": 52,
-     "end_id": 53,
-     "reset": false
-    }
-   ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [],
-   "evidence": "As L2-5 for the second product."
-  },
-  {
-   "id": "L2-7",
-   "title": "Telemetry during a downlink",
-   "purpose": "Proves sensor telemetry still arrives at least every 10 s while a product is downlinked.",
-   "covers": [
-    "REQ-PiSensor-018"
-   ],
-   "setup": "One product stored.",
-   "procedure": [
-    "MARK(54)",
+    "MARK(46)",
     "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "MARK(55)"
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "MARK(47)"
    ],
    "windows": [
     {
      "name": "W",
-     "start_id": 54,
-     "end_id": 55,
+     "start_id": 46,
+     "end_id": 47,
      "reset": false
     }
    ],
    "metrics": [],
    "rationale": [],
    "knobs": [
-    "period_window_cut"
+    "corrupt_product"
    ],
-   "evidence": "Channel strips between the CFDP start and finish events; check: largest gap <= 10 s."
-  },
-  {
-   "id": "L2-8",
-   "title": "Telemetry during a second downlink",
-   "purpose": "Proves the 10 s telemetry bound holds during a repeated downlink of a stored product.",
-   "covers": [
-    "REQ-PiSensor-018"
-   ],
-   "setup": "Product of L2-7 stored.",
-   "procedure": [
-    "MARK(56)",
-    "DOWNLINK(product of L2-7)",
-    "wait CFDP transfer finished",
-    "MARK(57)"
-   ],
-   "windows": [
-    {
-     "name": "W",
-     "start_id": 56,
-     "end_id": 57,
-     "reset": false
-    }
-   ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [],
-   "evidence": "As L2-7."
-  },
-  {
-   "id": "L2-9",
-   "title": "Flight configuration over the RFM69",
-   "purpose": "Proves commands, telemetry, events and a CFDP file pass over the RFM69 with no TCP socket open on the Pi.",
-   "covers": [
-    "REQ-PiSensor-015",
-    "REQ-PiSensor-017",
-    "REQ-PiSensor-001",
-    "REQ-PiSensor-002",
-    "REQ-PiSensor-003",
-    "REQ-PiSensor-012",
-    "REQ-PiSensor-013"
-   ],
-   "setup": "Flight image running; ground Pi with RFM69 and groundRadio up.",
-   "procedure": [
-    "MARK(60)",
-    "NO_OP()",
-    "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "action: list TCP sockets of the deployment process",
-    "MARK(61)"
-   ],
-   "windows": [
-    {
-     "name": "W",
-     "start_id": 60,
-     "end_id": 61,
-     "reset": false
-    }
-   ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "downlink_other_product"
-   ],
-   "evidence": "Command response, channel samples, events and file at the ground; socket list empty."
-  },
-  {
-   "id": "L2-10",
-   "title": "Flight configuration, repeated",
-   "purpose": "Proves the RFM69 path carries a second command, telemetry and file exchange.",
-   "covers": [
-    "REQ-PiSensor-015",
-    "REQ-PiSensor-017",
-    "REQ-PiSensor-001",
-    "REQ-PiSensor-002",
-    "REQ-PiSensor-003",
-    "REQ-PiSensor-012",
-    "REQ-PiSensor-013"
-   ],
-   "setup": "As L2-9.",
-   "procedure": [
-    "MARK(62)",
-    "NO_OP()",
-    "DOWNLINK(product of L2-9)",
-    "wait CFDP transfer finished",
-    "action: list TCP sockets of the deployment process",
-    "MARK(63)"
-   ],
-   "windows": [
-    {
-     "name": "W",
-     "start_id": 62,
-     "end_id": 63,
-     "reset": false
-    }
-   ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [],
-   "evidence": "As L2-9."
+   "evidence": "checks on the ground file: starts FFD8 and ends FFD9; SOF0 width >= 640 and height >= 480; one picture, location, attitude and temperature record; all three validity records VALID."
   },
   {
    "id": "L3-1",
    "title": "Process restart",
-   "purpose": "Proves sensor telemetry resumes within 60 s of a process restart without commands and a stored product is still downlinkable.",
+   "purpose": "Proves Table 1 telemetry resumes within 60 s of a process restart without ground commands and a stored product is still downlinkable, unchanged.",
    "covers": [
     "REQ-PiSensor-038",
     "REQ-PiSensor-039"
    ],
-   "setup": "One product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(70)",
-    "action: kill the deployment process",
-    "wait telemetry",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
     "MARK(71)",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
-    "MARK(72)"
+    "action: kill the deployment process (SIGKILL); the service unit restarts it",
+    "wait first Table 1 samples at the ground",
+    "MARK(72)",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "MARK(73)"
    ],
    "windows": [
     {
-     "name": "R",
+     "name": "W1",
      "start_id": 70,
      "end_id": 71,
-     "reset": true
+     "reset": false
     },
     {
-     "name": "W2",
+     "name": "R",
      "start_id": 71,
      "end_id": 72,
      "reset": false
+    },
+    {
+     "name": "W2",
+     "start_id": 72,
+     "end_id": 73,
+     "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [],
-   "evidence": "Clock restart; first Sensors sample within 60 s with no command before it; ground file sha256 equals the pre-restart sha256."
+   "metrics": [
+    {
+     "helper": "first_samples_after_action_within",
+     "text": "first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them",
+     "args": {
+      "action": "kill the deployment process (SIGKILL); the service unit restarts it",
+      "bound_s": 60
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event sysTester.Started count == 1",
+     "text": "the Pi system clock does not step back at a restart, so the restart is judged by the start-up event, not by a clock epoch"
+    }
+   ],
+   "knobs": [
+    "dump_sha_other"
+   ],
+   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
   },
   {
    "id": "L3-2",
    "title": "Reboot",
-   "purpose": "Proves sensor telemetry resumes within 60 s of a reboot without commands and a stored product is still downlinkable.",
+   "purpose": "Proves Table 1 telemetry resumes within 60 s of a reboot without ground commands and a stored product is still downlinkable, unchanged.",
    "covers": [
     "REQ-PiSensor-038",
     "REQ-PiSensor-039"
    ],
-   "setup": "One product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
-    "MARK(73)",
-    "action: reboot the Raspberry Pi",
-    "wait telemetry",
     "MARK(74)",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
-    "MARK(75)"
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "MARK(75)",
+    "action: reboot the Raspberry Pi",
+    "wait first Table 1 samples at the ground",
+    "MARK(76)",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "MARK(77)"
    ],
    "windows": [
     {
+     "name": "W1",
+     "start_id": 74,
+     "end_id": 75,
+     "reset": false
+    },
+    {
      "name": "R",
-     "start_id": 73,
-     "end_id": 74,
-     "reset": true
+     "start_id": 75,
+     "end_id": 76,
+     "reset": false
     },
     {
      "name": "W2",
-     "start_id": 74,
-     "end_id": 75,
+     "start_id": 76,
+     "end_id": 77,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "first_samples_after_action_within",
+     "text": "first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them",
+     "args": {
+      "action": "reboot the Raspberry Pi",
+      "bound_s": 60
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event sysTester.Started count == 1",
+     "text": "the Pi system clock does not step back at a restart, so the restart is judged by the start-up event, not by a clock epoch"
+    }
+   ],
+   "knobs": [],
+   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+  },
+  {
+   "id": "L3-3",
+   "title": "Capture interrupted by a process kill",
+   "purpose": "Proves a capture interrupted by a restart leaves no product, complete or partial.",
+   "covers": [
+    "REQ-PiSensor-029"
+   ],
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(80)",
+    "LIST_DIR(products)",
+    "CAPTURE() without waiting for completion",
+    "action: kill the deployment process (SIGKILL) within 1 s of the CAPTURE",
+    "wait first Table 1 samples at the ground",
+    "LIST_DIR(products)",
+    "LIST_PRODUCTS()",
+    "MARK(81)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 80,
+     "end_id": 81,
      "reset": false
     }
    ],
    "metrics": [],
-   "rationale": [],
+   "rationale": [
+    {
+     "pred": "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+     "text": "the CAPTURE has no completion; the window requires STD-RST (dispatch counted per process run)"
+    }
+   ],
    "knobs": [],
-   "evidence": "As L3-1 after a reboot."
+   "evidence": "check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
+  },
+  {
+   "id": "L3-4",
+   "title": "Capture interrupted by a service stop",
+   "purpose": "Proves a capture interrupted by a restart leaves no product, complete or partial.",
+   "covers": [
+    "REQ-PiSensor-029"
+   ],
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(82)",
+    "LIST_DIR(products)",
+    "CAPTURE() without waiting for completion",
+    "action: stop and start the service unit (SIGTERM) within 1 s of the CAPTURE",
+    "wait first Table 1 samples at the ground",
+    "LIST_DIR(products)",
+    "LIST_PRODUCTS()",
+    "MARK(83)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 82,
+     "end_id": 83,
+     "reset": false
+    }
+   ],
+   "metrics": [],
+   "rationale": [
+    {
+     "pred": "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+     "text": "the CAPTURE has no completion; the window requires STD-RST (dispatch counted per process run)"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
   },
   {
    "id": "L5-1",
    "title": "BMP280 failure and return",
-   "purpose": "Proves a failed BMP280 raises WARNING_HI within 10 s, its metric reads invalid, and telemetry resumes within 10 s of its return.",
+   "purpose": "Proves a failed BMP280 raises WARNING_HI within 10 s, temperature reads invalid, and it is valid again within 10 s of the return, without a restart.",
    "covers": [
     "REQ-PiSensor-019",
     "REQ-PiSensor-022",
     "REQ-PiSensor-023"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(100)",
-    "action: hold the BMP280 chip select inactive (bench switch)",
+    "BENCH_LINE(BMP280, OFF)",
     "wait 15 s",
     "MARK(101)",
-    "action: release the BMP280 chip select",
+    "BENCH_LINE(BMP280, ON)",
     "wait 15 s",
     "MARK(102)"
    ],
@@ -946,30 +1049,45 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    "t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s",
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.TemperatureValid",
+      "bound_s": 10
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [
-    "skip_sensor_off"
+    "sensor_line_kept_on"
    ],
-   "evidence": "sensorMonitor.Bmp280Lost event within 10 s of the action; sensorMonitor.TemperatureValid invalid in F, valid within 10 s in B; no clock restart."
+   "evidence": "F: check event sensorMonitor.Bmp280Lost count == 1 (WARNING_HI), last(sensorMonitor.TemperatureValid) == INVALID, attitude and fix stay VALID. B: last(sensorMonitor.TemperatureValid) == VALID; both: event sysTester.Started count == 0."
   },
   {
    "id": "L5-2",
-   "title": "BMP280 failure and return, repeated",
-   "purpose": "Proves the BMP280 loss report and recovery repeat on a second failure.",
+   "title": "BMP280 failure before a capture",
+   "purpose": "Proves a BMP280 failed for 3 s is reported and its temperature is marked invalid in a product captured then.",
    "covers": [
     "REQ-PiSensor-019",
     "REQ-PiSensor-022",
-    "REQ-PiSensor-023"
+    "REQ-PiSensor-023",
+    "REQ-PiSensor-008"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(103)",
-    "action: hold the BMP280 chip select inactive (bench switch)",
-    "wait 15 s",
+    "BENCH_LINE(BMP280, OFF)",
+    "wait 3 s",
+    "CAPTURE()",
+    "wait 10 s",
     "MARK(104)",
-    "action: release the BMP280 chip select",
+    "BENCH_LINE(BMP280, ON)",
     "wait 15 s",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(105)"
    ],
    "windows": [
@@ -986,27 +1104,37 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    "t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s",
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.TemperatureValid",
+      "bound_s": 10
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
-   "evidence": "As L5-1."
+   "evidence": "As L5-1; ground file: temperature validity record INVALID, attitude and location VALID."
   },
   {
    "id": "L5-3",
    "title": "MPU6050 failure and return",
-   "purpose": "Proves a failed MPU6050 raises WARNING_HI within 10 s, its metric reads invalid, and telemetry resumes within 10 s of its return.",
+   "purpose": "Proves a failed MPU6050 raises WARNING_HI within 10 s, attitude reads invalid, and it is valid again within 10 s of the return, without a restart.",
    "covers": [
     "REQ-PiSensor-020",
     "REQ-PiSensor-022",
     "REQ-PiSensor-023"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(110)",
-    "action: disconnect the MPU6050 from the I2C bus (bench switch)",
+    "BENCH_LINE(MPU6050, OFF)",
     "wait 15 s",
     "MARK(111)",
-    "action: reconnect the MPU6050",
+    "BENCH_LINE(MPU6050, ON)",
     "wait 15 s",
     "MARK(112)"
    ],
@@ -1024,67 +1152,97 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    "t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s",
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.AttitudeValid",
+      "bound_s": 10
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [
-    "skip_sensor_off"
+    "sensor_line_kept_on"
    ],
-   "evidence": "sensorMonitor.Mpu6050Lost event within 10 s of the action; sensorMonitor.AttitudeValid invalid in F, valid within 10 s in B; no clock restart."
+   "evidence": "F: check event sensorMonitor.Mpu6050Lost count == 1 (WARNING_HI), last(sensorMonitor.AttitudeValid) == INVALID. B: VALID; both: event sysTester.Started count == 0."
   },
   {
    "id": "L5-4",
-   "title": "MPU6050 failure and return, repeated",
-   "purpose": "Proves the MPU6050 loss report and recovery repeat on a second failure.",
+   "title": "MPU6050 failure twice",
+   "purpose": "Proves the MPU6050 loss report and the recovery repeat on a second failure in the same run.",
    "covers": [
     "REQ-PiSensor-020",
     "REQ-PiSensor-022",
     "REQ-PiSensor-023"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(113)",
-    "action: disconnect the MPU6050 from the I2C bus (bench switch)",
+    "BENCH_LINE(MPU6050, OFF)",
+    "wait 15 s",
+    "BENCH_LINE(MPU6050, ON)",
     "wait 15 s",
     "MARK(114)",
-    "action: reconnect the MPU6050",
+    "BENCH_LINE(MPU6050, OFF)",
+    "wait 15 s",
+    "BENCH_LINE(MPU6050, ON)",
     "wait 15 s",
     "MARK(115)"
    ],
    "windows": [
     {
-     "name": "F",
+     "name": "C1",
      "start_id": 113,
      "end_id": 114,
      "reset": false
     },
     {
-     "name": "B",
+     "name": "C2",
      "start_id": 114,
      "end_id": 115,
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "event_after_each_command_within",
+     "text": "each sensorMonitor.Mpu6050Lost - its BENCH_LINE(MPU6050, OFF) sent <= 10 s",
+     "args": {
+      "bound_s": 10
+     }
+    },
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.AttitudeValid == VALID after each return - time of the return <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.AttitudeValid",
+      "bound_s": 10
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
-   "evidence": "As L5-3."
+   "evidence": "Each window: check event sensorMonitor.Mpu6050Lost count == 1, last(sensorMonitor.AttitudeValid) == VALID, event sysTester.Started count == 0."
   },
   {
    "id": "L5-5",
-   "title": "GPS failure and return",
-   "purpose": "Proves a failed GPS raises WARNING_HI within 10 s, its metric reads invalid, and telemetry resumes within 10 s of its return.",
+   "title": "GPS silence and return",
+   "purpose": "Proves GPS silence raises WARNING_HI within 10 s, location reads invalid, and it is valid again within 10 s of the return, without a restart.",
    "covers": [
     "REQ-PiSensor-021",
     "REQ-PiSensor-022",
     "REQ-PiSensor-023"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(120)",
     "action: stop the GPS sentence source",
     "wait 15 s",
     "MARK(121)",
-    "action: restart the GPS sentence source",
+    "action: restart the GPS sentence source (1 Hz, fix)",
     "wait 15 s",
     "MARK(122)"
    ],
@@ -1102,29 +1260,44 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "skip_sensor_off"
+   "metrics": [
+    {
+     "helper": "event_after_action_within",
+     "text": "t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s",
+     "args": {
+      "action": "gps_stop",
+      "bound_s": 10
+     }
+    },
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.FixValid == VALID after the restart action - bench time of the action <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.FixValid",
+      "bound_s": 10
+     }
+    }
    ],
-   "evidence": "sensorMonitor.GpsSilent event within 10 s of the action; sensorMonitor.LocationValid invalid in F, valid within 10 s in B; no clock restart."
+   "rationale": [],
+   "knobs": [],
+   "evidence": "F: check event sensorMonitor.GpsSilent count == 1 (WARNING_HI), last(sensorMonitor.FixValid) == INVALID; source byte counter in bench-actions.log does not advance. B: VALID; both: event sysTester.Started count == 0."
   },
   {
    "id": "L5-6",
-   "title": "GPS failure and return, repeated",
-   "purpose": "Proves the GPS loss report and recovery repeat on a second failure.",
+   "title": "GPS silence for 120 s",
+   "purpose": "Proves a long GPS silence is reported once and recovery still takes at most 10 s.",
    "covers": [
     "REQ-PiSensor-021",
     "REQ-PiSensor-022",
     "REQ-PiSensor-023"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(123)",
     "action: stop the GPS sentence source",
-    "wait 15 s",
+    "wait 120 s",
     "MARK(124)",
-    "action: restart the GPS sentence source",
+    "action: restart the GPS sentence source (1 Hz, fix)",
     "wait 15 s",
     "MARK(125)"
    ],
@@ -1142,28 +1315,45 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "event_after_action_within",
+     "text": "t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s",
+     "args": {
+      "action": "gps_stop",
+      "bound_s": 10
+     }
+    },
+    {
+     "helper": "valid_after_return_within",
+     "text": "first sensorMonitor.FixValid == VALID after the restart action - bench time of the action <= 10 s",
+     "args": {
+      "channel": "sensorMonitor.FixValid",
+      "bound_s": 10
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
-   "evidence": "As L5-5."
+   "evidence": "As L5-5 with one GpsSilent event over 120 s."
   },
   {
    "id": "L5-7",
    "title": "GPS without a fix",
-   "purpose": "Proves a receiver reporting no fix reads fix invalid in telemetry and location invalid in a captured product.",
+   "purpose": "Proves a receiver reporting no fix reads fix invalid, raises no silence event, and gives location invalid in a product.",
    "covers": [
     "REQ-PiSensor-024",
     "REQ-PiSensor-009"
    ],
-   "setup": "GPS sentence source set to no fix.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(130)",
-    "action: GPS source sends no-fix sentences",
+    "action: GPS source sends no-fix GGA sentences at 1 Hz",
     "wait 10 s",
     "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "action: GPS source sends fix sentences",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "action: GPS source sends fix sentences at 1 Hz",
     "MARK(131)"
    ],
    "windows": [
@@ -1176,29 +1366,29 @@
    ],
    "metrics": [],
    "rationale": [],
-   "knobs": [
-    "gps_keep_fix"
-   ],
-   "evidence": "FixValid channel invalid with no GpsSilent event; location validity record invalid in the ground file."
+   "knobs": [],
+   "evidence": "check: sensorMonitor.FixValid == INVALID from 3 s after the action to the CAPTURE; event sensorMonitor.GpsSilent count == 0; source byte counter advances; ground file: location validity record INVALID, temperature and attitude VALID."
   },
   {
    "id": "L5-8",
-   "title": "GPS without a fix, repeated",
-   "purpose": "Proves the no-fix indication repeats and clears when the fix returns.",
+   "title": "GPS fix lost and regained",
+   "purpose": "Proves the no-fix indication clears when the fix returns and a product captured then has a valid location.",
    "covers": [
     "REQ-PiSensor-024",
     "REQ-PiSensor-009"
    ],
-   "setup": "As L5-7.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(132)",
-    "action: GPS source sends no-fix sentences",
+    "action: GPS source sends no-fix GGA sentences at 1 Hz",
     "wait 10 s",
     "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "action: GPS source sends fix sentences",
+    "action: GPS source sends fix sentences at 1 Hz",
     "wait 10 s",
+    "CAPTURE()",
+    "DOWNLINK(P1)",
+    "DOWNLINK(P2)",
+    "wait CFDP transactions finished at the ground",
     "MARK(133)"
    ],
    "windows": [
@@ -1212,24 +1402,24 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "As L5-7; FixValid valid again at the end."
+   "evidence": "Ground files: location validity INVALID in P1 and VALID in P2; last(sensorMonitor.FixValid) == VALID; event sensorMonitor.GpsSilent count == 0."
   },
   {
    "id": "L5-9",
-   "title": "Stale metric at capture",
-   "purpose": "Proves a metric older than 2 s at capture is marked invalid in the product while the others stay valid.",
+   "title": "Stale attitude at capture",
+   "purpose": "Proves attitude older than 2 s at capture is marked invalid in the product while the others stay valid.",
    "covers": [
     "REQ-PiSensor-008"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(134)",
-    "action: disconnect the MPU6050 from the I2C bus (bench switch)",
-    "wait 5 s",
+    "BENCH_LINE(MPU6050, OFF)",
+    "wait 3 s",
     "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "action: reconnect the MPU6050",
+    "BENCH_LINE(MPU6050, ON)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(135)"
    ],
    "windows": [
@@ -1243,26 +1433,26 @@
    "metrics": [],
    "rationale": [],
    "knobs": [
-    "skip_sensor_off"
+    "sensor_line_kept_on"
    ],
-   "evidence": "Attitude validity record invalid, temperature and location valid, in the ground file."
+   "evidence": "Ground file: attitude validity record INVALID, temperature and location VALID."
   },
   {
    "id": "L5-10",
    "title": "Stale location at capture",
-   "purpose": "Proves a location older than 2 s at capture is marked invalid in the product.",
+   "purpose": "Proves a location older than 2 s at capture is marked invalid in the product while the others stay valid.",
    "covers": [
     "REQ-PiSensor-008"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(136)",
     "action: stop the GPS sentence source",
-    "wait 5 s",
+    "wait 3 s",
     "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "action: restart the GPS sentence source",
+    "action: restart the GPS sentence source (1 Hz, fix)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(137)"
    ],
    "windows": [
@@ -1276,22 +1466,23 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Location validity record invalid, temperature and attitude valid, in the ground file."
+   "evidence": "Ground file: location validity record INVALID, temperature and attitude VALID."
   },
   {
    "id": "L5-11",
    "title": "Camera absent",
-   "purpose": "Proves a capture with the camera unavailable fails its command with WARNING_HI and leaves no product.",
+   "purpose": "Proves a capture with the camera unavailable fails its command with WARNING_HI and leaves no file.",
    "covers": [
     "REQ-PiSensor-028",
     "REQ-PiSensor-029"
    ],
-   "setup": "Camera made unavailable to the process.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(140)",
-    "action: make the camera unavailable",
-    "LIST_PRODUCTS()",
+    "action: make the camera unavailable (unbind its driver)",
+    "LIST_DIR(products)",
     "CAPTURE()",
+    "LIST_DIR(products)",
     "LIST_PRODUCTS()",
     "action: make the camera available",
     "MARK(141)"
@@ -1305,27 +1496,30 @@
     }
    ],
    "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "camera_left_on"
+   "rationale": [
+    {
+     "pred": "event cmdDisp.OpCodeError count == 0",
+     "text": "the CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)"
+    }
    ],
-   "evidence": "CAPTURE completes with error; CaptureFailed WARNING_HI; product count unchanged between the two lists."
+   "knobs": [],
+   "evidence": "check: CAPTURE completes with error; event productManager.CaptureFailed count == 1 (WARNING_HI); the two sysTester.DirListing events are equal; product list unchanged."
   },
   {
    "id": "L5-12",
-   "title": "Camera absent, repeated",
-   "purpose": "Proves a second failed capture also leaves no product and a later capture succeeds.",
+   "title": "Camera absent, then present",
+   "purpose": "Proves a failed capture leaves no file and the next capture succeeds once the camera is back.",
    "covers": [
     "REQ-PiSensor-028",
     "REQ-PiSensor-029"
    ],
-   "setup": "As L5-11.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(142)",
-    "action: make the camera unavailable",
-    "LIST_PRODUCTS()",
+    "action: make the camera unavailable (unbind its driver)",
+    "LIST_DIR(products)",
     "CAPTURE()",
-    "LIST_PRODUCTS()",
+    "LIST_DIR(products)",
     "action: make the camera available",
     "CAPTURE()",
     "MARK(143)"
@@ -1339,25 +1533,31 @@
     }
    ],
    "metrics": [],
-   "rationale": [],
+   "rationale": [
+    {
+     "pred": "event cmdDisp.OpCodeError count == 0",
+     "text": "the CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)"
+    }
+   ],
    "knobs": [],
-   "evidence": "As L5-11, then one ProductWritten event."
+   "evidence": "As L5-11, then event productManager.ProductWritten count == 1."
   },
   {
    "id": "L5-13",
-   "title": "Storage unavailable",
-   "purpose": "Proves a capture that cannot store its product fails its command with WARNING_HI and leaves no product.",
+   "title": "Storage read-only",
+   "purpose": "Proves a capture that cannot store its product fails its command with WARNING_HI and leaves no file.",
    "covers": [
     "REQ-PiSensor-031",
     "REQ-PiSensor-029"
    ],
-   "setup": "Product directory made read-only.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(144)",
-    "action: make the product directory read-only",
+    "action: remount the product file system read-only",
+    "LIST_DIR(products)",
     "CAPTURE()",
-    "action: make the product directory writable",
-    "LIST_PRODUCTS()",
+    "action: remount the product file system read-write",
+    "LIST_DIR(products)",
     "MARK(145)"
    ],
    "windows": [
@@ -1369,11 +1569,14 @@
     }
    ],
    "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "storage_left_writable"
+   "rationale": [
+    {
+     "pred": "event cmdDisp.OpCodeError count == 0",
+     "text": "the CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)"
+    }
    ],
-   "evidence": "CAPTURE completes with error; StorageFailed WARNING_HI; product count unchanged."
+   "knobs": [],
+   "evidence": "check: CAPTURE completes with error; event productManager.StorageFailed count == 1 (WARNING_HI); the two DirListing events are equal."
   },
   {
    "id": "L5-14",
@@ -1383,13 +1586,14 @@
     "REQ-PiSensor-031",
     "REQ-PiSensor-029"
    ],
-   "setup": "Product file system filled by a bench file.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(146)",
-    "action: fill the product file system",
+    "action: fill the product file system (64 MB, its own) with one bench file",
+    "LIST_DIR(products)",
     "CAPTURE()",
+    "LIST_DIR(products)",
     "action: remove the fill file",
-    "LIST_PRODUCTS()",
     "MARK(147)"
    ],
    "windows": [
@@ -1401,28 +1605,35 @@
     }
    ],
    "metrics": [],
-   "rationale": [],
+   "rationale": [
+    {
+     "pred": "event cmdDisp.OpCodeError count == 0",
+     "text": "the CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)"
+    }
+   ],
    "knobs": [],
-   "evidence": "As L5-13; directory listing by the bench shows no partial file."
+   "evidence": "As L5-13; the two DirListing events (taken while full) are equal."
   },
   {
    "id": "L5-15",
-   "title": "CFDP transfer without progress",
-   "purpose": "Proves a transfer with no progress for 60 s ends with WARNING_HI and the product can be downlinked again intact.",
+   "title": "CFDP transfer with no ground peer",
+   "purpose": "Proves a transfer that makes no progress for 60 s ends with WARNING_HI and the product is unchanged and downlinkable afterwards.",
    "covers": [
     "REQ-PiSensor-034",
-    "REQ-PiSensor-035",
-    "REQ-PiSensor-038"
+    "REQ-PiSensor-035"
    ],
-   "setup": "One product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(150)",
-    "DOWNLINK(stored product)",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
     "action: stop the ground CFDP service",
-    "wait 75 s",
+    "DOWNLINK(P)",
+    "wait 95 s",
     "action: start the ground CFDP service",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(151)"
    ],
    "windows": [
@@ -1434,65 +1645,45 @@
     }
    ],
    "metrics": [
-    "t(event productManager.DownlinkStalled) - t(productManager.DOWNLINK sent) <= 90 s"
-   ],
-   "rationale": [],
-   "knobs": [
-    "cfdp_left_running"
-   ],
-   "evidence": "DownlinkStalled WARNING_HI; second transfer finished; ground file sha256 equals the on-board sha256."
-  },
-  {
-   "id": "L5-16",
-   "title": "CFDP transfer cut mid-file",
-   "purpose": "Proves a transfer cut after it started ends with WARNING_HI and a repeated downlink delivers the product intact.",
-   "covers": [
-    "REQ-PiSensor-034",
-    "REQ-PiSensor-035",
-    "REQ-PiSensor-038"
-   ],
-   "setup": "One product stored.",
-   "procedure": [
-    "MARK(152)",
-    "DOWNLINK(stored product)",
-    "wait first file data at the ground",
-    "action: block the link",
-    "wait 75 s",
-    "action: unblock the link",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
-    "MARK(153)"
-   ],
-   "windows": [
     {
-     "name": "W",
-     "start_id": 152,
-     "end_id": 153,
-     "reset": false
+     "helper": "stall_time_between",
+     "text": "55 s <= t(event productManager.DownlinkStalled) - t(first productManager.DOWNLINK sent) <= 90 s",
+     "args": {
+      "lo_s": 55,
+      "hi_s": 90
+     }
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [],
-   "evidence": "As L5-15."
+   "rationale": [
+    {
+     "pred": "55 s <= ... <= 90 s",
+     "text": "60 s of the requirement, less 5 s for the last progress before the stop, plus two periods of the 10 s check timer and the CFDP inactivity timer granularity"
+    }
+   ],
+   "knobs": [
+    "dump_sha_other"
+   ],
+   "evidence": "check: event productManager.DownlinkStalled count == 1 (WARNING_HI); the two Sha256 events are equal; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
   },
   {
    "id": "L5-17",
-   "title": "Link outage",
-   "purpose": "Proves commanding and telemetry resume within 10 s of the end of a 60 s link outage, without a restart.",
+   "title": "Link outage of 65 s",
+   "purpose": "Proves commanding and telemetry resume within 10 s of the end of a 65 s link outage, without a restart, and a product stored before it is downlinkable.",
    "covers": [
     "REQ-PiSensor-036",
     "REQ-PiSensor-038"
    ],
-   "setup": "One product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(160)",
-    "action: block the link",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "action: block the TCP link at the workstation",
     "wait 65 s",
-    "action: unblock the link",
+    "action: unblock the TCP link",
     "NO_OP()",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(161)"
    ],
    "windows": [
@@ -1503,27 +1694,45 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "outage_skipped"
+   "metrics": [
+    {
+     "helper": "ground_gap_at_least",
+     "text": "gap of ground reception of Table 1 channels during the outage >= 60 s",
+     "args": {
+      "bound_s": 60
+     }
+    },
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received and NO_OP completion - bench time of the unblock action <= 10 s",
+     "args": {
+      "action": "link_unblock",
+      "bound_s": 10
+     }
+    }
    ],
-   "evidence": "Telemetry gap of at least 60 s; first sample and NO_OP response within 10 s of the unblock action; no clock restart; file delivered."
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "queue overflow is expected during the outage; the window requires STD-OUT and judges no absence"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 65; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
   },
   {
    "id": "L5-18",
-   "title": "Link outage, repeated",
-   "purpose": "Proves recovery from a second 60 s link outage.",
+   "title": "Link outage of 120 s",
+   "purpose": "Proves recovery within 10 s from a longer link outage, without a restart.",
    "covers": [
-    "REQ-PiSensor-036",
-    "REQ-PiSensor-038"
+    "REQ-PiSensor-036"
    ],
-   "setup": "As L5-17.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(162)",
-    "action: block the link",
-    "wait 65 s",
-    "action: unblock the link",
+    "action: block the TCP link at the workstation",
+    "wait 120 s",
+    "action: unblock the TCP link",
     "NO_OP()",
     "MARK(163)"
    ],
@@ -1535,28 +1744,51 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
+   "metrics": [
+    {
+     "helper": "ground_gap_at_least",
+     "text": "gap of ground reception of Table 1 channels during the outage >= 115 s",
+     "args": {
+      "bound_s": 115
+     }
+    },
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received and NO_OP completion - bench time of the unblock action <= 10 s",
+     "args": {
+      "action": "link_unblock",
+      "bound_s": 10
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
    "knobs": [],
-   "evidence": "As L5-17 without the file."
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 120."
   },
   {
    "id": "L5-19",
-   "title": "Ground-system outage",
-   "purpose": "Proves commanding and telemetry resume within 10 s of the ground system's return after 60 s, without a restart of the flight software.",
+   "title": "Ground-system outage of 65 s",
+   "purpose": "Proves commanding and telemetry resume within 10 s of the ground system's return, without a restart of the flight software, and a stored product is downlinkable.",
    "covers": [
     "REQ-PiSensor-037",
     "REQ-PiSensor-038"
    ],
-   "setup": "One product stored.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(164)",
-    "action: stop fprime-yamcs",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "action: stop fprime-yamcs (the bridge and the frame recorder stay up)",
     "wait 65 s",
     "action: start fprime-yamcs",
     "NO_OP()",
-    "DOWNLINK(stored product)",
-    "wait CFDP transfer finished",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
     "MARK(165)"
    ],
    "windows": [
@@ -1567,26 +1799,37 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
-   "knobs": [
-    "outage_skipped"
+   "metrics": [
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s",
+     "args": {
+      "action": "yamcs_ready",
+      "bound_s": 10
+     }
+    }
    ],
-   "evidence": "As L5-17 with the ground system stopped; flight clock does not restart."
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 65; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
   },
   {
    "id": "L5-20",
-   "title": "Ground-system outage, repeated",
-   "purpose": "Proves recovery from a second ground-system outage.",
+   "title": "Ground-system outage of 120 s",
+   "purpose": "Proves recovery within 10 s from a longer ground-system outage, without a restart of the flight software.",
    "covers": [
-    "REQ-PiSensor-037",
-    "REQ-PiSensor-038"
+    "REQ-PiSensor-037"
    ],
-   "setup": "As L5-19.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(166)",
-    "action: stop fprime-yamcs",
-    "wait 65 s",
+    "action: stop fprime-yamcs (the bridge and the frame recorder stay up)",
+    "wait 120 s",
     "action: start fprime-yamcs",
     "NO_OP()",
     "MARK(167)"
@@ -1599,27 +1842,38 @@
      "reset": false
     }
    ],
-   "metrics": [],
-   "rationale": [],
+   "metrics": [
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s",
+     "args": {
+      "action": "yamcs_ready",
+      "bound_s": 10
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
    "knobs": [],
-   "evidence": "As L5-19 without the file."
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 120."
   },
   {
    "id": "L5-21",
    "title": "NMEA sentence with a bad checksum",
-   "purpose": "Proves a sentence with a bad checksum and a new position is discarded and the next good sentence is used.",
+   "purpose": "Proves a sentence with a bad checksum is discarded and the next good sentence is used.",
    "covers": [
     "REQ-PiSensor-025"
    ],
-   "setup": "GPS sentence source under bench control.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(170)",
-    "action: GPS source sends position A",
-    "wait 4 s",
-    "action: GPS source sends position B with a bad checksum",
-    "wait 4 s",
-    "action: GPS source sends position C",
-    "wait 4 s",
+    "action: GPS source sends position A (48.1173 N, 11.5167 E) at 1 Hz for 5 s",
+    "action: GPS source sends position B (10.0000 N, 20.0000 E) with checksum + 1, at 1 Hz for 5 s",
+    "action: GPS source sends position C (48.2000 N, 11.6000 E) at 1 Hz for 5 s",
     "MARK(171)"
    ],
    "windows": [
@@ -1632,25 +1886,21 @@
    ],
    "metrics": [],
    "rationale": [],
-   "knobs": [
-    "gps_good_checksum"
-   ],
-   "evidence": "Latitude strip shows A then C, never B."
+   "knobs": [],
+   "evidence": "check: latitude samples take the values of A then C and never B; source byte counter in bench-actions.log advanced by all 15 sentences; event sensorMonitor.GpsSilent count <= 1."
   },
   {
    "id": "L5-22",
-   "title": "NMEA sentences with bad checksums, burst",
-   "purpose": "Proves a burst of bad-checksum sentences leaves the reported position unchanged.",
+   "title": "Bad checksums between good sentences",
+   "purpose": "Proves bad-checksum sentences interleaved with good ones never change the reported position.",
    "covers": [
     "REQ-PiSensor-025"
    ],
-   "setup": "As L5-21.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(172)",
-    "action: GPS source sends position A",
-    "wait 4 s",
-    "action: GPS source sends 10 sentences of position B with bad checksums",
-    "wait 4 s",
+    "action: GPS source alternates position A (48.1173 N, 11.5167 E) (good) and position B (10.0000 N, 20.0000 E) (checksum + 1), 1 Hz each, for 10 s",
+    "action: GPS source sends position C (48.2000 N, 11.6000 E) at 1 Hz for 5 s",
     "MARK(173)"
    ],
    "windows": [
@@ -1664,21 +1914,21 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Latitude strip stays at A."
+   "evidence": "check: latitude samples take the values of A then C and never B; byte counter advanced by all 25 sentences; event sensorMonitor.GpsSilent count == 0."
   },
   {
    "id": "L6-1",
    "title": "Corrupted uplink frame",
-   "purpose": "Proves an uplink frame that fails its integrity check dispatches no command and the same frame uncorrupted does.",
+   "purpose": "Proves an uplink frame that fails its frame check dispatches no command and an intact command still does.",
    "covers": [
     "REQ-PiSensor-027"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(180)",
-    "action: inject a NO_OP frame with one bit flipped",
+    "action: inject one NO_OP frame with bit 0 of its last data byte flipped, at the bridge",
     "wait 5 s",
-    "action: inject the same NO_OP frame intact",
+    "NO_OP()",
     "MARK(181)"
    ],
    "windows": [
@@ -1691,22 +1941,20 @@
    ],
    "metrics": [],
    "rationale": [],
-   "knobs": [
-    "frame_not_corrupted"
-   ],
-   "evidence": "Exactly one NoOpReceived event, after the intact frame."
+   "knobs": [],
+   "evidence": "check: event tcDeframer.InvalidCrc count == 1; event cmdDisp.NoOpReceived count == 1."
   },
   {
    "id": "L6-2",
    "title": "Corrupted uplink frames, burst",
-   "purpose": "Proves several corrupted frames dispatch nothing and commanding still works after them.",
+   "purpose": "Proves five corrupted frames dispatch nothing and commanding works after them.",
    "covers": [
     "REQ-PiSensor-027"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(182)",
-    "action: inject 5 NO_OP frames with a wrong frame check field",
+    "action: inject 5 NO_OP frames with the frame check field + 1, at the bridge",
     "wait 5 s",
     "NO_OP()",
     "MARK(183)"
@@ -1722,38 +1970,309 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Exactly one NoOpReceived event, from the planned command."
+   "evidence": "check: event tcDeframer.InvalidCrc count == 5; event cmdDisp.NoOpReceived count == 1."
   },
   {
-   "id": "L7-1",
-   "title": "Final state",
-   "purpose": "Leaves one known product on board whose ground copy and on-board hash an auditor can compare.",
+   "id": "L0-3",
+   "title": "Image and platform identity, flight image",
+   "purpose": "Proves the flight image is the manifest's and the marker round-trips over the RFM69.",
    "covers": [
-    "REQ-PiSensor-013",
-    "REQ-PiSensor-005"
+    "REQ-PiSensor-042",
+    "REQ-PiSensor-015"
    ],
-   "setup": "Deployment running, link up, all four sensors attached and answering.",
+   "setup": "action before the window: stop the prototype service unit, start the flight service unit. Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
    "procedure": [
-    "MARK(190)",
-    "CAPTURE()",
-    "DOWNLINK(new product)",
-    "wait CFDP transfer finished",
-    "DUMP_SHA256(new product)",
-    "LIST_PRODUCTS()",
-    "MARK(191)"
+    "MARK(200)",
+    "VERSION(ALL)",
+    "PLATFORM()",
+    "MARK(0x5A5A)",
+    "bracket (2 Heartbeat samples)",
+    "action: list TCP sockets of the deployment process",
+    "MARK(201)"
    ],
    "windows": [
     {
      "name": "W",
-     "start_id": 190,
-     "end_id": 191,
+     "start_id": 200,
+     "end_id": 201,
      "reset": false
     }
    ],
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Ground file kept in the record; on-board sha256 event; product list."
+   "evidence": "Version events equal the manifest describe strings of the flight image; Platform check as L0-1; marker ids byte-exact; socket list empty."
+  },
+  {
+   "id": "L2-9",
+   "title": "Flight configuration: telemetry, capture, downlink",
+   "purpose": "Proves commands, telemetry, events and a CFDP file pass over the RFM69, with the 2 s period outside the downlink and the 10 s period during it.",
+   "covers": [
+    "REQ-PiSensor-015",
+    "REQ-PiSensor-017",
+    "REQ-PiSensor-001",
+    "REQ-PiSensor-002",
+    "REQ-PiSensor-003",
+    "REQ-PiSensor-012",
+    "REQ-PiSensor-013",
+    "REQ-PiSensor-018"
+   ],
+   "setup": "Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(210)",
+    "wait 30 s",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "MARK(211)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "action: list TCP sockets of the deployment process",
+    "MARK(212)"
+   ],
+   "windows": [
+    {
+     "name": "Q",
+     "start_id": 210,
+     "end_id": 211,
+     "reset": false
+    },
+    {
+     "name": "D",
+     "start_id": 211,
+     "end_id": 212,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "max_ground_gap",
+     "text": "largest gap between ground reception times of every Table 1 channel in the first 30 s of Q <= 2 s",
+     "args": {
+      "channels": "Table1",
+      "bound_s": 2
+     }
+    },
+    {
+     "helper": "max_ground_gap",
+     "text": "largest gap between ground reception times of every Table 1 channel in D <= 10 s",
+     "args": {
+      "channels": "Table1",
+      "bound_s": 10
+     }
+    },
+    {
+     "helper": "downlink_duration_at_least",
+     "text": "CFDP transaction duration in D >= 30 s",
+     "args": {
+      "bound_s": 30
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "CFDP transaction duration in D >= 30 s",
+     "text": "a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound"
+    }
+   ],
+   "knobs": [
+    "corrupt_product"
+   ],
+   "evidence": "check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event; class 2 check; socket list empty."
+  },
+  {
+   "id": "L2-10",
+   "title": "Flight configuration, repeated",
+   "purpose": "Proves a second capture and downlink pass over the RFM69 with telemetry continuing.",
+   "covers": [
+    "REQ-PiSensor-015",
+    "REQ-PiSensor-017",
+    "REQ-PiSensor-012",
+    "REQ-PiSensor-013",
+    "REQ-PiSensor-018"
+   ],
+   "setup": "Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(213)",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "MARK(214)",
+    "DOWNLINK(P)",
+    "wait 15 s",
+    "NO_OP()",
+    "wait CFDP transaction finished at the ground",
+    "action: list TCP sockets of the deployment process",
+    "MARK(215)"
+   ],
+   "windows": [
+    {
+     "name": "Q",
+     "start_id": 213,
+     "end_id": 214,
+     "reset": false
+    },
+    {
+     "name": "D",
+     "start_id": 214,
+     "end_id": 215,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "max_ground_gap",
+     "text": "largest gap between ground reception times of every Table 1 channel in D <= 10 s",
+     "args": {
+      "channels": "Table1",
+      "bound_s": 10
+     }
+    },
+    {
+     "helper": "downlink_duration_at_least",
+     "text": "CFDP transaction duration in D >= 30 s",
+     "args": {
+      "bound_s": 30
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "CFDP transaction duration in D >= 30 s",
+     "text": "as L2-9"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event; class 2 check; event cmdDisp.NoOpReceived count == 1 during the downlink; socket list empty."
+  },
+  {
+   "id": "L5-16",
+   "title": "CFDP transfer cut mid-file",
+   "purpose": "Proves a transfer cut after it started ends with WARNING_HI and a repeated downlink delivers the product unchanged.",
+   "covers": [
+    "REQ-PiSensor-034",
+    "REQ-PiSensor-035"
+   ],
+   "setup": "Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(220)",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait first file data PDU at the ground",
+    "action: power off the ground radio",
+    "wait 95 s",
+    "action: power on the ground radio",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "MARK(221)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 220,
+     "end_id": 221,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "stall_time_between",
+     "text": "55 s <= t(event productManager.DownlinkStalled) - bench time of the power-off action <= 90 s",
+     "args": {
+      "lo_s": 55,
+      "hi_s": 90
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: first transaction incomplete at the power-off (require); event productManager.DownlinkStalled count == 1; the two Sha256 events are equal; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+  },
+  {
+   "id": "L5-23",
+   "title": "Link outage of 65 s, flight configuration",
+   "purpose": "Proves commanding and telemetry resume within 10 s of the end of a radio outage, without a restart.",
+   "covers": [
+    "REQ-PiSensor-036"
+   ],
+   "setup": "Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(222)",
+    "action: power off the ground radio",
+    "wait 65 s",
+    "action: power on the ground radio",
+    "NO_OP()",
+    "MARK(223)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 222,
+     "end_id": 223,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "ground_gap_at_least",
+     "text": "gap of ground reception of Table 1 channels during the outage >= 60 s",
+     "args": {
+      "bound_s": 60
+     }
+    },
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received and NO_OP completion - bench time the ground radio is ready <= 10 s",
+     "args": {
+      "action": "radio_ready",
+      "bound_s": 10
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 65."
+  },
+  {
+   "id": "L7-1",
+   "title": "Final state",
+   "purpose": "Leaves one known product on board for the independent final-state check.",
+   "covers": [
+    "REQ-PiSensor-013",
+    "REQ-PiSensor-005"
+   ],
+   "setup": "Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(230)",
+    "CAPTURE()",
+    "DUMP_SHA256(P)",
+    "DOWNLINK(P)",
+    "wait CFDP transaction finished at the ground",
+    "LIST_DIR(products)",
+    "MARK(231)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 230,
+     "end_id": 231,
+     "reset": false
+    }
+   ],
+   "metrics": [],
+   "rationale": [],
+   "knobs": [],
+   "evidence": "check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event; checks on the ground file: starts FFD8 and ends FFD9; SOF0 width >= 640 and height >= 480; one picture, location, attitude and temperature record; all three validity records VALID; DirListing names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt."
   }
  ]
 }
