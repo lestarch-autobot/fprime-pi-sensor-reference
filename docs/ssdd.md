@@ -22,25 +22,23 @@ PiSensor is an F Prime deployment for a Raspberry Pi 5. The ask, verbatim:
 > Since this is an automatic process, please ask questions now and then proceed through SSDD review!
 
 Attitude is roll and pitch plus raw gyro rates; yaw is not reported. The
-ground system is fprime-yamcs. Bench parts: MPU6050 on I2C bus 1 (0x68) and
-RFM69 on SPI0 CE1 are identified; BMP280 wiring, GPS receiver and port, Pi
-Camera module and RFM69 band are recorded here once identified. The goal is a functional deployment with
+ground system is fprime-yamcs. Bench parts on the Pi 5: an MPU6050 on I2C bus 1 (address 0x68) and an RFM69
+on SPI0 CE1 answer. No BMP280 and no GPS receiver answer on any bus or port
+yet; the Pi Camera and the ground Pi with its RFM69 arrive after approval.
+The goal is a functional deployment with
 respect to the ask, every system requirement proven in system tests on the
 complete testbed.
 
 ## Requirements
 
-Terms: *data product* is the stored file a capture produces. *Capture time*
-is the time the picture is acquired. *Sensor telemetry* is Table 1.
-
 | ID | Requirement | Verification |
 |---|---|---|
-| REQ-PiSensor-001 | The system shall downlink BMP280 temperature telemetry at least once every 2 s. | Integration Test |
-| REQ-PiSensor-002 | The system shall downlink MPU6050 attitude telemetry at least once every 2 s. | Integration Test |
-| REQ-PiSensor-003 | The system shall downlink GPS location telemetry at least once every 2 s. | Integration Test |
-| REQ-PiSensor-004 | On a capture command, the system shall capture one JPEG of at least 640x480 pixels. | Integration Test |
+| REQ-PiSensor-001 | Outside a CFDP downlink, the system shall downlink BMP280 temperature telemetry at least once every 2 s. | Integration Test |
+| REQ-PiSensor-002 | Outside a CFDP downlink, the system shall downlink MPU6050 attitude telemetry at least once every 2 s. | Integration Test |
+| REQ-PiSensor-003 | Outside a CFDP downlink, the system shall downlink GPS location telemetry at least once every 2 s. | Integration Test |
+| REQ-PiSensor-004 | On a capture command, the system shall capture one Pi Camera JPEG of at least 640x480 pixels. | Integration Test |
 | REQ-PiSensor-005 | Each successful capture shall produce one data product holding picture, location, attitude and temperature. | Integration Test |
-| REQ-PiSensor-006 | Each data product shall carry its capture time. | Integration Test |
+| REQ-PiSensor-006 | Each data product shall carry its capture time, taken when the picture is acquired. | Integration Test |
 | REQ-PiSensor-007 | Each metric marked valid shall carry a sample time within 2 s of capture time. | Integration Test |
 | REQ-PiSensor-008 | A data product shall mark invalid each metric older than 2 s. | Integration Test |
 | REQ-PiSensor-009 | A data product shall mark location invalid when the GPS reports no fix. | Integration Test |
@@ -52,30 +50,31 @@ is the time the picture is acquired. *Sensor telemetry* is Table 1.
 | REQ-PiSensor-015 | In the flight configuration, commands, telemetry, events and CFDP files shall pass over the RFM69. | Integration Test |
 | REQ-PiSensor-016 | In the prototype configuration, commands, telemetry, events and CFDP files shall pass over TCP. | Integration Test |
 | REQ-PiSensor-017 | Commands, telemetry, events and CFDP files shall interoperate with the fprime-yamcs ground system. | Integration Test |
-| REQ-PiSensor-018 | During a CFDP downlink, sensor telemetry shall continue at least once every 10 s. | Integration Test |
+| REQ-PiSensor-018 | During a CFDP downlink, Table 1 sensor telemetry shall continue at least once every 10 s. | Integration Test |
 | REQ-PiSensor-019 | The system shall emit a `WARNING_HI` event within 10 s of BMP280 read failure. | Integration Test |
 | REQ-PiSensor-020 | The system shall emit a `WARNING_HI` event within 10 s of MPU6050 read failure. | Integration Test |
-| REQ-PiSensor-021 | The system shall emit a `WARNING_HI` event within 10 s of the last GPS sentence. | Integration Test |
+| REQ-PiSensor-021 | When GPS sentences stop, the system shall emit a `WARNING_HI` event within 10 s. | Integration Test |
 | REQ-PiSensor-022 | Sensor telemetry shall report a metric invalid while its sensor is failed. | Integration Test |
 | REQ-PiSensor-023 | Sensor telemetry shall resume within 10 s of a sensor's return, without a restart. | Integration Test |
 | REQ-PiSensor-024 | GPS telemetry shall report fix invalid while the receiver reports no fix. | Integration Test |
-| REQ-PiSensor-025 | The system shall discard NMEA sentences that fail their checksum. | Integration Test |
-| REQ-PiSensor-026 | The system shall report a BMP280 or MPU6050 with a wrong identity register as failed. | Integration Test |
-| REQ-PiSensor-027 | The system shall discard uplink frames that fail their integrity check. | Integration Test |
+| REQ-PiSensor-025 | The system shall discard NMEA sentences that fail their checksum. | Unit Test |
+| REQ-PiSensor-026 | The system shall treat a BMP280 or MPU6050 with a wrong identity register as a read failure. | Unit Test |
+| REQ-PiSensor-027 | The system shall discard uplink frames that fail their integrity check. | Unit Test |
 | REQ-PiSensor-028 | A capture whose camera is absent or fails shall fail its command and emit `WARNING_HI`. | Integration Test |
-| REQ-PiSensor-029 | A failed capture shall leave no data product, complete or partial. | Integration Test |
+| REQ-PiSensor-029 | A failed or interrupted capture shall leave no data product, complete or partial. | Integration Test |
 | REQ-PiSensor-030 | A capture command during a capture shall fail with `WARNING_LO` and not disturb that capture. | Integration Test |
 | REQ-PiSensor-031 | A capture that cannot store its data product shall fail its command and emit `WARNING_HI`. | Integration Test |
 | REQ-PiSensor-032 | A downlink or delete command naming a missing data product shall fail with `WARNING_LO`. | Integration Test |
 | REQ-PiSensor-033 | A downlink command during a downlink shall fail with `WARNING_LO` and not disturb that downlink. | Integration Test |
-| REQ-PiSensor-034 | A CFDP transfer that does not complete shall emit a `WARNING_HI` event. | Integration Test |
+| REQ-PiSensor-034 | A CFDP transfer that makes no progress for 60 s shall end and emit a `WARNING_HI` event. | Integration Test |
 | REQ-PiSensor-035 | An incomplete CFDP transfer shall leave the data product intact for a repeated downlink command. | Integration Test |
 | REQ-PiSensor-036 | Within 10 s of the end of a link outage of at least 60 s, commanding and telemetry shall resume without a restart. | Integration Test |
 | REQ-PiSensor-037 | Within 10 s of the end of a ground-system outage of at least 60 s, commanding and telemetry shall resume without a restart. | Integration Test |
 | REQ-PiSensor-038 | Data products stored before a link outage, ground-system outage or restart shall remain downlinkable after it. | Integration Test |
-| REQ-PiSensor-039 | After a restart, the system shall resume sensor telemetry without ground commands within 60 s. | Integration Test |
+| REQ-PiSensor-039 | After a restart, the system shall resume Table 1 sensor telemetry without ground commands within 60 s. | Integration Test |
 | REQ-PiSensor-040 | The camera software shall use only Raspberry Pi OS packaged camera libraries, not OpenCV. | Inspection |
-| REQ-PiSensor-041 | The system shall meet REQ-PiSensor-001 to -040 on a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13. | Integration Test |
+| REQ-PiSensor-041 | A delete command naming a data product being downlinked shall fail with `WARNING_LO`. | Integration Test |
+| REQ-PiSensor-042 | The system shall meet REQ-PiSensor-001 to -041 on a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13. | Integration Test |
 
 Table 1: sensor telemetry.
 
@@ -95,7 +94,7 @@ at Approve SSDD.
 
 | # | Question | Decision | Rows |
 |---|---|---|---|
-| D1 | Numeric bounds | Telemetry 2 s; stale after 2 s; fault event 10 s; capture 30 s; resume 10 s after an outage of 60 s or more; telemetry 60 s after restart | 001-003, 007, 008, 010, 019-021, 023, 036, 037, 039 |
+| D1 | Numeric bounds | Telemetry 2 s; stale after 2 s; fault event 10 s; capture 30 s; resume 10 s after an outage of 60 s or more; telemetry 60 s after restart; CFDP no-progress limit 60 s | 001-003, 007, 008, 010, 019-021, 023, 034, 036, 037, 039 |
 | D2 | Downlink trigger | Separate command, not automatic after capture | 012 |
 | D3 | CFDP class | Class 2 (acknowledged): the radio link is lossy | 012 |
 | D4 | Telemetry during a file downlink | Continues, at least once every 10 s | 018 |
@@ -104,4 +103,4 @@ at Approve SSDD.
 | D7 | After a sensor fault | Metric flagged invalid; recovery within 10 s of return, no restart | 022, 023 |
 | D8 | Bench parts | Identified on the bench and named in the Introduction | - |
 | D9 | BMP280 pressure | Not required: the ask names temperature only | 001 |
-| D10 | Storage | Delete command; no automatic storage bound | 014 |
+| D10 | Storage | Delete command; no automatic storage bound; delete during that product's downlink rejected | 014, 041 |
