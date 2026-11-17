@@ -1,0 +1,213 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "camera_left_on",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-11"
+      ],
+      "fails": {
+        "L5-11": [
+          "event productManager.CaptureFailed count == 1"
+        ]
+      },
+      "mechanism": "the camera is left available, so the capture succeeds",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "capture_twice",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-3"
+      ],
+      "fails": {
+        "L2-3": [
+          "commands completed with error == 0"
+        ]
+      },
+      "mechanism": "a second CAPTURE is sent while the first is in progress; a WARNING_LO rejection and a failed command response appear in a window that expects none",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "cfdp_left_running",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-15"
+      ],
+      "fails": {
+        "L5-15": [
+          "event productManager.DownlinkStalled count == 1"
+        ]
+      },
+      "mechanism": "the ground CFDP service is left running, so the transfer finishes",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "downlink_other_product",
+      "class": "harness-expectation",
+      "applies_to": [
+        "L2-5",
+        "L2-9"
+      ],
+      "fails": {
+        "L2-5": [
+          "ground file sha256 == on-board sha256 of the named product"
+        ],
+        "L2-9": [
+          "ground file sha256 == on-board sha256 of the named product"
+        ]
+      },
+      "mechanism": "DOWNLINK names the previous product, so the ground file differs from the product whose hash the test compares",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "frame_not_corrupted",
+      "class": "stimulus",
+      "applies_to": [
+        "L6-1"
+      ],
+      "fails": {
+        "L6-1": [
+          "event cmdDisp.NoOpReceived count == 1"
+        ]
+      },
+      "mechanism": "the first frame is injected intact, so two commands are dispatched",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "gps_good_checksum",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-21"
+      ],
+      "fails": {
+        "L5-21": [
+          "position B never reported"
+        ]
+      },
+      "mechanism": "position B is sent with a correct checksum, so it is reported",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "gps_keep_fix",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-7"
+      ],
+      "fails": {
+        "L5-7": [
+          "last(sensorMonitor.FixValid) == INVALID"
+        ]
+      },
+      "mechanism": "the GPS source keeps sending fix sentences",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "outage_skipped",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-17",
+        "L5-19"
+      ],
+      "fails": {
+        "L5-17": [
+          "telemetry gap in the window >= 60 s"
+        ],
+        "L5-19": [
+          "telemetry gap in the window >= 60 s"
+        ]
+      },
+      "mechanism": "the outage action is skipped; telemetry never stops",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "period_window_cut",
+      "class": "harness-expectation",
+      "applies_to": [
+        "L2-1",
+        "L2-7"
+      ],
+      "fails": {
+        "L2-1": [
+          "max gap of temperature, attitude and location samples <= 2 s"
+        ],
+        "L2-7": [
+          "max gap of temperature, attitude and location samples <= 10 s"
+        ]
+      },
+      "mechanism": "the harness stops the ground telemetry feed for 15 s inside the window, so the ground sees a gap above the bound",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "skip_sensor_off",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-1",
+        "L5-3",
+        "L5-5",
+        "L5-9"
+      ],
+      "fails": {
+        "L5-1": [
+          "event sensorMonitor.Bmp280Lost count == 1"
+        ],
+        "L5-3": [
+          "event sensorMonitor.Mpu6050Lost count == 1"
+        ],
+        "L5-5": [
+          "event sensorMonitor.GpsSilent count == 1"
+        ],
+        "L5-9": [
+          "attitude validity record == invalid"
+        ]
+      },
+      "mechanism": "the bench action that removes the sensor is skipped; the sensor keeps answering",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "storage_left_writable",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-13"
+      ],
+      "fails": {
+        "L5-13": [
+          "event productManager.StorageFailed count == 1"
+        ]
+      },
+      "mechanism": "the product directory is left writable, so the capture succeeds",
+      "kind": "rewrite",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "L2-1",
+    "L2-3",
+    "L2-5",
+    "L2-7",
+    "L2-9",
+    "L5-1",
+    "L5-11",
+    "L5-13",
+    "L5-15",
+    "L5-17",
+    "L5-19",
+    "L5-21",
+    "L5-3",
+    "L5-5",
+    "L5-7",
+    "L5-9",
+    "L6-1"
+  ]
+}
