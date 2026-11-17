@@ -126,8 +126,8 @@ module PiSensor {
       ComCcsds.Subtopology.drvReceiveReturnOut -> tcpLink.recvReturnIn
       ComCcsds.Subtopology.drvSendOut -> tcpLink.$send
       tcpLink.ready -> ComCcsds.Subtopology.drvConnected
-      # Flight configuration: Rfm69.Subtopology takes the place of tcpLink;
-      # wired in the base-deployment lane.
+      # Flight configuration: ComCcsds.FramingSubtopology with Rfm69.Subtopology
+      # in place of comStub and tcpLink; wired in the base-deployment lane.
       Rfm69.rfm69Manager.allocate -> ComCcsds.Subtopology.commsBufferGetCallee
       Rfm69.rfm69Manager.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
     }
