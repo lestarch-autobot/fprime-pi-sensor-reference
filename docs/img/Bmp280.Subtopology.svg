@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="448" height="79" viewBox="-8 -8 448 79">
+<style>
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: normal; }
+    .sprotty-node { fill: #dbe9f9; stroke: #1b1b1b; stroke-width: 1.5; }
+    .sprotty-label { fill: #1b1b1b; stroke: none; }
+    .node-label { fill: #1b1b1b; }
+    .sprotty-port { fill: #1b1b1b; stroke: #7b337d; stroke-width: 1; }
+    .sprotty-edge { fill: none; stroke: #3b3b3b; }
+    .sprotty-edge-arrow { fill: #3b3b3b; stroke-width: 0; }
+    .component-active { stroke: #3FB984; }
+    .component-passive { stroke: #fe92a8; }
+    .topology-node { fill: #f1f1f1; stroke: #1b1b1b; stroke-dasharray: 8 4; }
+    .boundary-port { stroke: #1b1b1b; stroke-width: 1; }
+    .boundary-input { fill: #9cc8ff; }
+    .boundary-output { fill: #f5c58a; }
+    .sprotty-edge path.edge-implicit { stroke-dasharray: 5 4; opacity: 0.85; }
+    .sprotty-edge path.edge-bus { stroke-width: 3px; }
+    .sprotty-edge path.edge-bus.edge-implicit { stroke-dasharray: 8 5; }
+    .sprotty-edge .edge-bus-slash { stroke-width: 1.5px; }
+    .port-sync { fill: #fe92a8; }
+    .port-guarded { fill: #FDD35C; }
+    </style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" class="sprotty-edge-arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>
+</defs>
+<rect x="-8" y="-8" width="448" height="79" fill="#ffffff"/>
+<g id="Bmp280.bmpDriver" transform="translate(318,12)"><rect class="sprotty-node task component-passive" width="102" height="38" rx="10"/><text class="sprotty-label node-label" x="25.50" y="15">bmpDriver</text><text class="sprotty-label node-label" x="5" y="29">Drv.LinuxSpiDriver</text><g id="Bmp280.bmpDriver.SpiWriteRead.0" transform="translate(-10,14)"><title>Bmp280.bmpDriver.SpiWriteRead.0 (guarded)</title><rect class="sprotty-port port-guarded" width="10" height="10"/><text class="sprotty-label" x="-73" y="21">SpiWriteRead</text></g></g>
+<g id="Bmp280.bmpManager" transform="translate(12,12)"><rect class="sprotty-node task component-passive" width="121" height="38" rx="10"/><text class="sprotty-label node-label" x="28" y="15">bmpManager</text><text class="sprotty-label node-label" x="5" y="29">Bmp280.BmpManager</text><g id="Bmp280.bmpManager.spiReadWrite.0" transform="translate(121,14)"><title>Bmp280.bmpManager.spiReadWrite.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">spiReadWrite</text></g></g>
+<g id="Bmp280.connection.0" class="sprotty-edge"><path d="M 143,31 L 308,31" marker-end="url(#arrow)"/></g>
+</svg>

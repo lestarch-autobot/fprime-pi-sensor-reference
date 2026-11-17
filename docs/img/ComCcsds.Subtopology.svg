@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1159" height="548" viewBox="-8 -8 1159 548">
+<style>
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: normal; }
+    .sprotty-node { fill: #dbe9f9; stroke: #1b1b1b; stroke-width: 1.5; }
+    .sprotty-label { fill: #1b1b1b; stroke: none; }
+    .node-label { fill: #1b1b1b; }
+    .sprotty-port { fill: #1b1b1b; stroke: #7b337d; stroke-width: 1; }
+    .sprotty-edge { fill: none; stroke: #3b3b3b; }
+    .sprotty-edge-arrow { fill: #3b3b3b; stroke-width: 0; }
+    .component-active { stroke: #3FB984; }
+    .component-passive { stroke: #fe92a8; }
+    .topology-node { fill: #f1f1f1; stroke: #1b1b1b; stroke-dasharray: 8 4; }
+    .boundary-port { stroke: #1b1b1b; stroke-width: 1; }
+    .boundary-input { fill: #9cc8ff; }
+    .boundary-output { fill: #f5c58a; }
+    .sprotty-edge path.edge-implicit { stroke-dasharray: 5 4; opacity: 0.85; }
+    .sprotty-edge path.edge-bus { stroke-width: 3px; }
+    .sprotty-edge path.edge-bus.edge-implicit { stroke-dasharray: 8 5; }
+    .sprotty-edge .edge-bus-slash { stroke-width: 1.5px; }
+    .port-sync { fill: #fe92a8; }
+    .port-guarded { fill: #FDD35C; }
+    </style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" class="sprotty-edge-arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>
+</defs>
+<rect x="-8" y="-8" width="1159" height="548" fill="#ffffff"/>
+<g id="ComCcsds.comStub" transform="translate(768,439)"><rect class="sprotty-node task component-passive" width="78" height="75" rx="10"/><text class="sprotty-label node-label" x="17" y="33.50">comStub</text><text class="sprotty-label node-label" x="5" y="47.50">Svc.ComStub</text><g id="ComCcsds.comStub.drvConnected.0" transform="translate(-10,55)"><title>ComCcsds.comStub.drvConnected.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-74" y="21">drvConnected</text></g><g id="ComCcsds.comStub.drvReceiveIn.0" transform="translate(-10,20)"><title>ComCcsds.comStub.drvReceiveIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-70" y="21">drvReceiveIn</text></g><g id="ComCcsds.comStub.drvReceiveReturnOut.0" transform="translate(78,55)"><title>ComCcsds.comStub.drvReceiveReturnOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">drvReceiveReturnOut</text></g><g id="ComCcsds.comStub.drvSendOut.0" transform="translate(78,20)"><title>ComCcsds.comStub.drvSendOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">drvSendOut</text></g></g>
+<g id="ComCcsds.FramingSubtopology" transform="translate(313,150)" data-topology="ComCcsds.FramingSubtopology"><title>Subtopology ComCcsds.FramingSubtopology</title><rect class="sprotty-node topology-node" width="213" height="190" rx="4"/><text class="sprotty-label node-label" x="55.50" y="91">FramingSubtopology</text><text class="sprotty-label node-label" x="5" y="105">topology ComCcsds.FramingSubtopology</text><g id="ComCcsds.FramingSubtopology.comStatusIn.0" transform="translate(-10,122)"><title>ComCcsds.FramingSubtopology.comStatusIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-67" y="8">comStatusIn</text></g><g id="ComCcsds.FramingSubtopology.dataIn.0" transform="translate(-10,146)"><title>ComCcsds.FramingSubtopology.dataIn.0 (guarded)</title><rect class="sprotty-port port-guarded" width="10" height="10"/><text class="sprotty-label" x="-36" y="8">dataIn</text></g><g id="ComCcsds.FramingSubtopology.dataOut.0" transform="translate(213,23.43)"><title>ComCcsds.FramingSubtopology.dataOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="8">dataOut</text></g><g id="ComCcsds.FramingSubtopology.dataReturnIn.0" transform="translate(-10,170)"><title>ComCcsds.FramingSubtopology.dataReturnIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-69" y="8">dataReturnIn</text></g><g id="ComCcsds.FramingSubtopology.dataReturnOut.0" transform="translate(213,60.86)"><title>ComCcsds.FramingSubtopology.dataReturnOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="8">dataReturnOut</text></g></g>
+<g id="ComCcsds.Subtopology.aggregatorTimeout.0" transform="translate(33,56)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 121,0 131,12 121,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="65.50" y="15">aggregatorTimeout</text></g>
+<g id="ComCcsds.Subtopology.bufferManagerSchedIn.0" transform="translate(14,100)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 140,0 150,12 140,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="75" y="15">bufferManagerSchedIn</text></g>
+<g id="ComCcsds.Subtopology.bufferQueueIn.0" transform="translate(55,144)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 99,0 109,12 99,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="54.50" y="15">bufferQueueIn</text></g>
+<g id="ComCcsds.Subtopology.bufferReturnOut.0" transform="translate(987,278.29)"><polygon class="sprotty-node boundary-port boundary-output" points="0,0 107,0 117,12 107,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="58.50" y="15">bufferReturnOut</text></g>
+<g id="ComCcsds.Subtopology.cmdResponseIn.0" transform="translate(46,188)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 108,0 118,12 108,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="59" y="15">cmdResponseIn</text></g>
+<g id="ComCcsds.Subtopology.comPacketQueueIn.0" transform="translate(17,232)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 137,0 147,12 137,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="73.50" y="15">comPacketQueueIn[0]</text></g>
+<g id="ComCcsds.Subtopology.comPacketQueueIn.1" transform="translate(17,276)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 137,0 147,12 137,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="73.50" y="15">comPacketQueueIn[1]</text></g>
+<g id="ComCcsds.Subtopology.comQueueRun.0" transform="translate(52,320)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 102,0 112,12 102,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="56" y="15">comQueueRun</text></g>
+<g id="ComCcsds.Subtopology.commandOut.0" transform="translate(987,322.29)"><polygon class="sprotty-node boundary-port boundary-output" points="0,0 95,0 105,12 95,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="52.50" y="15">commandOut</text></g>
+<g id="ComCcsds.Subtopology.commsBufferGetCallee.0" transform="translate(12,364)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 142,0 152,12 142,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="76" y="15">commsBufferGetCallee</text></g>
+<g id="ComCcsds.Subtopology.commsBufferSendIn.0" transform="translate(26,408)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 128,0 138,12 128,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="69" y="15">commsBufferSendIn</text></g>
+<g id="ComCcsds.Subtopology.drvConnected.0" transform="translate(57,496)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 97,0 107,12 97,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="53.50" y="15">drvConnected</text></g>
+<g id="ComCcsds.Subtopology.drvReceiveIn.0" transform="translate(61,452)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 93,0 103,12 93,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="51.50" y="15">drvReceiveIn</text></g>
+<g id="ComCcsds.Subtopology.drvReceiveReturnOut.0" transform="translate(987,496)"><polygon class="sprotty-node boundary-port boundary-output" points="0,0 134,0 144,12 134,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="72" y="15">drvReceiveReturnOut</text></g>
+<g id="ComCcsds.Subtopology.drvSendOut.0" transform="translate(987,452)"><polygon class="sprotty-node boundary-port boundary-output" points="0,0 87,0 97,12 87,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="48.50" y="15">drvSendOut</text></g>
+<g id="ComCcsds.Subtopology.fileUplinkOut.0" transform="translate(987,234.29)"><polygon class="sprotty-node boundary-port boundary-output" points="0,0 91,0 101,12 91,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="50.50" y="15">fileUplinkOut</text></g>
+<g id="ComCcsds.Subtopology.fileUplinkReturnIn.0" transform="translate(39,12)"><polygon class="sprotty-node boundary-port boundary-input" points="0,0 115,0 125,12 115,24 0,24 10,12"/><text class="sprotty-label node-label" text-anchor="middle" x="62.50" y="15">fileUplinkReturnIn</text></g>
+<g id="bus.ComCcsds.FramingSubtopology.ComCcsds.comStub" class="sprotty-edge"><title>ComCcsds.FramingSubtopology.dataOut -&gt; ComCcsds.comStub.dataIn
+ComCcsds.FramingSubtopology.dataReturnOut -&gt; ComCcsds.comStub.dataReturnIn</title><path class="edge-bus" d="M 526,316.57 L 624,316.57 L 624,365.29 L 674,365.29 L 674,449 L 768,449" marker-end="url(#arrow)"/><line class="edge-bus-slash" x1="661" y1="359.22" x2="668" y2="371.35"/><text class="sprotty-label" x="654" y="355.29">/2</text></g>
+<g id="bus.ComCcsds.comStub.ComCcsds.FramingSubtopology" class="sprotty-edge"><title>ComCcsds.comStub.dataReturnOut -&gt; ComCcsds.FramingSubtopology.dataReturnIn
+ComCcsds.comStub.comStatusOut -&gt; ComCcsds.FramingSubtopology.comStatusIn
+ComCcsds.comStub.dataOut -&gt; ComCcsds.FramingSubtopology.dataIn</title><path class="edge-bus" d="M 846,449 L 977,449 L 977,376.29 L 224,376.29 L 224,260 L 313,260" marker-end="url(#arrow)"/><line class="edge-bus-slash" x1="603.21" y1="382.35" x2="596.21" y2="370.22"/><text class="sprotty-label" x="654" y="392.29">/3</text></g>
+<g id="boundary.aggregatorTimeout.0" class="sprotty-edge"><title>ComCcsds.aggregator.timeout</title><path class="edge-implicit" d="M 164,68 L 194,68 L 194,170 L 313,170" marker-end="url(#arrow)"/></g>
+<g id="boundary.bufferManagerSchedIn.0" class="sprotty-edge"><title>ComCcsds.commsBufferManager.schedIn</title><path class="edge-implicit" d="M 164,112 L 184,112 L 184,180 L 313,180" marker-end="url(#arrow)"/></g>
+<g id="boundary.bufferQueueIn.0" class="sprotty-edge"><title>ComCcsds.comQueue.bufferQueueIn</title><path class="edge-implicit" d="M 164,156 L 174,156 L 174,190 L 313,190" marker-end="url(#arrow)"/></g>
+<g id="boundary.bufferReturnOut.0" class="sprotty-edge"><title>ComCcsds.comQueue.bufferReturnOut</title><path class="edge-implicit" d="M 526,269.71 L 644,269.71 L 644,290.29 L 987,290.29" marker-end="url(#arrow)"/></g>
+<g id="boundary.cmdResponseIn.0" class="sprotty-edge"><title>ComCcsds.fprimeRouter.cmdResponseIn</title><path class="edge-implicit" d="M 164,200 L 313,200" marker-end="url(#arrow)"/></g>
+<g id="boundary.comPacketQueueIn.0" class="sprotty-edge"><title>ComCcsds.comQueue.comPacketQueueIn[0]</title><path class="edge-implicit" d="M 164,244 L 174,244 L 174,210 L 313,210" marker-end="url(#arrow)"/></g>
+<g id="boundary.comPacketQueueIn.1" class="sprotty-edge"><title>ComCcsds.comQueue.comPacketQueueIn[1]</title><path class="edge-implicit" d="M 164,288 L 184,288 L 184,220 L 313,220" marker-end="url(#arrow)"/></g>
+<g id="boundary.comQueueRun.0" class="sprotty-edge"><title>ComCcsds.comQueue.run</title><path class="edge-implicit" d="M 164,332 L 194,332 L 194,230 L 313,230" marker-end="url(#arrow)"/></g>
+<g id="boundary.commandOut.0" class="sprotty-edge"><title>ComCcsds.fprimeRouter.commandOut</title><path class="edge-implicit" d="M 526,293.14 L 634,293.14 L 634,334.29 L 987,334.29" marker-end="url(#arrow)"/></g>
+<g id="boundary.commsBufferGetCallee.0" class="sprotty-edge"><title>ComCcsds.commsBufferManager.bufferGetCallee</title><path class="edge-implicit" d="M 164,376 L 204,376 L 204,240 L 313,240" marker-end="url(#arrow)"/></g>
+<g id="boundary.commsBufferSendIn.0" class="sprotty-edge"><title>ComCcsds.commsBufferManager.bufferSendIn</title><path class="edge-implicit" d="M 164,420 L 214,420 L 214,250 L 313,250" marker-end="url(#arrow)"/></g>
+<g id="boundary.drvConnected.0" class="sprotty-edge"><path d="M 164,508 L 674,508 L 674,499 L 758,499" marker-end="url(#arrow)"/></g>
+<g id="boundary.drvReceiveIn.0" class="sprotty-edge"><path d="M 164,464 L 758,464" marker-end="url(#arrow)"/></g>
+<g id="boundary.drvReceiveReturnOut.0" class="sprotty-edge"><path d="M 856,499 L 977,499 L 977,508 L 987,508" marker-end="url(#arrow)"/></g>
+<g id="boundary.drvSendOut.0" class="sprotty-edge"><path d="M 856,464 L 987,464" marker-end="url(#arrow)"/></g>
+<g id="boundary.fileUplinkOut.0" class="sprotty-edge"><title>ComCcsds.fprimeRouter.fileOut</title><path class="edge-implicit" d="M 526,246.29 L 987,246.29" marker-end="url(#arrow)"/></g>
+<g id="boundary.fileUplinkReturnIn.0" class="sprotty-edge"><title>ComCcsds.fprimeRouter.fileBufferReturnIn</title><path class="edge-implicit" d="M 164,24 L 204,24 L 204,160 L 313,160" marker-end="url(#arrow)"/></g>
+</svg>

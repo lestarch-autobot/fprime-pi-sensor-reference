@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="306" height="79" viewBox="-8 -8 306 79">
+<style>
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: normal; }
+    .sprotty-node { fill: #dbe9f9; stroke: #1b1b1b; stroke-width: 1.5; }
+    .sprotty-label { fill: #1b1b1b; stroke: none; }
+    .node-label { fill: #1b1b1b; }
+    .sprotty-port { fill: #1b1b1b; stroke: #7b337d; stroke-width: 1; }
+    .sprotty-edge { fill: none; stroke: #3b3b3b; }
+    .sprotty-edge-arrow { fill: #3b3b3b; stroke-width: 0; }
+    .component-active { stroke: #3FB984; }
+    .component-passive { stroke: #fe92a8; }
+    .topology-node { fill: #f1f1f1; stroke: #1b1b1b; stroke-dasharray: 8 4; }
+    .boundary-port { stroke: #1b1b1b; stroke-width: 1; }
+    .boundary-input { fill: #9cc8ff; }
+    .boundary-output { fill: #f5c58a; }
+    .sprotty-edge path.edge-implicit { stroke-dasharray: 5 4; opacity: 0.85; }
+    .sprotty-edge path.edge-bus { stroke-width: 3px; }
+    .sprotty-edge path.edge-bus.edge-implicit { stroke-dasharray: 8 5; }
+    .sprotty-edge .edge-bus-slash { stroke-width: 1.5px; }
+    .port-sync { fill: #fe92a8; }
+    .port-guarded { fill: #FDD35C; }
+    </style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" class="sprotty-edge-arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>
+</defs>
+<rect x="-8" y="-8" width="306" height="79" fill="#ffffff"/>
+<g id="MpuImu.imuDriver" transform="translate(177,12)"><rect class="sprotty-node task component-passive" width="101" height="38" rx="10"/><text class="sprotty-label node-label" x="26.50" y="15">imuDriver</text><text class="sprotty-label node-label" x="5" y="29">Drv.LinuxI2cDriver</text></g>
+<g id="MpuImu.imuManager" transform="translate(12,12)"><rect class="sprotty-node task component-queued" width="115" height="38" rx="10"/><text class="sprotty-label node-label" x="26.50" y="15">imuManager</text><text class="sprotty-label node-label" x="5" y="29">MpuImu.ImuManager</text></g>
+<g id="bus.MpuImu.imuManager.MpuImu.imuDriver" class="sprotty-edge"><title>MpuImu.imuManager.busWriteRead -&gt; MpuImu.imuDriver.writeRead
+MpuImu.imuManager.busWrite -&gt; MpuImu.imuDriver.write</title><path class="edge-bus" d="M 127,31 L 177,31" marker-end="url(#arrow)"/><line class="edge-bus-slash" x1="148.50" y1="24.94" x2="155.50" y2="37.06"/><text class="sprotty-label" x="147" y="47">/2</text></g>
+</svg>
