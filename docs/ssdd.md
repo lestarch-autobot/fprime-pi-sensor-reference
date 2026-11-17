@@ -297,7 +297,7 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-023 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channels after each sensor returns, no restart | system test |
 | REQ-PiSensor-024 | set | `Gps`, `Cdh`, `sensorMonitor` | Fix validity channel while the receiver reports no fix | system test |
 | REQ-PiSensor-025 | component | `NmeaGps.frameAccumulator` as configured with `NmeaDetector` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
-| REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | component test |
+| REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | system test |
 | REQ-PiSensor-027 | component | `ComCcsds.tcDeframer` | A corrupted frame is not passed on; the same frame uncorrupted is | component test |
 | REQ-PiSensor-028 | set | `piCamera`, `productManager` | Command response and `WARNING_HI` event | system test |
 | REQ-PiSensor-029 | set | `productManager`, `piCamera`, `Dp` | No product file after the failed or interrupted capture | system test |
@@ -314,7 +314,7 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-040 | component | `piCamera` | Build inputs and linked libraries of the camera software | inspection |
 | REQ-PiSensor-041 | component | `productManager` | `WARNING_LO` event; product file present; downlink completes | component test |
 | REQ-PiSensor-042 | system | system | Board model and OS release recorded with each system test run | system test |
-| REQ-PiSensor-043 | component | `MpuImu.imuManager` | Read-failure event on a wrong identity value; none on the right value | component test |
+| REQ-PiSensor-043 | component | `sensorMonitor` (adapter for `MpuImu.imuManager`) | Read-failure event on a wrong identity value; none on the right value | component test |
 
 ### Faults
 
@@ -340,3 +340,48 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | Link outage | `tcpLink` (prototype) or `Rfm` (flight), by link status | `Com` (queues, resumes) | 036, 038 |
 | Ground-system outage | `tcpLink` (prototype) or `Cfdp` (flight), by no peer | `Com`, `Cfdp` (resume) | 037, 038 |
 | Restart (process exit or reboot) | `service unit` | `service unit` (starts the deployment); all elements start without commands; `productManager` finds stored products | 038, 039 |
+
+## Inventory
+
+Grades are those of the F Prime quality index for `v4.4.2 @ f22ce8f`, the
+pinned ref. The index does not list fprime-sensors.
+
+| Element | Class | Origin | Configuration / adapter / change | SDD | Grade | Upstream checklist | Campaign id | Requirements |
+|---|---|---|---|---|---|---|---|---|
+| `CdhCore.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | Topology wiring | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/CdhCore/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/TlmChan/index.html) (`tlmSend`) | none | — | 001-003, 005, 007, 008, 019, 020, 022-024 |
+| `ComCcsds.Subtopology`, `ComCcsds.FramingSubtopology` | INHERITED | nasa/fprime@v4.4.2 | `ComCcsdsConfig` override; prototype and flight variants | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Ccsds/TcDeframer/index.html) (`tcDeframer`) | none | — | 001-003, 012, 013, 015, 016, 027, 036 |
+| `FileHandlingCfdp.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | CFDP parameters: class 2, 60 s inactivity | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Ccsds/CfdpManager/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Ccsds/CfdpManager/index.html) (`cfdpManager`) | none | — | 012, 013, 034, 035, 038 |
+| `DataProducts.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | Product directory in `config/` | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/DpWriter/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/DpWriter/index.html) (`dpWriter`) | none | — | 004, 005, 010, 029, 031, 035, 038 |
+| `Bmp280.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | SPI device in `Bmp280Config`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Bmp280/Components/BmpManager/docs/sdd.md) | unavailable | none; no unit tests | — | 001, 007, 008, 019, 022, 023, 026 |
+| `MpuImu.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | I2C bus 1, address 0x68; identity check by adapter `sensorMonitor`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/MpuImu/Components/ImuManager/docs/sdd.md) | unavailable | none | — | 002, 007, 008, 020, 022, 023, 043 |
+| `PiGps` (in place of `NmeaGps.Subtopology`) | NEW-SUBTOPOLOGY | new: this repository | Members: `NmeaGps.GpsManager`, `FprimeSensors.AccumulatorAdapter` (2), `Svc.FrameAccumulator` with `NmeaGps.NmeaDetector`, `Drv.PosixUartDriver`, `Svc.BufferManager`, all INHERITED; `sensorMonitor` sits in the sentence path | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/NmeaGps/Components/GpsManager/docs/sdd.md) | unavailable | none | — | 003, 007-009, 021-025 |
+| `Rfm69.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | SPI0 CE1 and reset GPIO in `Rfm69Config`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Rfm69/Components/Rfm69Manager/docs/sdd.md) | unavailable | none | — | 015, 036 |
+| `tcpLink` (`Drv.TcpClient`) | INHERITED | nasa/fprime@v4.4.2 | Ground host and port | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Drv/TcpClient/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Drv/TcpClient/index.html) | none | — | 016, 036 |
+| `posixTime` (`Svc.PosixTime`) | INHERITED | nasa/fprime@v4.4.2 | — | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/PosixTime/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/PosixTime/index.html) | none | — | 006 |
+| `linuxTimer`, `rateGroupDriver`, `rateGroup1Hz`, `rateGroup10Hz` | INHERITED | nasa/fprime@v4.4.2 | Divisors for 10 Hz and 1 Hz | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/ActiveRateGroup/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/ActiveRateGroup/index.html) (`ActiveRateGroup`) | none | — | 001-003, 015 |
+| `sensorMonitor` | NEW | new: this repository | Also the adapter for the MPU6050 identity check and GPS sentence arrival | [sdd](../Components/SensorMonitor/docs/sdd.md) | — | — | sensmon | 001-003, 005, 007-009, 019-024, 043 |
+| `piCamera` | NEW | new: this repository | Raspberry Pi OS camera library, no OpenCV | [sdd](../Components/PiCamera/docs/sdd.md) | — | — | picam | 004-008, 010, 028, 029, 040 |
+| `productManager` | NEW | new: this repository | — | [sdd](../Components/ProductManager/docs/sdd.md) | — | — | prodmgr | 004-012, 014, 028-035, 038, 041 |
+| `groundRadio` | NEW-SUBTOPOLOGY | new: this repository | Second deployment on the ground Pi. Members: `Rfm69.Subtopology`, `Drv.TcpClient`, `Svc.ComStub`, all INHERITED | — | unavailable | none | — | 001-003, 012, 013, 015, 036 |
+| `service unit` | INHERITED | Raspberry Pi OS 13 systemd | Unit file in this repository | — | unavailable | none | — | 038, 039 |
+| Ground system | INHERITED | fprime-community/fprime-yamcs@f6f0e19 | `fprime-comm-bridge` for TCP; CFDP service added by instance configuration | [readme](https://github.com/fprime-community/fprime-yamcs/blob/f6f0e1976abf43258666f7d8a5da92001146e583/README.md) | unavailable | none | — | 012, 013, 017, 037 |
+
+Catalogs searched for each `NEW` row: nasa/fprime `Svc/`, `Drv/`;
+fprime-sensors; fprime-devices. Nearest candidates rejected:
+`sensorMonitor`: none computes attitude or validity. `piCamera`:
+`KissCam.SunCamMgr` (fprime-devices) drives a UART sun camera.
+`productManager`: `Svc.DpCatalog` sends all products, not one named product.
+
+Evidence gaps, moved to system tests: `Bmp280.BmpManager` has no unit
+tests, so REQ-PiSensor-026 is verified by a system test. No inherited
+element has `test/int/` or an upstream checklist.
+
+### Red flags
+
+None. Two inherited elements are almost right and are kept unchanged behind
+`sensorMonitor`: the MPU6050 manager reads no identity register, and the
+GPS manager reports neither fix status nor sentence arrival.
+
+One risk for the base-deployment lane: fprime-yamcs at the pin carries no
+CFDP configuration. If the YAMCS CFDP service cannot be added by
+configuration alone, it becomes a red flag before Approve SSDD.
