@@ -90,14 +90,14 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 ### 3.1. Component Diagram
 
 ```
-                    +-----------------------------------+
- imageIn : PictureDone []                               [] captureOut : CaptureRequest
- fileDoneIn : Svc.SendFileComplete []  ProductManager   [] imageReturnOut : Fw.BufferSend
- run : Svc.Sched []                      (active)       [] samplesGetOut : SamplesGet
-                    |                                   [] sendFileOut : Svc.SendFileRequest
-                    |                                   [] productGetOut : Fw.DpGet
-                    |                                   [] productSendOut : Fw.DpSend
-                    +-----------------------------------+
+                                   ┌──────────────────┐
+              imageIn : PictureDone □                  □ captureOut : CaptureRequest
+  fileDoneIn : Svc.SendFileComplete □  ProductManager  □ imageReturnOut : Fw.BufferSend
+                    run : Svc.Sched □     (active)     □ samplesGetOut : SamplesGet
+                                    │                  □ sendFileOut : Svc.SendFileRequest
+                                    │                  □ productGetOut : Fw.DpGet
+                                    │                  □ productSendOut : Fw.DpSend
+                                    └──────────────────┘
    special ports: cmdIn, cmdRegOut, cmdResponseOut, eventOut, textEventOut, tlmOut, timeGetOut
 ```
 
@@ -115,7 +115,7 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 | `fileDoneIn` | async input, hook | `Svc.SendFileComplete` | File transfer ended |
 | `run` | async input, drop | `Svc.Sched` | 1 Hz tick: time-outs, stored check, listing |
 
-The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow the hooks, which run in the caller's thread, return the picture buffer to the camera and answer a command with `BUSY`; the `fileDoneIn` hook stores the status in a member guarded by a mutex, and the next `run` tick ends the downlink with it.
+The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow the hooks, which run in the caller's thread, return the picture buffer to the camera and answer a command with `BUSY`; the `fileDoneIn` hook stores the status in a member guarded by a mutex, and the next `run` tick ends the downlink with it. The mutex is held only to copy the status, with no port call under it; each tick empties the member and drops its content outside a downlink, and `DOWNLINK` clears it before calling `sendFileOut`.
 
 ### 3.3. State
 
@@ -161,18 +161,22 @@ Preconditions on the deployment: `productDirectory` is at most 59 characters (`c
 ### 3.5. Behavior
 
 The first message dispatched runs the start-up scan, one pass of at most `SCAN_MAX_ENTRIES` entries: it removes every partial product and always ends with `ScanComplete`, whose `truncated` tells a scan cut short or failed. Header lengths are read with `Fw::DpContainer`; a product file that cannot be opened or read is left in place and reported with `FileSystemError(FILE_READ)` naming it, a command naming it fails, and a scan, listing or `WAIT_WRITTEN` check goes on.
-`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns the buffer in every case and acts only on the context of the current capture: it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way.
+`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns the buffer in every case and acts only on the context of the current capture: it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way: on a tick it runs before the `WAIT_WRITTEN` time-out.
 `DOWNLINK` and `DELETE` act on a stored product; the file of a capture in `WAIT_WRITTEN` or under re-check is not one, and a command naming it fails with `ProductNotFound`. `DOWNLINK` calls `sendFileOut` with the product as source and its name as destination; `fileDoneIn` ends the downlink and is ignored outside one. No time-out runs on a downlink: a transfer that does not end is ended from the ground with `cfdpManager.CancelTransaction`. `LIST_PRODUCTS` opens the directory and `run` reports its stored products. Section 6 holds the timing diagrams.
 
 ## 4. Data Product Format
 
-| Container | Id | Record | Id | Type | Count |
-|---|---|---|---|---|---|
-| `Capture` | 0 | `CaptureTime` | 0 | `Fw.TimeValue` | 1 |
-| | | `Temperature` | 1 | `TemperatureSample` | 1 |
-| | | `Attitude` | 2 | `AttitudeSample` | 1 |
-| | | `Location` | 3 | `LocationSample` | 1 |
-| | | `Picture` | 4 | `U8` array, JPEG bytes as delivered | picture size |
+| Container | Id | Default priority |
+|---|---|---|
+| `Capture` | 0 | 10 |
+
+| Record | Id | Type | Count |
+|---|---|---|---|
+| `CaptureTime` | 0 | `Fw.TimeValue` | 1 |
+| `Temperature` | 1 | `TemperatureSample` | 1 |
+| `Attitude` | 2 | `AttitudeSample` | 1 |
+| `Location` | 3 | `LocationSample` | 1 |
+| `Picture` | 4 | `U8` array, JPEG bytes as delivered | picture size |
 
 | Struct | Field | Type | Value |
 |---|---|---|---|

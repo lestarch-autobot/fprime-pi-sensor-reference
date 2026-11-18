@@ -287,7 +287,7 @@ module PiSensor {
     event ScanComplete(
       stored: U32 @< Stored products found
       removed: U32 @< Partial products removed
-      truncated: bool @< The scan stopped at SCAN_MAX_ENTRIES
+      truncated: bool @< The scan stopped at SCAN_MAX_ENTRIES or on a file system error
     ) severity activity high format "Start-up scan: {} products stored, {} files removed, truncated {}"
 
     # ----------------------------------------------------------------------
