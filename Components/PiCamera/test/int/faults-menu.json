@@ -1,0 +1,73 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "camera_kept_absent",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-1"
+      ],
+      "fails": {
+        "L5-1": [
+          "event piCamera.CaptureFailed count == 1",
+          "delta(piCamera.CapturesCompleted) == 1"
+        ]
+      },
+      "mechanism": "argument `state` of the second sysTester.BENCH_LINE(CAMERA, ON) is rewritten to OFF: the camera stays unavailable for the capture that must succeed",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "capture_dropped",
+      "class": "stimulus",
+      "applies_to": [
+        "L2-1"
+      ],
+      "fails": {
+        "L2-1": [
+          "event piCamera.CaptureStarted count == 1",
+          "delta(piCamera.CapturesCompleted) == 1"
+        ]
+      },
+      "mechanism": "command productManager.CAPTURE is rewritten to cmdDisp.CMD_NO_OP: no picture is acquired where the test expects one",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "corrupt_picture",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-2"
+      ],
+      "fails": {
+        "L2-2": [
+          "picture record of P2 is JFIF, SOI to EOI, 640 x 480"
+        ]
+      },
+      "mechanism": "sysTester.CORRUPT_PRODUCT(name) is inserted before the second productManager.DOWNLINK: the first two bytes of the picture record of the stored product are overwritten on board; the test removes its products at teardown",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "no_restart",
+      "class": "harness-expectation",
+      "applies_to": [
+        "L3-1"
+      ],
+      "fails": {
+        "L3-1": [
+          "event sysTester.Started count == 1"
+        ]
+      },
+      "mechanism": "the harness expects two process starts in the window where the procedure makes one",
+      "kind": "rewrite",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "L2-1",
+    "L2-2",
+    "L3-1",
+    "L5-1"
+  ]
+}
