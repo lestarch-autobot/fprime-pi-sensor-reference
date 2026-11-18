@@ -33,8 +33,40 @@ tool output, `[I]` inference.
 | N1 | note to parent | A stored product is judged by the length its header declares; `sysTester.CORRUPT_PRODUCT` must not overwrite the header length field, or the product stops being a stored product | open |
 | N2 | note to parent | Samples are requested when the picture is delivered and judged within 2 s of capture time in both directions (P8); `piCamera` must deliver the picture within 1 s of the acquisition time it reports, or every metric is marked invalid | open |
 | P14 | requirements, round 2 | A capture whose product name is that of a stored product fails with `StorageFailed`, so no stored product is overwritten. REQ-ProductManager-015, -046 | proposed |
+| P15 | design | Interface changes against the sketch, shared with `sensorMonitor` and `piCamera`: `SamplesGet(ref samples: SampleSet)` returns the samples; `imageIn` is `PictureDone(context, status, captureTime, ref picture)`; `tlmOut` dropped (P7). Types defined in `Components/ProductManager/ProductManager.fpp` | proposed |
+| P16 | design | The product name is computed with `DP_FILENAME_FORMAT` from container id and capture time, the rule of `Svc.DpWriter`; the container time tag is the capture time. Two captures collide only if the clock repeats a capture time | proposed |
+| P17 | design | Informational events added: `DownlinkStarted`, `DownlinkComplete`, `ProductDeleted`, `ProductDiscarded` (one event per command, CPP-37) | proposed |
+| N3 | note to parent | Topology: `run` at 1 Hz; `configure(productDirectory)` with the directory of `DataProducts`; the product buffer pool must hold one picture plus 200 bytes | open |
+
+## Trace
+
+System requirement (REQ-PiSensor-) to component rows (REQ-ProductManager-):
+
+| System | Component rows |
+|---|---|
+| 004 | 001, 004 |
+| 005 | 002, 003, 004, 005, 006, 012, 013, 015, 044, 046 |
+| 006 | 007 |
+| 007 | 008, 009 |
+| 008 | 010 |
+| 009 | 011 |
+| 010 | 013, 018, 021 |
+| 011 | 014 |
+| 012 | 026, 027, 029 |
+| 014 | 034, 042 |
+| 028 | 016, 017, 018 |
+| 029 | 019, 022, 023, 024 |
+| 030 | 025, 041, 045 |
+| 031 | 020, 021 |
+| 032 | 033 |
+| 033 | 031, 041 |
+| 034 | 028 |
+| 035 | 030, 032 |
+| 038 | 036, 037, 038, 039, 040, 042, 043 |
+| 041 | 035, 041 |
 
 ## Reviews
 
 - Requirements round 1 [V record `review-requirements-requirements-review-round-1.md`, separate session 86f3b137]: must fix 23, could fix 12, disagreements 0. Close: all must-fix edited (rows renumbered 001 to 044; every row `Unit Test`); could-fix fixed except `req-unclear:REQ-ProductManager-020` declined (the system plan names `DownlinkStalled`; P4).
 - Requirements round 2 [V record `review-requirements-requirements-review-round-2.md`]: must fix 4, could fix 4, disagreements 0 (the round-1 decline accepted by the reviewer). Close: all 8 edited (rows 002, 009, 015, 019, 021, 023, 034, 041, 044, new 045, 046, Table 4).
+- Requirements round 3 [V record `review-requirements-requirements-review-round-3.md`]: must fix 0, could fix 3, disagreements 0. Loop closed at zero must-fix; the 3 could-fix edited (rows 038, 041, 046, Introduction, External References).

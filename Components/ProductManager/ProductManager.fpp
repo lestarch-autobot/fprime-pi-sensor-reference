@@ -72,6 +72,9 @@ module PiSensor {
     @ ProductStored events emitted per run tick
     constant LIST_EVENTS_PER_TICK = 4
 
+    @ Directory entries read by a listing per run tick
+    constant LIST_ENTRIES_PER_TICK = 64
+
     @ Directory entries examined by one start-up scan
     constant SCAN_MAX_ENTRIES = 4096
 
@@ -103,11 +106,19 @@ module PiSensor {
     @ File system operation that failed
     enum FileOp : U8 {
       SCAN_OPEN
+      SCAN_READ
       SCAN_REMOVE
-      CAPTURE_REMOVE
+      DISCARD_REMOVE
       DELETE_REMOVE
       LIST_OPEN
       LIST_READ
+    }
+
+    @ Why a file was removed without a DELETE command
+    enum DiscardReason : U8 {
+      PARTIAL_AT_STARTUP
+      FAILED_CAPTURE
+      LATE_WRITTEN
     }
 
     # ----------------------------------------------------------------------
@@ -251,10 +262,11 @@ module PiSensor {
       count: U32
     ) severity activity high format "{} products stored"
 
-    @ A partial product was removed
-    event PartialRemoved(
+    @ A file was removed without a DELETE command
+    event ProductDiscarded(
       name: string size PRODUCT_NAME_SIZE
-    ) severity activity low format "Partial product {} removed"
+      reason: DiscardReason
+    ) severity warning low format "File {} removed: {}"
 
     @ The file system reported an error
     event FileSystemError(
