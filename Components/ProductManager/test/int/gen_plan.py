@@ -104,7 +104,7 @@ t("L6-2", "Delete of a missing product", "Proves a DELETE naming no stored produ
 t("L6-3", "Delete with a path as name", "Proves a DELETE naming a path to a stored product is rejected, removing nothing.", R(33), NOM,
   ["MARK(1044)", LD, "CAPTURE()", LD, "DELETE(./P)", LD, TEAR, "MARK(1045)"], [W(1044, 1045)],
   checks=[EMPTY, named("ProductNotFound", 1, ["./P"], "./P"), sev("ProductNotFound", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0", SAME] + ABS)
-t("L6-4", "Downlink with a path as name", "Proves a DOWNLINK naming a path to a stored product is rejected and nothing is sent.", R(33), NOM,
+t("L6-4", "Downlink with a path as name", "Proves a DOWNLINK naming a path to a stored product is rejected, sending nothing.", R(33), NOM,
   ["MARK(1046)", LD, "CAPTURE()", LD, "DOWNLINK(./P)", "wait 10 s (as L6-1)", LD, TEAR, "MARK(1047)"], [W(1046, 1047)],
   requires=[GROUND],
   checks=[EMPTY, named("ProductNotFound", 1, ["./P"], "./P"), sev("ProductNotFound", "WARNING_LO"), one_err("DOWNLINK"), "event productManager.DownlinkStarted count == 0", cfdp(0, "none"), SAME] + ABS)

@@ -198,7 +198,7 @@ Planted faults:none
 
 ID:        L6-4
 Title:     Downlink with a path as name
-Purpose:   Proves a DOWNLINK naming a path to a stored product is rejected and nothing is sent.
+Purpose:   Proves a DOWNLINK naming a path to a stored product is rejected, sending nothing.
 Covers:    REQ-ProductManager-033
 Setup:     Prototype image running, link up, camera answering.
 Procedure: MARK(1046); LIST_DIR(products); CAPTURE(); LIST_DIR(products); DOWNLINK(./P); wait 10 s (as L6-1); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1047).

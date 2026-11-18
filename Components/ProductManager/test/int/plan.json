@@ -887,7 +887,7 @@
   {
    "id": "L6-4",
    "title": "Downlink with a path as name",
-   "purpose": "Proves a DOWNLINK naming a path to a stored product is rejected and nothing is sent.",
+   "purpose": "Proves a DOWNLINK naming a path to a stored product is rejected, sending nothing.",
    "covers": [
     "REQ-ProductManager-033"
    ],
