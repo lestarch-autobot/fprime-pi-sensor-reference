@@ -227,12 +227,13 @@
   },
   "REQ-PiSensor-016": {
    "tests": [
+    "L0-1",
     "L2-1",
     "L2-2",
     "L2-3",
     "L2-4"
    ],
-   "verification": "L2-1, L2-2, L2-3, L2-4",
+   "verification": "L0-1, L2-1, L2-2, L2-3, L2-4",
    "note": ""
   },
   "REQ-PiSensor-017": {
@@ -454,11 +455,11 @@
   "L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> event `sysTester.Marker(id)` (the deployment has no command with a free 32-bit argument that echoes). Event rate: at most 5 events per second in any window. Link budget [I]: RFM69 at the catalog default `DATA_RATE` 19200 bit/s (`Rfm69Manager.fpp`) carries 2400 byte/s, about nine 255-byte frames; Table 1 telemetry at 1 Hz and 5 events/s are estimated at under 800 byte/s, leaving 1600 byte/s for CFDP, so a 100 kB JPEG takes at least 60 s. The bench check at L0 replaces this estimate.",
   "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS 13.",
   "- Test deployment (SSDD decision D13, the human's ruling): the full deployment plus the harness component `sysTester`. Constraint: without it there is no marker command, no on-board file hash, no directory listing outside `productManager` and no commandable bench line. Images named in the manifest `images[]`: `PiSensor-prototype` (TCP) and `PiSensor-flight` (RFM69).",
-  "- `sysTester` commands: `MARK(id)`, `PLATFORM()`, `LIST_DIR(dir)`, `DUMP_SHA256(name)`, `BENCH_LINE(line, state)`, `CORRUPT_PRODUCT(name)`. Events: `Marker`, `Started` (once per process start), `Platform`, `DirListing`, `Sha256`. Channel `UptimeS` every second (always written).",
+  "- `sysTester` commands: `MARK(id)`, `PLATFORM()`, `LIST_DIR(dir)`, `DUMP_SHA256(name, pass)`, `BENCH_LINE(line, state)`, `CORRUPT_PRODUCT(name)`. `DUMP_SHA256` and `CORRUPT_PRODUCT` act on a named file of the product directory only; `pass` is echoed in the `Sha256` event. Design constraint sent to campaign `prodmgr`: a downlink does not check product content, so a corrupted product is sent as stored. Events: `Marker`, `Started` (once per process start), `Platform`, `DirListing`, `Sha256`. Channel `UptimeS` every second (always written).",
   "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service).",
   "- Order: the prototype block (L0-1 to L6-2, TCP) runs first; the flight block (L0-3, L2-9, L2-10, L5-16, L5-23, L7-1, RFM69) runs last. The switch is the bench action at the head of L0-3.",
   "- Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time and, for the GPS source, its byte counter; every CFDP file received is copied to `record/raw/files/` before it is hashed; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json` and from the F Prime CFDP events; frames are recorded at `fprime-comm-bridge`, which stays up when YAMCS is stopped.",
-  "- Completeness: every window requires STD and the helper `no_frame_gaps` (no gap in the telemetry frame counter of the ground recorder); a dropped frame or an overflowed queue makes the window UNVERIFIED, never a pass of an absence check. Windows that expect a queue overflow (link and ground outages) or a failed command require the named variant `STD-OUT`, `STD-ERR` or `STD-RST` given in their rationale, and judge no absence across the outage.",
+  "- Completeness: every window requires STD and the helper `no_frame_gaps` (no gap in the telemetry frame counter of the ground recorder); a dropped frame or an overflowed queue makes the window UNVERIFIED, never a pass of an absence check. `STD-OUT`, `STD-ERR` and `STD-RST` are completeness blocks used with `require`, not absence blocks (the plan format lists them with the absence blocks). The helper takes `{except: [interval]}`: `STD-OUT` (link, radio and ground-stack outages) has no overflow predicate and exempts frame gaps from the outage action to the return action; `STD-RST` (restart windows) exempts them from the action to the first `sysTester.Started`, and a frame counter that restarts at 0 directly before a `Started` event is a restart, any other discontinuity a gap; `STD-ERR` expects exactly one failed command. Outside the exempt interval the gap rule holds; no absence is judged inside it.",
   "- Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 (`PLATFORM()` event time against bench time) and must be under 0.5 s; time tolerances that compare the two clocks use 2 s (SSDD decision D12).",
   "- Validity channels (`TemperatureValid`, `AttitudeValid`, `FixValid`) are written every period, not on change; a window without samples of them fails.",
   "- Out of scope: BMP280 pressure (decision D9); yaw."
@@ -466,8 +467,8 @@
  "entry_gates": [
   "- Component campaigns `sensmon`, `picam`, `prodmgr` closed; their unit tests pass.",
   "- Images built from the manifest SHAs; L0-1, L0-2 and L0-3 pass on the bench.",
-  "- Product directory on its own 64 MB file system (loop-mounted image file, kept across a reboot), empty at the start of each test (bench teardown removes the products of the test). The fill and read-only actions touch only that file system.",
-  "- Bench recipe: BMP280, MPU6050, Pi Camera attached; bench line BMP280 = a switch on the BMP280 supply driven by a Pi GPIO; bench line MPU6050 = the same on the MPU6050 supply; a GPS sentence source (workstation USB serial adapter on the GPS UART, 9600 baud, driven by a bench script) in place of the receiver for every test but L2-1 and L2-2; ground Pi with RFM69 for the flight block, its radio supply switchable from the workstation.",
+  "- Product directory on its own 64 MB file system (loop-mounted image file, kept across a reboot), empty at the start of each test (bench teardown removes the products of the test; L7-1 has no teardown, its product stays for the final-state check). The fill and read-only actions touch only that file system.",
+  "- Bench recipe: BMP280, MPU6050, Pi Camera attached; bench line BMP280 = a switch on the BMP280 supply driven by a Pi GPIO; bench line MPU6050 = the same on the MPU6050 supply, with SDA and SCL isolated by the same switch so the unpowered part does not load I2C bus 1 (L0 bench confirmation: the other sensors still answer with each line off); a GPS sentence source (workstation USB serial adapter on the GPS UART, 9600 baud, driven by a bench script) in place of the receiver for every test but L2-1 and L2-2; ground Pi with RFM69 for the flight block, its radio supply switchable from the workstation.",
   "- Privileges on `soakee` (none today: user `fprime` has no passwordless sudo): root for the service units, the reboot, the loop mount and remount, and the camera driver unbind. The TCP link block and the YAMCS and CFDP service actions run on the workstation and need none."
  ],
  "levels": [
@@ -480,7 +481,7 @@
   "- REQ-PiSensor-026: unit test only (decision D11).",
   "- A sensor fault is planted by removing the sensor's supply or its sentence stream; a sensor that answers with wrong data is not planted.",
   "- REQ-PiSensor-008 at its 2 s boundary: the tests use 3 s; a case just under 2 s is not run because the bench action timing error is of the size of the margin. The boundary is a unit test of `productManager`.",
-  "- REQ-PiSensor-037 in the prototype configuration: the flight software sees a stopped ground system as the same TCP drop as a link outage; L5-19 and L5-20 differ from L5-17 and L5-18 on the ground side only.",
+  "- REQ-PiSensor-037: L5-19 stops the YAMCS server only (requires STD; the flight software sees no outage, so it shows ground-side recovery only). L5-20 stops the bridge too; the flight software loses its TCP peer and must reconnect (requires STD-OUT).",
   "- REQ-PiSensor-018 over TCP: a file finishes in about a second, so the bound is tested in the flight block only.",
   "- Radio interference and range: the RFM69 link is tested at bench range only.",
   "- Today's bench cannot run these tests: the BMP280 and GPS receiver do not answer (L2-1, L2-2 and every test whose setup needs four sensors), and the bench lines, the GPS sentence source, the camera, the ground Pi and root on `soakee` are absent."
@@ -498,9 +499,10 @@
   {
    "id": "L0-1",
    "title": "Image and platform identity, prototype image",
-   "purpose": "Proves the running image is the manifest's prototype image and runs on a Raspberry Pi 5 under Raspberry Pi OS 13.",
+   "purpose": "Proves the running image is the manifest's prototype image and runs on a Raspberry Pi 5 under Raspberry Pi OS 13, over TCP.",
    "covers": [
-    "REQ-PiSensor-042"
+    "REQ-PiSensor-042",
+    "REQ-PiSensor-016"
    ],
    "setup": "Prototype image running on the Raspberry Pi 5; link up.",
    "procedure": [
@@ -508,6 +510,7 @@
     "VERSION(ALL)",
     "PLATFORM()",
     "bracket (2 Heartbeat samples)",
+    "action: list TCP sockets of the deployment process",
     "MARK(11)"
    ],
    "windows": [
@@ -518,10 +521,18 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "clock_offset_within",
+     "text": "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "args": {
+      "bound_s": 0.5
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Version events equal the manifest describe strings; check: sysTester.Platform model starts with \"Raspberry Pi 5\" and os_version == 13."
+   "evidence": "Version events equal the manifest describe strings; check: sysTester.Platform model starts with \"Raspberry Pi 5\" and os_version == 13; check: one TCP connection, to the bridge port."
   },
   {
    "id": "L0-2",
@@ -650,7 +661,7 @@
    "procedure": [
     "MARK(40)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "MARK(41)"
@@ -674,9 +685,9 @@
     },
     {
      "helper": "product_time_within",
-     "text": "|capture time record - bench time of CAPTURE sent| <= 2 s",
+     "text": "bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s",
      "args": {
-      "bound_s": 2
+      "tol_s": 2
      }
     },
     {
@@ -714,7 +725,7 @@
     "CAPTURE()",
     "wait 5 s",
     "CAPTURE()",
-    "DUMP_SHA256(P2)",
+    "DUMP_SHA256(P2, 1)",
     "DOWNLINK(P2)",
     "wait CFDP transaction finished at the ground",
     "MARK(43)"
@@ -738,9 +749,9 @@
     },
     {
      "helper": "product_time_within",
-     "text": "|capture time record - bench time of CAPTURE sent| <= 2 s",
+     "text": "bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s",
      "args": {
-      "bound_s": 2
+      "tol_s": 2
      }
     },
     {
@@ -769,7 +780,7 @@
     "CAPTURE()",
     "wait 5 s",
     "CAPTURE()",
-    "DUMP_SHA256(P2)",
+    "DUMP_SHA256(P2, 1)",
     "DOWNLINK(P2)",
     "wait CFDP transaction finished at the ground",
     "MARK(45)"
@@ -832,12 +843,13 @@
    "procedure": [
     "MARK(70)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "MARK(71)",
     "action: kill the deployment process (SIGKILL); the service unit restarts it",
     "wait first Table 1 samples at the ground",
     "MARK(72)",
-    "DUMP_SHA256(P)",
+    "PLATFORM()",
+    "DUMP_SHA256(P, 2)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "MARK(73)"
@@ -870,6 +882,13 @@
       "action": "kill the deployment process (SIGKILL); the service unit restarts it",
       "bound_s": 60
      }
+    },
+    {
+     "helper": "clock_offset_within",
+     "text": "W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "args": {
+      "bound_s": 0.5
+     }
     }
    ],
    "rationale": [
@@ -879,9 +898,9 @@
     }
    ],
    "knobs": [
-    "dump_sha_other"
+    "corrupt_before_second_hash"
    ],
-   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and sha256 of record/raw/files/<P> == hash in the first Sha256 event."
   },
   {
    "id": "L3-2",
@@ -895,12 +914,13 @@
    "procedure": [
     "MARK(74)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "MARK(75)",
     "action: reboot the Raspberry Pi",
     "wait first Table 1 samples at the ground",
     "MARK(76)",
-    "DUMP_SHA256(P)",
+    "PLATFORM()",
+    "DUMP_SHA256(P, 2)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "MARK(77)"
@@ -933,6 +953,13 @@
       "action": "reboot the Raspberry Pi",
       "bound_s": 60
      }
+    },
+    {
+     "helper": "clock_offset_within",
+     "text": "W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "args": {
+      "bound_s": 0.5
+     }
     }
    ],
    "rationale": [
@@ -942,7 +969,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+   "evidence": "R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and sha256 of record/raw/files/<P> == hash in the first Sha256 event."
   },
   {
    "id": "L3-3",
@@ -956,7 +983,8 @@
     "MARK(80)",
     "LIST_DIR(products)",
     "CAPTURE() without waiting for completion",
-    "action: kill the deployment process (SIGKILL) within 1 s of the CAPTURE",
+    "wait event piCamera.CaptureStarted",
+    "action: kill the deployment process (SIGKILL), triggered by the CaptureStarted event",
     "wait first Table 1 samples at the ground",
     "LIST_DIR(products)",
     "LIST_PRODUCTS()",
@@ -978,7 +1006,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
+   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
   },
   {
    "id": "L3-4",
@@ -992,7 +1020,8 @@
     "MARK(82)",
     "LIST_DIR(products)",
     "CAPTURE() without waiting for completion",
-    "action: stop and start the service unit (SIGTERM) within 1 s of the CAPTURE",
+    "wait event piCamera.CaptureStarted",
+    "action: stop and start the service unit (SIGTERM, then SIGKILL after the unit stop time of 2 s), triggered by the CaptureStarted event",
     "wait first Table 1 samples at the ground",
     "LIST_DIR(products)",
     "LIST_PRODUCTS()",
@@ -1014,7 +1043,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
+   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
   },
   {
    "id": "L5-1",
@@ -1364,7 +1393,16 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "invalid_after_action_within",
+     "text": "first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 3 s (one GGA period of 1 s plus one telemetry period of 2 s), INVALID from then to the CAPTURE",
+     "args": {
+      "channel": "sensorMonitor.FixValid",
+      "bound_s": 3
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
    "evidence": "check: sensorMonitor.FixValid == INVALID from 3 s after the action to the CAPTURE; event sensorMonitor.GpsSilent count == 0; source byte counter advances; ground file: location validity record INVALID, temperature and attitude VALID."
@@ -1626,12 +1664,12 @@
    "procedure": [
     "MARK(150)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "action: stop the ground CFDP service",
     "DOWNLINK(P)",
     "wait 95 s",
     "action: start the ground CFDP service",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 2)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "MARK(151)"
@@ -1661,9 +1699,9 @@
     }
    ],
    "knobs": [
-    "dump_sha_other"
+    "corrupt_before_second_hash"
    ],
-   "evidence": "check: event productManager.DownlinkStalled count == 1 (WARNING_HI); the two Sha256 events are equal; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+   "evidence": "check: event productManager.DownlinkStalled count == 1 (WARNING_HI); the two Sha256 events are equal; sha256 of record/raw/files/<P> == hash in the first Sha256 event."
   },
   {
    "id": "L5-17",
@@ -1677,7 +1715,7 @@
    "procedure": [
     "MARK(160)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "action: block the TCP link at the workstation",
     "wait 65 s",
     "action: unblock the TCP link",
@@ -1782,10 +1820,10 @@
    "procedure": [
     "MARK(164)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
-    "action: stop fprime-yamcs (the bridge and the frame recorder stay up)",
+    "DUMP_SHA256(P, 1)",
+    "action: stop the YAMCS server only (`fprime-comm-bridge`, run from its own command line, and the frame recorder stay up)",
     "wait 65 s",
-    "action: start fprime-yamcs",
+    "action: start the YAMCS server",
     "NO_OP()",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
@@ -1828,9 +1866,9 @@
    "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(166)",
-    "action: stop fprime-yamcs (the bridge and the frame recorder stay up)",
+    "action: stop the whole ground stack (YAMCS server and `fprime-comm-bridge`)",
     "wait 120 s",
-    "action: start fprime-yamcs",
+    "action: start the whole ground stack",
     "NO_OP()",
     "MARK(167)"
    ],
@@ -1887,7 +1925,7 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "check: latitude samples take the values of A then C and never B; source byte counter in bench-actions.log advanced by all 15 sentences; event sensorMonitor.GpsSilent count <= 1."
+   "evidence": "check: latitude samples take the values of A then C and never B; source byte counter in bench-actions.log advanced by all 15 sentences; event sensorMonitor.GpsSilent count == 0."
   },
   {
    "id": "L5-22",
@@ -1998,7 +2036,15 @@
      "reset": false
     }
    ],
-   "metrics": [],
+   "metrics": [
+    {
+     "helper": "clock_offset_within",
+     "text": "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "args": {
+      "bound_s": 0.5
+     }
+    }
+   ],
    "rationale": [],
    "knobs": [],
    "evidence": "Version events equal the manifest describe strings of the flight image; Platform check as L0-1; marker ids byte-exact; socket list empty."
@@ -2022,7 +2068,7 @@
     "MARK(210)",
     "wait 30 s",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "MARK(211)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
@@ -2094,7 +2140,7 @@
    "procedure": [
     "MARK(213)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "MARK(214)",
     "DOWNLINK(P)",
     "wait 15 s",
@@ -2155,13 +2201,13 @@
    "procedure": [
     "MARK(220)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "DOWNLINK(P)",
     "wait first file data PDU at the ground",
     "action: power off the ground radio",
     "wait 95 s",
     "action: power on the ground radio",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 2)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "MARK(221)"
@@ -2191,7 +2237,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "check: first transaction incomplete at the power-off (require); event productManager.DownlinkStalled count == 1; the two Sha256 events are equal; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event."
+   "evidence": "check: first transaction incomplete at the power-off (require); event productManager.DownlinkStalled count == 1; the two Sha256 events are equal; sha256 of record/raw/files/<P> == hash in the first Sha256 event."
   },
   {
    "id": "L5-23",
@@ -2255,7 +2301,7 @@
    "procedure": [
     "MARK(230)",
     "CAPTURE()",
-    "DUMP_SHA256(P)",
+    "DUMP_SHA256(P, 1)",
     "DOWNLINK(P)",
     "wait CFDP transaction finished at the ground",
     "LIST_DIR(products)",

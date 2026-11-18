@@ -39,7 +39,9 @@ for _name, _doc in [
     ("resume_after_action_within", "First sample received and first command completion after a bench action, bound_s."),
     ("stall_time_between", "Stall event time against the start of the no-progress period, between lo_s and hi_s."),
     ("downlink_duration_at_least", "CFDP transaction duration from the ground transfer record >= bound_s."),
-    ("no_frame_gaps", "Telemetry frame counter of the ground recorder has no gap inside the window."),
+    ("no_frame_gaps", "Telemetry frame counter of the ground recorder has no gap inside the window, outside the `except` intervals."),
+    ("clock_offset_within", "Pi clock against bench clock from the Platform event; a precondition (UNVERIFIED when not met)."),
+    ("invalid_after_action_within", "First INVALID sample of a validity channel after a bench action, bound_s, and INVALID until the next command."),
 ]:
     _declare(_name, _doc)
 
@@ -66,8 +68,10 @@ def corrupt_product(test_id, command_name, args):
 
 @planted_fault("sensor_line_kept_on", applies_to=["L5-1", "L5-3", "L5-9"], cls="stimulus",
                mechanism="argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering",
-               fails={"L5-1": ["event sensorMonitor.Bmp280Lost count == 1"],
-                      "L5-3": ["event sensorMonitor.Mpu6050Lost count == 1"],
+               fails={"L5-1": ["event sensorMonitor.Bmp280Lost count == 1", "F: last(sensorMonitor.TemperatureValid) == INVALID",
+                               "t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s"],
+                      "L5-3": ["event sensorMonitor.Mpu6050Lost count == 1", "F: last(sensorMonitor.AttitudeValid) == INVALID",
+                               "t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s"],
                       "L5-9": ["attitude validity record INVALID"]})
 def sensor_line_kept_on(test_id, command_name, args):
     if _is(command_name, "BENCH_LINE") and len(args) == 2 and str(args[1]) == "OFF":
@@ -75,12 +79,11 @@ def sensor_line_kept_on(test_id, command_name, args):
     return None
 
 
-@planted_fault("dump_sha_other", applies_to=["L3-1", "L5-15"], cls="harness-expectation",
-               mechanism="argument `name` of the second sysTester.DUMP_SHA256 of the test is rewritten to the deployment's own executable file, so the second hash differs from the first",
-               fails={"L3-1": ["the two Sha256 events are equal"], "L5-15": ["the two Sha256 events are equal"]})
-def dump_sha_other(test_id, command_name, args, _seen={}):
-    if _is(command_name, "DUMP_SHA256"):
-        _seen[test_id] = _seen.get(test_id, 0) + 1
-        if _seen[test_id] == 2:
-            return ["/proc/self/exe"]
+@planted_fault("corrupt_before_second_hash", applies_to=["L3-1", "L5-15"], cls="uut-state", kind="insert",
+               mechanism="sysTester.CORRUPT_PRODUCT(name) is inserted before the sysTester.DUMP_SHA256 whose argument `pass` is 2: the stored product changes between the two hashes and before the downlink; the test removes its product at teardown",
+               fails={"L3-1": ["the two Sha256 events are equal", "sha256 of record/raw/files/<P> == hash in the first Sha256 event"],
+                      "L5-15": ["the two Sha256 events are equal", "sha256 of record/raw/files/<P> == hash in the first Sha256 event"]})
+def corrupt_before_second_hash(test_id, command_name, args):
+    if _is(command_name, "DUMP_SHA256") and len(args) == 2 and int(args[1]) == 2:
+        return [("sysTester.CORRUPT_PRODUCT", [args[0]]), (command_name, args)]
     return None

@@ -17,6 +17,27 @@
       "ripples_to": {}
     },
     {
+      "name": "corrupt_before_second_hash",
+      "class": "uut-state",
+      "applies_to": [
+        "L3-1",
+        "L5-15"
+      ],
+      "fails": {
+        "L3-1": [
+          "the two Sha256 events are equal",
+          "sha256 of record/raw/files/<P> == hash in the first Sha256 event"
+        ],
+        "L5-15": [
+          "the two Sha256 events are equal",
+          "sha256 of record/raw/files/<P> == hash in the first Sha256 event"
+        ]
+      },
+      "mechanism": "sysTester.CORRUPT_PRODUCT(name) is inserted before the sysTester.DUMP_SHA256 whose argument `pass` is 2: the stored product changes between the two hashes and before the downlink; the test removes its product at teardown",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
       "name": "corrupt_product",
       "class": "uut-state",
       "applies_to": [
@@ -40,25 +61,6 @@
       "ripples_to": {}
     },
     {
-      "name": "dump_sha_other",
-      "class": "harness-expectation",
-      "applies_to": [
-        "L3-1",
-        "L5-15"
-      ],
-      "fails": {
-        "L3-1": [
-          "the two Sha256 events are equal"
-        ],
-        "L5-15": [
-          "the two Sha256 events are equal"
-        ]
-      },
-      "mechanism": "argument `name` of the second sysTester.DUMP_SHA256 of the test is rewritten to the deployment's own executable file, so the second hash differs from the first",
-      "kind": "rewrite",
-      "ripples_to": {}
-    },
-    {
       "name": "sensor_line_kept_on",
       "class": "stimulus",
       "applies_to": [
@@ -68,10 +70,14 @@
       ],
       "fails": {
         "L5-1": [
-          "event sensorMonitor.Bmp280Lost count == 1"
+          "event sensorMonitor.Bmp280Lost count == 1",
+          "F: last(sensorMonitor.TemperatureValid) == INVALID",
+          "t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s"
         ],
         "L5-3": [
-          "event sensorMonitor.Mpu6050Lost count == 1"
+          "event sensorMonitor.Mpu6050Lost count == 1",
+          "F: last(sensorMonitor.AttitudeValid) == INVALID",
+          "t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s"
         ],
         "L5-9": [
           "attitude validity record INVALID"
