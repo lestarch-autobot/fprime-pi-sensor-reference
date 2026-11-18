@@ -9,6 +9,7 @@ tool output, `[I]` inference.
 - [V] Skills source: lestarch-autobot/fprime `system-campaign-skills` at aa3ab031a6c67d40652e8047a2e1f9a8a8c2b26c; nasa/fprime#6388 open at session start.
 - [V] UUT: lestarch-autobot/fprime-pi-sensor-reference, branch `design/prodmgr` cut from `design/ssdd` at ba498d76c87b83b2394523de6496df6cfd0e10e9.
 - [V] Catalog read: nasa/fprime v4.4.2 (`Svc/DpWriter`, `Svc/DpManager`, `Svc/Ccsds/CfdpManager`, `Svc/FileDownlinkPorts`).
+- [V] Redesign pass 1 of the project campaign (parent message, 2026-11-17 16:32 PST): `deploy/base` at 383a9ce1aa7a79ef6f50cef5eba261863e62b2af supersedes `design/ssdd`@ba498d7 and is merged into `design/prodmgr` (e6b4d82). `cfdpManager` is `PiSensor.cfdpManager` of subtopology `PiFileHandling`; rate groups `rateGroup10Hz`, `rateGroup1Hz`; `sysTester` has `MARK`, `Marker`, `Started`, `UptimeS` today. No allocated requirement and no port type changed. The SDD and plan name `cfdpManager` without a subtopology prefix, so only the SSDD revision in External References changed.
 - Review bound: 3 per phase (source: default). Reviews LOCAL ONLY.
 - Bench: not touched in this lane; bench facts are those of the project ledger.
 - Needs checklist (contract): request + goals known; test configuration known for DESIGN (SSDD topology), `repo@sha` unknown until DEVELOPMENT; bench facts known from the project ledger (camera, BMP280, GPS absent today); approver known; seed not requested (project campaign runs the record).

@@ -80,7 +80,7 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 
 | Document | Identifier / Revision | Type | Governs |
 |---|---|---|---|
-| PiSensor SSDD | `docs/ssdd.md` at `ba498d7` | System design | Allocated requirements REQ-PiSensor-004 to -041, decisions D1 to D13 |
+| PiSensor SSDD | `docs/ssdd.md` at `383a9ce` | System design | Allocated requirements REQ-PiSensor-004 to -041, decisions D1 to D13 |
 | F Prime data product file format | nasa/fprime v4.4.2, `Fw/Dp/docs/sdd.md` | Format | REQ-ProductManager-006 |
 | F Prime data product file name | nasa/fprime v4.4.2, `DP_FILENAME_FORMAT` of `config/DpCfg.hpp` | Format | REQ-ProductManager-046 |
 
