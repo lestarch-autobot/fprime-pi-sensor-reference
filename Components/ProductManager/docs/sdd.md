@@ -57,7 +57,7 @@ A product file is a regular file of the one product directory whose name has the
 | REQ-ProductManager-046 | `CAPTURE` shall fail with `StorageFailed` when its product name is that of a stored product. | Unit Test |
 | REQ-ProductManager-047 | The component shall report in telemetry, on change, whether each activity is in progress. | Unit Test |
 | REQ-ProductManager-048 | After each start-up scan, the component shall emit `ACTIVITY_HI` `ScanComplete` counting stored and removed products. | Unit Test |
-| REQ-ProductManager-049 | A transfer report that cannot be queued shall complete or fail `DOWNLINK` as a queued one. | Unit Test |
+| REQ-ProductManager-049 | A transfer report that cannot be queued shall end `DOWNLINK` as a queued one does. | Unit Test |
 
 Table 1: metric records.
 
