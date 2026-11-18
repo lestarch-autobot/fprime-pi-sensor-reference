@@ -2,8 +2,8 @@
 
 ## 1. Introduction
 
-`ProductManager` runs the capture, downlink, delete and list commands of the PiSensor deployment. On a capture command it asks the camera for one picture, asks the sensor monitor for the latest location, attitude and temperature, and hands them to the storage as one data product; the storage notifies the component when the product file is written.
-A stored product is a regular file of the one product directory whose length equals the length its data product header declares; its name is its file name, which the storage derives from the capture time. A partial product is any other regular file of that directory.
+`ProductManager` runs the capture, downlink, delete and list commands of the PiSensor deployment. On a capture command it asks the camera for one picture, asks the sensor monitor for the latest location, attitude and temperature, and hands them to the storage as one data product; the capture ends when the product file is stored.
+A product file is a regular file of the one product directory whose name has the form the storage gives the products of this component; the name carries the capture time. A stored product is a product file whose length equals the length its data product header declares; a partial product is any other product file. Files of other names are not touched.
 The component hands a named product to the CFDP file transfer, removes a named product, and lists the stored products. An activity is a capture, a downlink or a listing; the current capture is the one in progress.
 
 ## 2. Requirements
@@ -22,7 +22,7 @@ The component hands a named product to the CFDP file transfer, removes a named p
 | REQ-ProductManager-010 | The component shall mark invalid each metric sampled more than 2 s from capture time. | Unit Test |
 | REQ-ProductManager-011 | The component shall mark invalid each metric its source reports invalid. | Unit Test |
 | REQ-ProductManager-012 | The component shall return each delivered picture buffer to the camera exactly once. | Unit Test |
-| REQ-ProductManager-013 | On the written notification of its product, the component shall complete `CAPTURE` successfully. | Unit Test |
+| REQ-ProductManager-013 | When its product is stored, the component shall complete `CAPTURE` successfully. | Unit Test |
 | REQ-ProductManager-014 | On each successful capture, the component shall emit `ACTIVITY_HI` event `ProductWritten` naming the product. | Unit Test |
 | REQ-ProductManager-015 | A capture shall leave every stored product unchanged. | Integration Test |
 | REQ-ProductManager-016 | The component shall fail `CAPTURE` with `WARNING_HI` event `CaptureFailed` when the camera reports failure. | Unit Test |
@@ -30,9 +30,9 @@ The component hands a named product to the CFDP file transfer, removes a named p
 | REQ-ProductManager-018 | The component shall fail `CAPTURE` with `CaptureFailed` when no picture arrives within 20 `run` ticks. | Unit Test |
 | REQ-ProductManager-019 | The component shall write no product for a picture not of the current capture. | Unit Test |
 | REQ-ProductManager-020 | The component shall fail `CAPTURE` with `WARNING_HI` event `StorageFailed` when no product buffer fits. | Unit Test |
-| REQ-ProductManager-021 | `CAPTURE` shall fail with `StorageFailed` when no written notification arrives in 5 `run` ticks. | Unit Test |
+| REQ-ProductManager-021 | `CAPTURE` shall fail with `StorageFailed` when its product is not stored in 5 `run` ticks. | Unit Test |
 | REQ-ProductManager-022 | After a failed capture, the component shall remove every partial product. | Unit Test |
-| REQ-ProductManager-023 | The component shall remove a product whose written notification is not of the current capture. | Unit Test |
+| REQ-ProductManager-023 | The component shall remove the file of a failed capture appearing within 10 `run` ticks. | Unit Test |
 | REQ-ProductManager-024 | At start-up, the component shall remove every partial product. | Unit Test |
 | REQ-ProductManager-025 | A `CAPTURE` during a capture shall fail with `WARNING_LO` event `CommandRejected` and not disturb it. | Unit Test |
 | REQ-ProductManager-026 | On `DOWNLINK`, the component shall request file transfer of the named product under its name. | Unit Test |
@@ -56,6 +56,8 @@ The component hands a named product to the CFDP file transfer, removes a named p
 | REQ-ProductManager-044 | The component shall return to the camera each picture it cannot queue. | Unit Test |
 | REQ-ProductManager-045 | The component shall give a busy response to each command it cannot queue. | Unit Test |
 | REQ-ProductManager-046 | `CAPTURE` shall fail with `StorageFailed` when its product name is that of a stored product. | Unit Test |
+| REQ-ProductManager-047 | The component shall report each activity state in telemetry on change. | Unit Test |
+| REQ-ProductManager-048 | At start-up, the component shall emit `ACTIVITY_HI` event `ScanComplete` counting stored and removed files. | Unit Test |
 
 Table 1: metric records.
 
@@ -89,13 +91,13 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 ```
                     +-----------------------------------+
  imageIn : PictureDone []                               [] captureOut : CaptureRequest
- dpWrittenIn : Svc.DpWritten []                         [] imageReturnOut : Fw.BufferSend
- fileDoneIn : Svc.SendFileComplete []  ProductManager   [] samplesGetOut : SamplesGet
- run : Svc.Sched []                      (active)       [] sendFileOut : Svc.SendFileRequest
+ fileDoneIn : Svc.SendFileComplete []  ProductManager   [] imageReturnOut : Fw.BufferSend
+ run : Svc.Sched []                      (active)       [] samplesGetOut : SamplesGet
+                    |                                   [] sendFileOut : Svc.SendFileRequest
                     |                                   [] productGetOut : Fw.DpGet
                     |                                   [] productSendOut : Fw.DpSend
                     +-----------------------------------+
-   special ports: cmdIn, cmdRegOut, cmdResponseOut, eventOut, textEventOut, timeGetOut
+   special ports: cmdIn, cmdRegOut, cmdResponseOut, eventOut, textEventOut, tlmOut, timeGetOut
 ```
 
 ### 3.2. Ports
@@ -108,21 +110,20 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 | `samplesGetOut` | output | `SamplesGet` | Read the latest sample set |
 | `productGetOut` | product get | `Fw.DpGet` | Get a product buffer |
 | `productSendOut` | product send | `Fw.DpSend` | Hand the filled product to the storage |
-| `dpWrittenIn` | async input | `Svc.DpWritten` | Product file written |
 | `sendFileOut` | output | `Svc.SendFileRequest` | Hand a product to the file transfer |
 | `fileDoneIn` | async input | `Svc.SendFileComplete` | File transfer ended |
-| `run` | async input, drop | `Svc.Sched` | 1 Hz tick for time-outs and listing |
+| `run` | async input, drop | `Svc.Sched` | 1 Hz tick: time-outs, stored check, listing |
 
-On queue overflow the hooks return the picture buffer to the camera and answer a command with `BUSY`.
+The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow the hooks return the picture buffer to the camera and answer a command with `BUSY`; they run in the caller's thread and touch no component state. `fileDoneIn` asserts on overflow, because a lost report would leave a downlink without end.
 
 ### 3.3. State
 
 | Member | Values | Meaning |
 |---|---|---|
 | `m_capture` | `IDLE`, `WAIT_PICTURE`, `WAIT_WRITTEN` | Capture activity |
-| `m_captureContext`, `m_captureTicks` | `U32` | Number of the current capture, matched against `imageIn`; ticks in its state |
-| `m_captureName` | file name | Product of the current capture |
-| `m_discardName` | file name | Product of a capture that failed in `WAIT_WRITTEN` |
+| `m_captureContext`, `m_captureTicks` | `U32` | Number of the current capture, compared for equality with `imageIn`, wraps at 2^32; ticks in its state |
+| `m_captureName` | file name | Product of the current capture; empty in `IDLE` |
+| `m_discardName`, `m_discardTicks` | file name; `U32` | File of the last capture failed in `WAIT_WRITTEN`; ticks left to remove it if it appears |
 | `m_downlink`, `m_downlinkName` | `IDLE`, `ACTIVE`; file name | Downlink activity and its product |
 | `m_listing`, `m_listCount` | `IDLE`, `ACTIVE`; `U32` | Listing activity and its event count |
 | `m_scanned` | `bool` | Start-up scan done |
@@ -134,7 +135,7 @@ stateDiagram-v2
     WAIT_PICTURE --> IDLE: failure, empty picture or 20 ticks / CaptureFailed
     WAIT_PICTURE --> IDLE: no buffer or name in use / StorageFailed
     WAIT_PICTURE --> WAIT_WRITTEN: picture / productSendOut
-    WAIT_WRITTEN --> IDLE: dpWrittenIn / ProductWritten
+    WAIT_WRITTEN --> IDLE: product stored / ProductWritten
     WAIT_WRITTEN --> IDLE: 5 ticks / StorageFailed
 ```
 
@@ -142,7 +143,8 @@ stateDiagram-v2
 
 ```fpp
 constant PICTURE_TIMEOUT_TICKS = 20   # run ticks for the camera to deliver
-constant WRITTEN_TIMEOUT_TICKS = 5    # run ticks for the storage to report
+constant WRITTEN_TIMEOUT_TICKS = 5    # run ticks for the storage to store the product
+constant DISCARD_RECHECK_TICKS = 10   # run ticks a failed capture's file is removed if it appears
 constant LIST_EVENTS_PER_TICK = 4     # ProductStored events per tick
 constant LIST_ENTRIES_PER_TICK = 64   # directory entries read per tick
 constant SCAN_MAX_ENTRIES = 4096      # directory entries of the start-up scan
@@ -152,13 +154,14 @@ constant SCAN_MAX_ENTRIES = 4096      # directory entries of the start-up scan
 productManager.configure(productDirectory);  // the directory Svc.DpWriter writes to
 ```
 
-`run` is driven at 1 Hz. The product name is formed with `DP_FILENAME_FORMAT` from the container id and the capture time, the rule `Svc.DpWriter` applies.
+`run` is driven at 1 Hz; time-outs count dispatched ticks, so a dropped tick lengthens them by 1 s. The product name is formed with `DP_FILENAME_FORMAT` from the container id and the capture time, the rule `Svc.DpWriter` applies; a clock that steps back can repeat a name, and that capture fails with `StorageFailed(NAME_IN_USE)`.
+Preconditions on the deployment: `productDirectory` is at most 59 characters (`configure` asserts it) and only `Svc.DpWriter` writes product files to it; `cfdpManager` parameters `FileInDefaultKeep = KEEP` and `FileInDefaultClass = CLASS_2`; the product buffer pool holds the largest picture of `piCamera` plus 200 bytes; the queue holds at least 20 messages.
 
 ### 3.5. Behavior
 
-The first handler call in the component thread scans the product directory and removes every partial product.
-`CAPTURE` removes the file of `m_discardName`, increments `m_captureContext` and requests a picture. `imageIn` returns the buffer in every case and acts only on the context of the current capture: it reads the samples, sets each validity mark, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. `dpWrittenIn` completes the capture when the file name is `m_captureName` and removes the named file otherwise.
-`DOWNLINK` and `DELETE` act on a stored product other than `m_captureName`. `DOWNLINK` calls `sendFileOut` with the product as source and its name as destination; `fileDoneIn` ends the downlink and is ignored outside one. `LIST_PRODUCTS` opens the directory and `run` reports its stored products. Section 6 holds the timing diagrams.
+The first message dispatched runs the start-up scan, one pass of at most `SCAN_MAX_ENTRIES` entries: it removes every partial product and ends with `ScanComplete`, whose `truncated` tells a scan cut short. Header lengths are read with `Fw::DpContainer`.
+`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns the buffer in every case and acts only on the context of the current capture: it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error.
+`DOWNLINK` and `DELETE` act on a stored product; the file of a capture in `WAIT_WRITTEN` or under re-check is not one, and a command naming it fails with `ProductNotFound`. `DOWNLINK` calls `sendFileOut` with the product as source and its name as destination; `fileDoneIn` ends the downlink and is ignored outside one. No time-out runs on a downlink: a transfer that does not end is ended from the ground with `cfdpManager.CancelTransaction`. `LIST_PRODUCTS` opens the directory and `run` reports its stored products. Section 6 holds the timing diagrams.
 
 ## 4. Data Product Format
 
@@ -204,9 +207,17 @@ The first handler call in the component thread scans the product directory and r
 | `ProductStored` | activity low | name, size | One stored product of a listing |
 | `ProductsListed` | activity high | count | A listing ended |
 | `ProductDiscarded` | warning low | name, reason | A file was removed without a `DELETE` |
-| `FileSystemError` | warning high | operation, status | The file system reported an error |
+| `FileSystemError` | warning high | operation, name, status | The file system reported an error |
+| `ScanComplete` | activity high | stored, removed, truncated | The start-up scan ended |
 
-The component has no parameters and no telemetry channels.
+| Channel | Type | Update | Meaning |
+|---|---|---|---|
+| `CaptureActivity` | `CaptureState` | on change | Capture state |
+| `DownlinkActivity` | `Activity` | on change | Downlink in progress |
+| `ListingActivity` | `Activity` | on change | Listing in progress |
+| `ProductsWritten` | `U32` | on change | Products written since start-up |
+
+The component has no parameters.
 
 ## 6. Example Uses
 
@@ -225,7 +236,7 @@ sequenceDiagram
     P->>S: samplesGetOut(samples)
     P->>D: productGetOut, productSendOut
     P->>C: imageReturnOut(picture)
-    D-->>P: dpWrittenIn(fileName)
+    Note over P: run tick finds the product stored
     P-->>G: ProductWritten(name), command OK
 ```
 
@@ -254,3 +265,67 @@ sequenceDiagram
 | Bounding the number of stored products | operator, with `DELETE` |
 | Reporting a product file that fails to open or write | `Svc.DpWriter` events |
 | Delivering the picture within 1 s of its acquisition time | `piCamera` |
+| Changing the time-outs in flight | none: rebuild (REQ-ProductManager-018, -021) |
+| Files of the product directory not named as product files | left untouched and unlisted |
+
+## 8. Tests
+
+<!-- fth:tests:begin -->
+_Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the package renderer fails when this table and the plan disagree._
+
+| Test | Purpose | Requirements |
+|---|---|---|
+| L0-1 | Proves the running image is the manifest's prototype image and the marker round-trips. | — |
+| L2-1 | Proves a successful capture emits ProductWritten naming the one new product file. | REQ-ProductManager-014 |
+| L2-2 | Proves a second capture names a new product and leaves the first unchanged. | REQ-ProductManager-014, REQ-ProductManager-015 |
+| L2-3 | Proves captures and a delete of another product leave a stored product unchanged. | REQ-ProductManager-015, REQ-ProductManager-034 |
+| L2-4 | Proves DELETE removes the named product and no other, before its command response. | REQ-ProductManager-034 |
+| L5-1 | Proves a CAPTURE during a capture is rejected and the first capture stores its product. | REQ-ProductManager-025 |
+| L5-2 | Proves a rejected CAPTURE does not disturb the capture in progress or the next one. | REQ-ProductManager-025 |
+| L5-3 | Proves a DOWNLINK during a downlink is rejected and the first transfer delivers its product. | REQ-ProductManager-031 |
+| L5-4 | Proves a DOWNLINK naming the product in transfer is rejected without a second transfer. | REQ-ProductManager-031 |
+| L5-5 | Proves a DELETE of the product in transfer is rejected and the product is delivered and kept. | REQ-ProductManager-035 |
+| L5-6 | Proves a DELETE rejected during the downlink succeeds once the transfer has ended. | REQ-ProductManager-035, REQ-ProductManager-034 |
+| L6-1 | Proves a DOWNLINK naming no stored product is rejected and nothing is sent. | REQ-ProductManager-033 |
+| L6-2 | Proves a DELETE naming no stored product is rejected and removes nothing. | REQ-ProductManager-033 |
+| L6-3 | Proves a DELETE whose name is a path to a stored product is rejected and removes nothing. | REQ-ProductManager-033 |
+| L7-1 | Leaves one known product on board for the independent final-state check. | REQ-ProductManager-014 |
+<!-- fth:tests:end -->
+
+### Unit-test list
+
+| Test | Description | Requirements |
+|---|---|---|
+| CaptureNominal | A capture requests one picture, reads samples, sends one product and completes. | REQ-ProductManager-001, REQ-ProductManager-002, REQ-ProductManager-003, REQ-ProductManager-013, REQ-ProductManager-014 |
+| ProductContent | The product holds the picture byte for byte and every record of Table 1. | REQ-ProductManager-003, REQ-ProductManager-004, REQ-ProductManager-005, REQ-ProductManager-006 |
+| CaptureTime | The capture time record and container time tag equal the delivered acquisition time. | REQ-ProductManager-007 |
+| ValidityMarks | Each record carries its sample time; valid sources within 2 s are marked valid. | REQ-ProductManager-008, REQ-ProductManager-009 |
+| StaleMetric | A sample over 2 s before or after capture time is marked invalid. | REQ-ProductManager-010 |
+| SourceInvalid | A metric its source reports invalid is marked invalid, the others unaffected. | REQ-ProductManager-011 |
+| BufferReturned | Every delivered picture buffer is returned once, in success and in every failure. | REQ-ProductManager-012 |
+| CameraFailure | A failure status fails the capture with CaptureFailed and writes no product. | REQ-ProductManager-016, REQ-ProductManager-019 |
+| EmptyPicture | An empty picture fails the capture with CaptureFailed. | REQ-ProductManager-017 |
+| PictureTimeout | No picture in 20 ticks fails the capture; 19 ticks do not. | REQ-ProductManager-018 |
+| LatePicture | A picture of an earlier capture or outside a capture writes no product. | REQ-ProductManager-019, REQ-ProductManager-012 |
+| NoProductBuffer | A refused product buffer fails the capture with StorageFailed. | REQ-ProductManager-020 |
+| StoreTimeout | A product not stored in 5 ticks fails the capture and removes its file. | REQ-ProductManager-021, REQ-ProductManager-022 |
+| LateFile | The file of a failed capture appearing within 10 ticks is removed. | REQ-ProductManager-023 |
+| NameInUse | A capture whose product name is a stored product fails and leaves it unchanged. | REQ-ProductManager-046, REQ-ProductManager-015 |
+| StartupScan | The start-up scan removes partial products, keeps other files and reports its counts. | REQ-ProductManager-024, REQ-ProductManager-040, REQ-ProductManager-048 |
+| Telemetry | Each change of capture, downlink and listing state is reported in telemetry. | REQ-ProductManager-047 |
+| StartupScanError | An unreadable product directory at start-up emits FileSystemError. | REQ-ProductManager-043 |
+| CaptureBusy | A CAPTURE during a capture is rejected and the first capture completes. | REQ-ProductManager-025 |
+| DownlinkNominal | DOWNLINK requests transfer of the named product under its name; success completes it. | REQ-ProductManager-026, REQ-ProductManager-027, REQ-ProductManager-030 |
+| DownlinkFailure | A failure report fails DOWNLINK with DownlinkStalled and leaves the file unchanged. | REQ-ProductManager-028, REQ-ProductManager-030 |
+| DownlinkRefused | A refused transfer request fails DOWNLINK with DownlinkRefused. | REQ-ProductManager-029 |
+| DownlinkBusy | A DOWNLINK during a downlink is rejected and the first downlink completes. | REQ-ProductManager-031 |
+| NextAccepted | After each ended capture or downlink, failed or not, the next one is accepted. | REQ-ProductManager-032 |
+| ProductNotFound | A missing, partial, directory, path or in-capture name fails DOWNLINK and DELETE. | REQ-ProductManager-033 |
+| DeleteNominal | DELETE removes the named product, emits ProductDeleted and completes. | REQ-ProductManager-034 |
+| DeleteInDownlink | DELETE of the product in transfer is rejected; another product is deleted. | REQ-ProductManager-035, REQ-ProductManager-041 |
+| ListProducts | A listing names each stored product, 4 per tick, then gives the count. | REQ-ProductManager-036, REQ-ProductManager-037, REQ-ProductManager-038 |
+| ListBusy | A LIST_PRODUCTS during a listing is rejected. | REQ-ProductManager-039 |
+| CommandsDuringActivity | Commands Table 2 does not reject behave as when idle during each activity. | REQ-ProductManager-041 |
+| FileSystemErrors | A failed remove or directory read fails the command with FileSystemError. | REQ-ProductManager-042 |
+| QueueOverflow | A picture that cannot be queued is returned; a command gets a busy response. | REQ-ProductManager-044, REQ-ProductManager-045 |
+| StrayFileDone | A transfer report outside a downlink changes nothing. | REQ-ProductManager-027 |

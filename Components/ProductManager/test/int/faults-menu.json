@@ -1,0 +1,112 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "capture_twice",
+      "class": "stimulus",
+      "applies_to": [
+        "L2-1"
+      ],
+      "fails": {
+        "L2-1": [
+          "event productManager.ProductWritten count == 1",
+          "the sysTester.DirListing event names P and no other file"
+        ]
+      },
+      "mechanism": "CAPTURE is sent twice in a row; two products are written where the test expects one",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "corrupt_first_product",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-2"
+      ],
+      "fails": {
+        "L2-2": [
+          "the two sysTester.Sha256 events of P1 are equal"
+        ]
+      },
+      "mechanism": "sysTester.CORRUPT_PRODUCT(P1) is inserted before the second DUMP_SHA256 of P1: the first two bytes of its picture record are overwritten on board, as an overwriting second capture would; the test removes its products at teardown",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "delete_before_downlink",
+      "class": "uut-state",
+      "applies_to": [
+        "L5-5"
+      ],
+      "fails": {
+        "L5-5": [
+          "event productManager.CommandRejected count == 1",
+          "event productManager.ProductDeleted count == 0",
+          "sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event",
+          "the two sysTester.Sha256 events are equal",
+          "the sysTester.DirListing event names P"
+        ]
+      },
+      "mechanism": "DELETE(P) is inserted before DOWNLINK(P): the product is removed on board, so nothing is delivered and the later DELETE names no stored product",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "delete_other",
+      "class": "stimulus",
+      "applies_to": [
+        "L2-4"
+      ],
+      "fails": {
+        "L2-4": [
+          "event productManager.ProductDeleted count == 1 and names P1",
+          "the sysTester.DirListing event names P2 only",
+          "event productManager.ProductStored count == 1 and names P2"
+        ]
+      },
+      "mechanism": "DELETE(P1) is sent as DELETE(P2), the product hashed by the preceding DUMP_SHA256; the wrong product is removed",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "downlink_existing",
+      "class": "stimulus",
+      "applies_to": [
+        "L6-1"
+      ],
+      "fails": {
+        "L6-1": [
+          "event productManager.ProductNotFound count == 1",
+          "event productManager.DownlinkStarted count == 0",
+          "no CFDP transaction starts at the ground in the window"
+        ]
+      },
+      "mechanism": "DOWNLINK(Dp_missing.fxd) is sent with the name of the product the test captured (read from the preceding ProductWritten event); the product is sent",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "second_capture_dropped",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-1"
+      ],
+      "fails": {
+        "L5-1": [
+          "event productManager.CommandRejected count == 1"
+        ]
+      },
+      "mechanism": "the second CAPTURE is sent as cmdDisp.CMD_NO_OP; no command is rejected",
+      "kind": "rewrite",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "L2-1",
+    "L2-2",
+    "L2-4",
+    "L5-1",
+    "L5-5",
+    "L6-1"
+  ]
+}

@@ -23,7 +23,7 @@ tool output, `[I]` inference.
 | P4 | requirements | `DownlinkStalled` is emitted on a failed completion report of the file transfer; the 60 s no-progress timing is that of the CFDP timers (SSDD fault table: detected by `Cfdp`). `ProductManager` cannot see transfer progress on its ports. REQ-ProductManager-028 | proposed |
 | P5 | requirements | Downlink, delete and list are accepted during a capture; a capture, a listing and a delete of a product other than the one in transfer are accepted during a downlink (rejections are limited to those the system requirements name). REQ-ProductManager-041 | proposed |
 | P6 | requirements | A transfer request refused by the file transfer (busy or invalid) fails the command with `WARNING_LO`. REQ-ProductManager-029 (`DownlinkRefused`) | proposed |
-| P7 | requirements | No telemetry channel: no allocated requirement names one. The sketch port `tlmOut` is dropped | proposed |
+| P7 | requirements | No telemetry channel: no allocated requirement names one. The sketch port `tlmOut` is dropped | withdrawn in design round 1 (P18) |
 | P8 | requirements, round 1 | Sample age is judged in both directions: a metric is invalid when its sample time differs from capture time by more than 2 s. REQ-ProductManager-009, -010 | proposed |
 | P9 | requirements, round 1 | `LIST_PRODUCTS`: `ACTIVITY_LO` `ProductStored` per product, at most 4 per `run` tick (plan event rate 5/s), then `ACTIVITY_HI` `ProductsListed(count)`; a listing during a listing is rejected. REQ-ProductManager-036 to -039 | proposed |
 | P10 | requirements, round 1 | An empty picture fails the capture with `CaptureFailed`; a picture too large for a product buffer fails it with `StorageFailed` (no separate size constant). REQ-ProductManager-017, -020 | proposed |
@@ -33,10 +33,18 @@ tool output, `[I]` inference.
 | N1 | note to parent | A stored product is judged by the length its header declares; `sysTester.CORRUPT_PRODUCT` must not overwrite the header length field, or the product stops being a stored product | open |
 | N2 | note to parent | Samples are requested when the picture is delivered and judged within 2 s of capture time in both directions (P8); `piCamera` must deliver the picture within 1 s of the acquisition time it reports, or every metric is marked invalid | open |
 | P14 | requirements, round 2 | A capture whose product name is that of a stored product fails with `StorageFailed`, so no stored product is overwritten. REQ-ProductManager-015, -046 | proposed |
-| P15 | design | Interface changes against the sketch, shared with `sensorMonitor` and `piCamera`: `SamplesGet(ref samples: SampleSet)` returns the samples; `imageIn` is `PictureDone(context, status, captureTime, ref picture)`; `tlmOut` dropped (P7). Types defined in `Components/ProductManager/ProductManager.fpp` | proposed |
+| P15 | design | Interface changes against the sketch, shared with `sensorMonitor` and `piCamera`: `SamplesGet(ref samples: SampleSet)` returns the samples; `imageIn` is `PictureDone(context, status, captureTime, ref picture)`; `tlmOut` kept (P18). Types defined in `Components/ProductManager/ProductManager.fpp` | proposed |
 | P16 | design | The product name is computed with `DP_FILENAME_FORMAT` from container id and capture time, the rule of `Svc.DpWriter`; the container time tag is the capture time. Two captures collide only if the clock repeats a capture time | proposed |
 | P17 | design | Informational events added: `DownlinkStarted`, `DownlinkComplete`, `ProductDeleted`, `ProductDiscarded` (one event per command, CPP-37) | proposed |
 | N3 | note to parent | Topology: `run` at 1 Hz; `configure(productDirectory)` with the directory of `DataProducts`; the product buffer pool must hold one picture plus 200 bytes | open |
+| P18 | design, round 1 | Telemetry restored (`jpl:DR-4.4.6.4`): channels `CaptureActivity`, `DownlinkActivity`, `ListingActivity`, `ProductsWritten`, on change. New REQ-ProductManager-047; no system requirement is its parent | proposed |
+| P19 | design, round 1 | `dpWrittenIn` dropped from the sketch: `Svc.DpWriter` notifies only on the port index its buffer arrived on, which the inherited `DataProducts` subtopology wires to `dpCat`. The component tests each `run` tick in `WAIT_WRITTEN` whether its product is stored. No inherited source changes. REQ-ProductManager-013, -021, -023 reworded | proposed |
+| P20 | design, round 1 | A product file is a file named by the storage's data product name form for this component; partial products are only such files; other files (e.g. the `dpCat` state file) are never touched or listed. Narrows P2 and the Introduction | proposed |
+| P21 | design, round 1 | The file of a capture failed in `WAIT_WRITTEN` is removed at once and, if it appears, during 10 further ticks (`DISCARD_RECHECK_TICKS`). REQ-ProductManager-023 | proposed |
+| P22 | design, round 1 | Start-up scan ends with `ACTIVITY_HI` `ScanComplete(stored, removed, truncated)`; `FileSystemError` names the file. New REQ-ProductManager-048 | proposed |
+| P23 | design, round 1 | `fileDoneIn` keeps the assert on queue overflow (a lost report leaves a downlink without end); no time-out on a downlink, a stuck transfer is ended from the ground with `cfdpManager.CancelTransaction` | proposed |
+| N4 | note to parent | Deployment preconditions (SDD 3.4): `cfdpManager` parameters `FileInDefaultKeep = KEEP` (the default `DELETE` removes the product after a downlink, against REQ-PiSensor-035) and `FileInDefaultClass = CLASS_2`; `productDirectory` at most 59 characters; product buffer pool at least the largest picture plus 200 bytes (the catalog default is 10 000 bytes); queue depth at least 20; `piCamera` bounds the picture size | open |
+| R1 | routed to the approver | `design-needs-human-adjudication:ProductManager`: new component with new port types `SamplesGet`, `PictureDone`, `CaptureRequest` and the sample structs, shared with `sensorMonitor` and `piCamera`; who owns the shared definitions and where they live is the approver's ruling (today: `Components/ProductManager/ProductManager.fpp`) | routed |
 
 ## Trace
 
@@ -62,7 +70,8 @@ System requirement (REQ-PiSensor-) to component rows (REQ-ProductManager-):
 | 033 | 031, 041 |
 | 034 | 028 |
 | 035 | 030, 032 |
-| 038 | 036, 037, 038, 039, 040, 042, 043 |
+| 038 | 036, 037, 038, 039, 040, 042, 043, 048 |
+| none (`jpl:DR-4.4.6.4`) | 047 |
 | 041 | 035, 041 |
 
 ## Reviews
@@ -70,3 +79,4 @@ System requirement (REQ-PiSensor-) to component rows (REQ-ProductManager-):
 - Requirements round 1 [V record `review-requirements-requirements-review-round-1.md`, separate session 86f3b137]: must fix 23, could fix 12, disagreements 0. Close: all must-fix edited (rows renumbered 001 to 044; every row `Unit Test`); could-fix fixed except `req-unclear:REQ-ProductManager-020` declined (the system plan names `DownlinkStalled`; P4).
 - Requirements round 2 [V record `review-requirements-requirements-review-round-2.md`]: must fix 4, could fix 4, disagreements 0 (the round-1 decline accepted by the reviewer). Close: all 8 edited (rows 002, 009, 015, 019, 021, 023, 034, 041, 044, new 045, 046, Table 4).
 - Requirements round 3 [V record `review-requirements-requirements-review-round-3.md`]: must fix 0, could fix 3, disagreements 0. Loop closed at zero must-fix; the 3 could-fix edited (rows 038, 041, 046, Introduction, External References).
+- Design round 1 [V records `review-design-{design-review,architecture-review,design-principles-review}-round-1.md`, three separate sessions]: must fix 4 + 2 + 4 (one more routed, R1), could fix 9 + 4 + 7, disagreements 0. Close: every must-fix edited (P18 to P23, N4). Could-fix fixed except: `design-fprime-anti-pattern:shared port and type definitions` (left to the approver, R1); `design-missed-reuse:LIST_PRODUCTS` declined (`Svc.FileManager.ListDirectory` lists every file and gives no stored-product filter or count); `jpl:DR-4.9.3.1:timeouts` declined (values fixed by requirements; SDD 7 row); `jpl:P-2.3.3:startup-scan` fixed by P20. The close changed requirement rows 013, 021, 023, the Introduction, and added 047, 048: requirements phase reopened on those rows (fresh bound 3).

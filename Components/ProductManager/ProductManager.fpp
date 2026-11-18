@@ -1,11 +1,5 @@
 module PiSensor {
 
-  @ Outcome of one picture acquisition
-  enum PictureStatus : U8 {
-    OK @< The buffer holds one picture
-    FAILED @< No picture was acquired
-  }
-
   @ Request to acquire one picture
   port CaptureRequest(
     context: U32 @< Returned with the picture
@@ -14,34 +8,34 @@ module PiSensor {
   @ Result of one picture acquisition
   port PictureDone(
     context: U32 @< Context of the request
-    status: PictureStatus @< Outcome of the acquisition
-    captureTime: Fw.TimeValue @< Time the picture was acquired
+    status: Fw.Success @< SUCCESS when the buffer holds one picture
+    captureTime: Fw.TimeValue @< Time the picture was acquired, time base of the system time source
     ref picture: Fw.Buffer @< The picture, to be returned to the camera
   )
 
   @ Temperature sample or record
   struct TemperatureSample {
-    valid: bool
-    sampleTime: Fw.TimeValue
+    valid: bool @< Validity mark
+    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
     temperature: F32 @< degC
   }
 
   @ Attitude sample or record
   struct AttitudeSample {
-    valid: bool
-    sampleTime: Fw.TimeValue
-    roll: F32 @< deg
-    pitch: F32 @< deg
-    gyroRate: [3] F32 @< deg/s, x y z
+    valid: bool @< Validity mark
+    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
+    roll: F32 @< deg, about the sensor x axis, from gravity
+    pitch: F32 @< deg, about the sensor y axis, from gravity
+    gyroRate: [3] F32 @< deg/s about the sensor x, y, z axes; no yaw angle is given
   }
 
   @ Location sample or record
   struct LocationSample {
-    valid: bool
-    sampleTime: Fw.TimeValue
-    latitude: F64 @< deg
-    longitude: F64 @< deg
-    altitude: F32 @< m
+    valid: bool @< Validity mark
+    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
+    latitude: F64 @< deg, WGS 84, north positive
+    longitude: F64 @< deg, WGS 84, east positive
+    altitude: F32 @< m above mean sea level, as the receiver reports
   }
 
   @ Latest sample of every metric
@@ -66,8 +60,11 @@ module PiSensor {
     @ Run ticks allowed for the camera to deliver the picture
     constant PICTURE_TIMEOUT_TICKS = 20
 
-    @ Run ticks allowed for the storage to report the product written
+    @ Run ticks allowed for the storage to store the product
     constant WRITTEN_TIMEOUT_TICKS = 5
+
+    @ Run ticks during which the file of a failed capture is removed if it appears
+    constant DISCARD_RECHECK_TICKS = 10
 
     @ ProductStored events emitted per run tick
     constant LIST_EVENTS_PER_TICK = 4
@@ -103,6 +100,19 @@ module PiSensor {
       WRITTEN_TIMEOUT
     }
 
+    @ Capture activity
+    enum CaptureState : U8 {
+      IDLE
+      WAIT_PICTURE
+      WAIT_WRITTEN
+    }
+
+    @ Downlink or listing activity
+    enum Activity : U8 {
+      IDLE
+      ACTIVE
+    }
+
     @ File system operation that failed
     enum FileOp : U8 {
       SCAN_OPEN
@@ -118,7 +128,7 @@ module PiSensor {
     enum DiscardReason : U8 {
       PARTIAL_AT_STARTUP
       FAILED_CAPTURE
-      LATE_WRITTEN
+      LATE_FILE
     }
 
     # ----------------------------------------------------------------------
@@ -137,16 +147,13 @@ module PiSensor {
     @ Latest samples from the sensor monitor
     output port samplesGetOut: SamplesGet
 
-    @ Product file written by the storage
-    async input port dpWrittenIn: Svc.DpWritten
-
     @ Named product to the file transfer
     output port sendFileOut: Svc.SendFileRequest
 
     @ File transfer ended
     async input port fileDoneIn: Svc.SendFileComplete
 
-    @ 1 Hz tick: time-outs, listing, start-up scan
+    @ 1 Hz tick: time-outs, stored check of the capture, listing
     async input port run: Svc.Sched drop
 
     # ----------------------------------------------------------------------
@@ -271,8 +278,32 @@ module PiSensor {
     @ The file system reported an error
     event FileSystemError(
       op: FileOp
-      status: I32
-    ) severity warning high format "File system error in {}: {}"
+      name: string size PRODUCT_NAME_SIZE @< File concerned, empty for a directory operation
+      status: I32 @< Os::FileSystem or Os::Directory status
+    ) severity warning high format "File system error in {} on {}: {}"
+
+    @ The start-up scan ended
+    event ScanComplete(
+      stored: U32 @< Stored products found
+      removed: U32 @< Partial products removed
+      truncated: bool @< The scan stopped at SCAN_MAX_ENTRIES
+    ) severity activity high format "Start-up scan: {} products stored, {} files removed, truncated {}"
+
+    # ----------------------------------------------------------------------
+    # Telemetry
+    # ----------------------------------------------------------------------
+
+    @ Capture activity
+    telemetry CaptureActivity: CaptureState update on change
+
+    @ Downlink activity
+    telemetry DownlinkActivity: Activity update on change
+
+    @ Listing activity
+    telemetry ListingActivity: Activity update on change
+
+    @ Products written since start-up
+    telemetry ProductsWritten: U32 update on change
 
     # ----------------------------------------------------------------------
     # Special ports
@@ -287,6 +318,8 @@ module PiSensor {
     event port eventOut
 
     text event port textEventOut
+
+    telemetry port tlmOut
 
     time get port timeGetOut
 
