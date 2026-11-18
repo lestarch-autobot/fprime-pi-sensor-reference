@@ -27,16 +27,16 @@ bench: its model, datasheet and identification reply are recorded on arrival.
 | REQ-PiCamera-012 | A request received before the reply to an earlier request shall get a `BUSY` reply. | Unit Test |
 | REQ-PiCamera-013 | A capture shall end with the same reply whether or not requests arrive during it. | Unit Test |
 | REQ-PiCamera-014 | A request made after a failure's cause has cleared shall succeed without a restart. | Integration Test |
-| REQ-PiCamera-015 | The component shall publish each Table 2 channel after every reply or return that changes it. | Unit Test |
-| REQ-PiCamera-016 | The component shall use only Raspberry Pi OS packaged camera libraries, not OpenCV. | Inspection |
+| REQ-PiCamera-015 | The component shall publish each Table 2 channel whenever its value changes. | Unit Test |
+| REQ-PiCamera-016 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | Inspection, Integration Test |
 | REQ-PiCamera-017 | Camera use shall be compliant with the libcamera API of `libcamera-dev` 0.8.0. | Integration Test |
 | REQ-PiCamera-018 | The component shall release each picture buffer when the requester returns it. | Unit Test |
 | REQ-PiCamera-019 | After a restart during a capture, the first request shall succeed. | Integration Test |
 | REQ-PiCamera-020 | The component shall release only picture buffers it delivered and has not yet released. | Unit Test |
 | REQ-PiCamera-021 | A returned buffer the component does not release shall emit `ReturnRejected` (`WARNING_LO`). | Unit Test |
-| REQ-PiCamera-022 | At start the component shall emit `CameraFound` with the camera's identification, or `CameraNotFound`. | Unit Test |
-| REQ-PiCamera-023 | Each `CaptureFailed` shall carry the step and the library return code of its failure. | Unit Test |
-| REQ-PiCamera-024 | The component shall publish every Table 2 channel once at start. | Unit Test |
+| REQ-PiCamera-022 | By its first `run` tick the component shall emit once `CameraFound` (`ACTIVITY_LO`) carrying the libcamera camera id, or `CameraNotFound` (`WARNING_LO`). | Unit Test |
+| REQ-PiCamera-023 | Each `CaptureFailed` shall carry the Table 4 step of its failure and the failing library call's return code, 0 when none failed. | Unit Test |
+| REQ-PiCamera-024 | The component shall publish every Table 2 channel once by its first `run` tick. | Unit Test |
 
 Table 1: failure reasons.
 
@@ -50,13 +50,15 @@ Table 1: failure reasons.
 | `TOO_LARGE` | The JPEG does not fit the picture buffer |
 | `BUSY` | An earlier request has no reply yet |
 
+`BUSY` and `PICTURE_OUTSTANDING` are decided on receipt, before any other reason.
+
 Table 2: telemetry.
 
 | Channel | Content |
 |---|---|
 | `CapturesCompleted` | Count of success replies since start |
 | `CapturesFailed` | Count of failure replies since start |
-| `LastPictureSize` | Size in bytes of the last delivered JPEG |
+| `LastPictureSize` | Size in bytes of the last delivered JPEG, 0 before the first |
 | `CameraPresent` | A camera was detected at the last detection |
 | `PictureOutstanding` | A delivered picture is not yet returned |
 
@@ -67,29 +69,41 @@ Table 3: constants.
 | `CAPTURE_TIMEOUT_TICKS` | 10 | Ticks of the `run` port from receipt of a request to its reply |
 | `PICTURE_WIDTH`, `PICTURE_HEIGHT` | 640, 480 | Picture size in pixels |
 
+Table 4: failure steps.
+
+| Reason | Steps |
+|---|---|
+| `BUSY` | `RECEIVE` |
+| `PICTURE_OUTSTANDING` | `RETURN` |
+| `NO_CAMERA` | `DETECT` |
+| `CAMERA_ERROR` | `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` |
+| `NO_BUFFER` | `ALLOCATE` |
+| `TOO_LARGE` | `ENCODE` |
+| `TIMEOUT` | `TICKS` |
+
 External References
 
 | Document | Identifier / Revision | Type | Governs |
 |---|---|---|---|
 | libcamera public API | `libcamera-dev` 0.8.0+rpt20261104-1, Raspberry Pi OS 13 (trixie) archive | Other | camera discovery, configuration, frame request |
-| libjpeg-turbo API | `libjpeg62-turbo-dev` 1:2.1.5-4, Raspberry Pi OS 13 (trixie) archive | Other | JPEG compression calls |
+| libjpeg-turbo API | `libjpeg62-turbo-dev` 1:2.1.5-4, Debian 13 (trixie) main, as shipped by Raspberry Pi OS 13 | Other | JPEG compression calls |
 | JPEG File Interchange Format | JFIF 1.02; ITU-T T.81 | Standard | picture encoding |
 
 ## 3. Design
 
 ### 3.1 Component Diagram
 
-```mermaid
-flowchart LR
-    captureIn["captureIn : PiSensor.CaptureRequest"] --> C["PiCamera (active)"]
-    imageReturnIn["imageReturnIn : Fw.BufferSend"] --> C
-    run["run : Svc.Sched"] --> C
-    pingIn["pingIn : Svc.Ping"] --> C
-    C --> imageOut["imageOut : PiSensor.CaptureReply"]
-    C --> allocate["allocate : Fw.BufferGet"]
-    C --> deallocate["deallocate : Fw.BufferSend"]
-    C --> pingOut["pingOut : Svc.Ping"]
-    C --> special["eventOut, textEventOut, tlmOut, timeGetOut"]
+```
+                           ┌────────────────────┐
+captureIn :               [ ]                  [ ] imageOut : PiSensor.CaptureReply
+PiSensor.CaptureRequest    │                    │
+imageReturnIn :           [ ]     PiCamera     [ ] allocate : Fw.BufferGet
+Fw.BufferSend              │      (active)      │
+run : Svc.Sched           [ ]                  [ ] deallocate : Fw.BufferSend
+                           │                    │
+pingIn : Svc.Ping         [ ]                  [ ] pingOut : Svc.Ping
+                           └────────────────────┘
+  special ports: eventOut, textEventOut, tlmOut, timeGetOut
 ```
 
 `PiCamera` is an active component: its thread makes the camera calls, which take seconds.
@@ -213,17 +227,7 @@ Admitted when the buffer's data pointer is that of the delivered picture. It rel
 
 It echoes the key on `pingOut`.
 
-Every reply publishes the channels it changed. Every failure reply emits `CaptureFailed` with its reason, its step and the library return code; each reason and step pair has one emission site.
-
-| Reason | Steps |
-|---|---|
-| `BUSY` | `RECEIVE` |
-| `PICTURE_OUTSTANDING` | `RETURN` |
-| `NO_CAMERA` | `DETECT` |
-| `CAMERA_ERROR` | `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` |
-| `NO_BUFFER` | `ALLOCATE` |
-| `TOO_LARGE` | `ENCODE` |
-| `TIMEOUT` | `TICKS` |
+Every reply publishes the channels it changed. Every failure reply emits `CaptureFailed` with its reason, its step and the library return code; each reason and step pair of Table 4 has one emission site.
 
 ## 4. Data Product Format
 
@@ -298,14 +302,17 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 | Test | Purpose | Requirements |
 |---|---|---|
 | L0-1 | Proves the running image is the manifest's image. | — |
-| L0-2 | Proves the image links the packaged libcamera of the pinned version and no OpenCV. | REQ-PiCamera-017 |
+| L0-2 | Proves the image runs the packaged libcamera of the pinned version and links no OpenCV. | REQ-PiCamera-016, REQ-PiCamera-017 |
+| L0-3 | Proves the bench can make the camera unavailable and available without a process restart. | — |
+| L0-4 | Proves a capture lasts long enough for the bench to act between CaptureStarted and the reply. | — |
+| L0-5 | Proves the bench holder process owns the camera within the settle time the fault test uses. | — |
 | L2-1 | Proves a capture request delivers one 640x480 JFIF picture acquired after the request. | REQ-PiCamera-001, REQ-PiCamera-002, REQ-PiCamera-017 |
 | L2-2 | Proves each capture delivers a newly acquired 640x480 JFIF picture. | REQ-PiCamera-001, REQ-PiCamera-002, REQ-PiCamera-017 |
 | L3-1 | Proves the first capture after a process kill during a capture succeeds. | REQ-PiCamera-019 |
 | L3-2 | Proves the first capture after a service restart during a capture succeeds. | REQ-PiCamera-019 |
 | L5-1 | Proves an absent camera gives NO_CAMERA and the next capture succeeds without a restart. | REQ-PiCamera-014 |
 | L5-2 | Proves a camera in use elsewhere gives CAMERA_ERROR and the next capture succeeds without a restart. | REQ-PiCamera-014 |
-| L7-1 | Proves the last picture on board is the 640x480 JFIF picture received at the ground. | REQ-PiCamera-001, REQ-PiCamera-002 |
+| L7-1 | Leaves the final-state record: the last picture on board is the 640x480 JFIF picture received at the ground. | REQ-PiCamera-001, REQ-PiCamera-002 |
 <!-- fth:tests:end -->
 
 ### Unit-test list
@@ -324,17 +331,17 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 | TimeoutClosesCamera | `TIMEOUT` while waiting for a frame closes the camera before the next capture opens it. | REQ-PiCamera-014 |
 | AbortDroppedStillCloses | With `abort` dropped, the next `acquire` closes the camera left open. | REQ-PiCamera-014 |
 | NoBufferFails | An invalid or short allocation gives `NO_BUFFER`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011 |
-| PictureOutstandingFails | A request before the delivered picture returns gives `PICTURE_OUTSTANDING`. | REQ-PiCamera-005, REQ-PiCamera-020 |
+| PictureOutstandingFails | A request before the delivered picture returns gives one `PICTURE_OUTSTANDING` reply with an invalid buffer and one `CaptureFailed(reason=PICTURE_OUTSTANDING)`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011 |
 | TooLargeFails | A JPEG larger than the buffer gives `TOO_LARGE` and the buffer is released. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
-| BusyDuringCapture | A request during a capture gets `BUSY` and the capture ends with the same reply. | REQ-PiCamera-012, REQ-PiCamera-013 |
+| BusyDuringCapture | A request during a capture gets one `BUSY` reply with an invalid buffer and one `CaptureFailed(reason=BUSY)`, and the capture ends with the same reply. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011, REQ-PiCamera-012, REQ-PiCamera-013 |
 | AcquireDroppedTimesOut | A request whose `acquire` finds the queue full gets `TIMEOUT`. | REQ-PiCamera-004, REQ-PiCamera-008 |
 | FailureStepAndCode | Each failure site emits its own step value and the library return code. | REQ-PiCamera-023 |
 | CameraReportedAtStart | The first tick gives `CameraFound` with the identification, or `CameraNotFound`, once, and every channel. | REQ-PiCamera-022, REQ-PiCamera-024 |
 | CameraClosedAfterEachCapture | Success and each failure leave the camera closed. | REQ-PiCamera-014 |
 | PingEchoed | A ping returns its key. | — |
-| TelemetryAfterEachReply | Each reply and return publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-015 |
+| TelemetryOnChange | Each reply, return and detection publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-015 |
 | ReturnReleasesPicture | Returning the delivered picture releases it once and allows the next capture. | REQ-PiCamera-018 |
 | UnknownReturnRejected | A buffer not delivered, or returned twice, is not released and emits `ReturnRejected`. | REQ-PiCamera-020, REQ-PiCamera-021 |
 | RunWhileIdle | Ticks in `IDLE` after the first send no reply, event or telemetry. | REQ-PiCamera-004 |
 | RandomRequestsAndFaults | Random requests, frames, ticks and returns keep one reply per request and no leaked buffer. | REQ-PiCamera-004, REQ-PiCamera-010, REQ-PiCamera-018 |
-| REQ-PiCamera-016 | No test: inspection of the build inputs and linked libraries. | REQ-PiCamera-016 |
+| REQ-PiCamera-016 | No unit test: inspection of the build inputs; L0-2 judges the linked libraries. | REQ-PiCamera-016 |

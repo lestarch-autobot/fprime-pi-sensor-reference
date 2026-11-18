@@ -9,16 +9,39 @@
       ],
       "fails": {
         "L5-1": [
+          "event cmdDisp.OpCodeError count == 1",
+          "event piCamera.CaptureFailed(reason=NO_CAMERA, step=DETECT) count == 1",
           "event piCamera.CaptureFailed count == 1",
-          "delta(piCamera.CapturesCompleted) == 1"
+          "delta(piCamera.CapturesFailed) == 1",
+          "second CAPTURE completes",
+          "delta(piCamera.CapturesCompleted) == 1",
+          "last(piCamera.CameraPresent) == true",
+          "picture record of P1 is JFIF, SOI to EOI, 640 x 480"
         ]
       },
-      "mechanism": "argument `state` of the second sysTester.BENCH_LINE(CAMERA, ON) is rewritten to OFF: the camera stays unavailable for the capture that must succeed",
+      "mechanism": "argument `state` of sysTester.BENCH_LINE(CAMERA, ON) is rewritten to OFF: the camera stays unavailable for the capture that must succeed; the test's teardown binds the driver again by a bench action, so no later test is affected",
       "kind": "rewrite",
       "ripples_to": {}
     },
     {
-      "name": "capture_dropped",
+      "name": "capture_after_restart_dropped",
+      "class": "stimulus",
+      "applies_to": [
+        "L3-1"
+      ],
+      "fails": {
+        "L3-1": [
+          "B: event piCamera.CaptureStarted count == 1",
+          "B: event productManager.ProductWritten count == 1",
+          "picture record of P1 is JFIF, SOI to EOI, 640 x 480"
+        ]
+      },
+      "mechanism": "the second productManager.CAPTURE of the test (the one after the restart, selected by occurrence) is rewritten to cmdDisp.CMD_NO_OP: no picture is acquired after the restart",
+      "kind": "rewrite",
+      "ripples_to": {}
+    },
+    {
+      "name": "capture_twice",
       "class": "stimulus",
       "applies_to": [
         "L2-1"
@@ -26,11 +49,12 @@
       "fails": {
         "L2-1": [
           "event piCamera.CaptureStarted count == 1",
-          "delta(piCamera.CapturesCompleted) == 1"
+          "delta(piCamera.CapturesCompleted) == 1",
+          "last(piCamera.LastPictureSize) == size of the picture record of the ground file of the last product written"
         ]
       },
-      "mechanism": "command productManager.CAPTURE is rewritten to cmdDisp.CMD_NO_OP: no picture is acquired where the test expects one",
-      "kind": "rewrite",
+      "mechanism": "productManager.CAPTURE is sent twice in a row (inserted copy): two pictures are acquired where the test expects one; the window stays complete and P1 is still downlinked",
+      "kind": "insert",
       "ripples_to": {}
     },
     {
@@ -41,26 +65,12 @@
       ],
       "fails": {
         "L2-2": [
-          "picture record of P2 is JFIF, SOI to EOI, 640 x 480"
+          "picture record of P2 is JFIF, SOI to EOI, 640 x 480",
+          "sha256 of the picture records of P1 and P2 differ"
         ]
       },
-      "mechanism": "sysTester.CORRUPT_PRODUCT(name) is inserted before the second productManager.DOWNLINK: the first two bytes of the picture record of the stored product are overwritten on board; the test removes its products at teardown",
+      "mechanism": "sysTester.CORRUPT_PRODUCT(name) is inserted before the second productManager.DOWNLINK of the test (selected by occurrence): the first two bytes of the picture record of the stored product are overwritten on board; the test removes its products at teardown",
       "kind": "insert",
-      "ripples_to": {}
-    },
-    {
-      "name": "no_restart",
-      "class": "harness-expectation",
-      "applies_to": [
-        "L3-1"
-      ],
-      "fails": {
-        "L3-1": [
-          "event sysTester.Started count == 1"
-        ]
-      },
-      "mechanism": "the harness expects two process starts in the window where the procedure makes one",
-      "kind": "rewrite",
       "ripples_to": {}
     }
   ],
