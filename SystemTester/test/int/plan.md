@@ -41,7 +41,7 @@ Covers:    REQ-PiSensor-042, REQ-PiSensor-016
 Setup:     Prototype image running on the Raspberry Pi 5; link up.
 Procedure: MARK(10); VERSION(ALL); PLATFORM(); bracket (2 Heartbeat samples); action: list TCP sockets of the deployment process; MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
-Pass rule: named checks declared in the integration test (test_L0_1). metrics: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require).
+Pass rule: named checks declared in the integration test (test_L0_1). metrics: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
 Evidence:  Version events equal the manifest describe strings; check: sysTester.Platform model starts with "Raspberry Pi 5" and os_version == 13; check: one TCP connection, to the bridge port.
 Planted faults:none
 
@@ -129,7 +129,7 @@ Covers:    REQ-PiSensor-038, REQ-PiSensor-039
 Setup:     Prototype image running, link up, all four sensors answering, product directory empty.
 Procedure: MARK(70); CAPTURE(); DUMP_SHA256(P, 1); MARK(71); action: kill the deployment process (SIGKILL); the service unit restarts it; wait first Table 1 samples at the ground; MARK(72); PLATFORM(); DUMP_SHA256(P, 2); DOWNLINK(P); wait CFDP transaction finished at the ground; MARK(73).
 Window:    W1 = Marker(id=70) … Marker(id=71); R = Marker(id=71) … Marker(id=72); W2 = Marker(id=72) … Marker(id=73)
-Pass rule: named checks declared in the integration test (test_L3_1). metrics: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require).
+Pass rule: named checks declared in the integration test (test_L3_1). metrics: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
 Evidence:  R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and sha256 of record/raw/files/<P> == hash in the first Sha256 event.
 Planted faults:corrupt_before_second_hash
 
@@ -140,7 +140,7 @@ Covers:    REQ-PiSensor-038, REQ-PiSensor-039
 Setup:     Prototype image running, link up, all four sensors answering, product directory empty.
 Procedure: MARK(74); CAPTURE(); DUMP_SHA256(P, 1); MARK(75); action: reboot the Raspberry Pi; wait first Table 1 samples at the ground; MARK(76); PLATFORM(); DUMP_SHA256(P, 2); DOWNLINK(P); wait CFDP transaction finished at the ground; MARK(77).
 Window:    W1 = Marker(id=74) … Marker(id=75); R = Marker(id=75) … Marker(id=76); W2 = Marker(id=76) … Marker(id=77)
-Pass rule: named checks declared in the integration test (test_L3_2). metrics: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require).
+Pass rule: named checks declared in the integration test (test_L3_2). metrics: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
 Evidence:  R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and sha256 of record/raw/files/<P> == hash in the first Sha256 event.
 Planted faults:none
 
@@ -152,7 +152,7 @@ Setup:     Prototype image running, link up, all four sensors answering, product
 Procedure: MARK(80); LIST_DIR(products); CAPTURE() without waiting for completion; wait event piCamera.CaptureStarted; action: kill the deployment process (SIGKILL), triggered by the CaptureStarted event; wait first Table 1 samples at the ground; LIST_DIR(products); LIST_PRODUCTS(); MARK(81).
 Window:    Marker(id=80) … Marker(id=81)
 Pass rule: named checks declared in the integration test (test_L3_3).
-Evidence:  require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.
+Evidence:  require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. `DirListing` carries file times: a new complete product older than the bench time of the action means the capture ended before the action (UNVERIFIED, not FAIL). L0 bench confirmation measures the capture duration against the trigger latency. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.
 Planted faults:none
 
 ID:        L3-4
@@ -163,7 +163,7 @@ Setup:     Prototype image running, link up, all four sensors answering, product
 Procedure: MARK(82); LIST_DIR(products); CAPTURE() without waiting for completion; wait event piCamera.CaptureStarted; action: stop and start the service unit (SIGTERM, then SIGKILL after the unit stop time of 2 s), triggered by the CaptureStarted event; wait first Table 1 samples at the ground; LIST_DIR(products); LIST_PRODUCTS(); MARK(83).
 Window:    Marker(id=82) … Marker(id=83)
 Pass rule: named checks declared in the integration test (test_L3_4).
-Evidence:  require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.
+Evidence:  require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. `DirListing` carries file times: a new complete product older than the bench time of the action means the capture ended before the action (UNVERIFIED, not FAIL). L0 bench confirmation measures the capture duration against the trigger latency. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.
 Planted faults:none
 
 ID:        L5-1
@@ -239,7 +239,7 @@ Covers:    REQ-PiSensor-024, REQ-PiSensor-009
 Setup:     Prototype image running, link up, all four sensors answering, product directory empty.
 Procedure: MARK(130); action: GPS source sends no-fix GGA sentences at 1 Hz; wait 10 s; CAPTURE(); DOWNLINK(P); wait CFDP transaction finished at the ground; action: GPS source sends fix sentences at 1 Hz; MARK(131).
 Window:    Marker(id=130) … Marker(id=131)
-Pass rule: named checks declared in the integration test (test_L5_7). metrics: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 3 s (one GGA period of 1 s plus one telemetry period of 2 s), INVALID from then to the CAPTURE.
+Pass rule: named checks declared in the integration test (test_L5_7). metrics: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s (1 s GGA period + 2 s telemetry period + 2 s clock tolerance, decision D12; a test settling time, REQ-PiSensor-024 has no time bound), INVALID from then to the CAPTURE.
 Evidence:  check: sensorMonitor.FixValid == INVALID from 3 s after the action to the CAPTURE; event sensorMonitor.GpsSilent count == 0; source byte counter advances; ground file: location validity record INVALID, temperature and attitude VALID.
 Planted faults:none
 
@@ -375,6 +375,17 @@ Pass rule: named checks declared in the integration test (test_L5_20). metrics: 
 Evidence:  check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 120.
 Planted faults:none
 
+ID:        L5-24
+Title:     Ground-stack outage of 65 s
+Purpose:   Proves the flight software reconnects and commanding and telemetry resume within 10 s after the whole ground stack, bridge included, was down for 65 s.
+Covers:    REQ-PiSensor-037
+Setup:     Prototype image running, link up, all four sensors answering, product directory empty.
+Procedure: MARK(168); action: stop the whole ground stack (YAMCS server and `fprime-comm-bridge`); wait 65 s; action: start the whole ground stack; NO_OP(); MARK(169).
+Window:    Marker(id=168) … Marker(id=169)
+Pass rule: named checks declared in the integration test (test_L5_24). metrics: first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s.
+Evidence:  check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 65.
+Planted faults:none
+
 ID:        L5-21
 Title:     NMEA sentence with a bad checksum
 Purpose:   Proves a sentence with a bad checksum is discarded and the next good sentence is used.
@@ -426,7 +437,7 @@ Covers:    REQ-PiSensor-042, REQ-PiSensor-015
 Setup:     action before the window: stop the prototype service unit, start the flight service unit. Flight image running, ground Pi with RFM69 and groundRadio up, all four sensors answering, product directory empty.
 Procedure: MARK(200); VERSION(ALL); PLATFORM(); MARK(0x5A5A); bracket (2 Heartbeat samples); action: list TCP sockets of the deployment process; MARK(201).
 Window:    Marker(id=200) … Marker(id=201)
-Pass rule: named checks declared in the integration test (test_L0_3). metrics: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require).
+Pass rule: named checks declared in the integration test (test_L0_3). metrics: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
 Evidence:  Version events equal the manifest describe strings of the flight image; Platform check as L0-1; marker ids byte-exact; socket list empty.
 Planted faults:none
 
@@ -524,7 +535,7 @@ Planted faults:none
 | REQ-PiSensor-034 | L5-15, L5-16 |  |
 | REQ-PiSensor-035 | L5-15, L5-16 |  |
 | REQ-PiSensor-036 | L5-17, L5-18, L5-23 |  |
-| REQ-PiSensor-037 | L5-19, L5-20 |  |
+| REQ-PiSensor-037 | L5-19, L5-20, L5-24 |  |
 | REQ-PiSensor-038 | L3-1, L3-2, L5-17, L5-19 |  |
 | REQ-PiSensor-039 | L3-1, L3-2 |  |
 | REQ-PiSensor-040 | waived: Inspection (delegated: picam) | component row of a NEW element |
@@ -533,26 +544,27 @@ Planted faults:none
 | REQ-PiSensor-043 | waived: Component test (delegated: sensmon) | component row of a NEW element |
 
 ## 5 Metrics
-- L0-1: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)
+- L0-1: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)
 - L2-1: largest gap between ground reception times of every Table 1 channel in the window <= 2 s
 - L2-2: largest gap between ground reception times of every Table 1 channel in the window <= 2 s
 - L2-3: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; |sample time - capture time| <= 2 s for temperature, attitude and location
 - L2-4: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; |sample time - capture time| <= 2 s for temperature, attitude and location
-- L3-1: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)
-- L3-2: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)
+- L3-1: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)
+- L3-2: first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them; W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)
 - L5-1: t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s
 - L5-2: t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s
 - L5-3: t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s
 - L5-4: each sensorMonitor.Mpu6050Lost - its BENCH_LINE(MPU6050, OFF) sent <= 10 s; first sensorMonitor.AttitudeValid == VALID after each return - time of the return <= 10 s
 - L5-5: t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s; first sensorMonitor.FixValid == VALID after the restart action - bench time of the action <= 10 s
 - L5-6: t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s; first sensorMonitor.FixValid == VALID after the restart action - bench time of the action <= 10 s
-- L5-7: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 3 s (one GGA period of 1 s plus one telemetry period of 2 s), INVALID from then to the CAPTURE
+- L5-7: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s (1 s GGA period + 2 s telemetry period + 2 s clock tolerance, decision D12; a test settling time, REQ-PiSensor-024 has no time bound), INVALID from then to the CAPTURE
 - L5-15: 55 s <= t(event productManager.DownlinkStalled) - t(first productManager.DOWNLINK sent) <= 90 s
 - L5-17: gap of ground reception of Table 1 channels during the outage >= 60 s; first Table 1 sample received and NO_OP completion - bench time of the unblock action <= 10 s
 - L5-18: gap of ground reception of Table 1 channels during the outage >= 115 s; first Table 1 sample received and NO_OP completion - bench time of the unblock action <= 10 s
 - L5-19: first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s
 - L5-20: first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s
-- L0-3: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)
+- L5-24: first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s
+- L0-3: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)
 - L2-9: largest gap between ground reception times of every Table 1 channel in the first 30 s of Q <= 2 s; largest gap between ground reception times of every Table 1 channel in D <= 10 s; CFDP transaction duration in D >= 30 s
 - L2-10: largest gap between ground reception times of every Table 1 channel in D <= 10 s; CFDP transaction duration in D >= 30 s
 - L5-16: 55 s <= t(event productManager.DownlinkStalled) - bench time of the power-off action <= 90 s

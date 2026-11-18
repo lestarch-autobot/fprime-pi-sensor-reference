@@ -404,9 +404,10 @@
   "REQ-PiSensor-037": {
    "tests": [
     "L5-19",
-    "L5-20"
+    "L5-20",
+    "L5-24"
    ],
-   "verification": "L5-19, L5-20",
+   "verification": "L5-19, L5-20, L5-24",
    "note": ""
   },
   "REQ-PiSensor-038": {
@@ -524,7 +525,7 @@
    "metrics": [
     {
      "helper": "clock_offset_within",
-     "text": "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "text": "|Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)",
      "args": {
       "bound_s": 0.5
      }
@@ -885,7 +886,7 @@
     },
     {
      "helper": "clock_offset_within",
-     "text": "W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "text": "W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)",
      "args": {
       "bound_s": 0.5
      }
@@ -956,7 +957,7 @@
     },
     {
      "helper": "clock_offset_within",
-     "text": "W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "text": "W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)",
      "args": {
       "bound_s": 0.5
      }
@@ -1006,7 +1007,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
+   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. `DirListing` carries file times: a new complete product older than the bench time of the action means the capture ended before the action (UNVERIFIED, not FAIL). L0 bench confirmation measures the capture duration against the trigger latency. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
   },
   {
    "id": "L3-4",
@@ -1043,7 +1044,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
+   "evidence": "require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. `DirListing` carries file times: a new complete product older than the bench time of the action means the capture ended before the action (UNVERIFIED, not FAIL). L0 bench confirmation measures the capture duration against the trigger latency. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty."
   },
   {
    "id": "L5-1",
@@ -1396,10 +1397,10 @@
    "metrics": [
     {
      "helper": "invalid_after_action_within",
-     "text": "first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 3 s (one GGA period of 1 s plus one telemetry period of 2 s), INVALID from then to the CAPTURE",
+     "text": "first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s (1 s GGA period + 2 s telemetry period + 2 s clock tolerance, decision D12; a test settling time, REQ-PiSensor-024 has no time bound), INVALID from then to the CAPTURE",
      "args": {
       "channel": "sensorMonitor.FixValid",
-      "bound_s": 3
+      "bound_s": 5
      }
     }
    ],
@@ -1900,6 +1901,49 @@
    "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 120."
   },
   {
+   "id": "L5-24",
+   "title": "Ground-stack outage of 65 s",
+   "purpose": "Proves the flight software reconnects and commanding and telemetry resume within 10 s after the whole ground stack, bridge included, was down for 65 s.",
+   "covers": [
+    "REQ-PiSensor-037"
+   ],
+   "setup": "Prototype image running, link up, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(168)",
+    "action: stop the whole ground stack (YAMCS server and `fprime-comm-bridge`)",
+    "wait 65 s",
+    "action: start the whole ground stack",
+    "NO_OP()",
+    "MARK(169)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 168,
+     "end_id": 169,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
+     "helper": "resume_after_action_within",
+     "text": "first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s",
+     "args": {
+      "action": "yamcs_ready",
+      "bound_s": 10
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "event comQueue.QueueOverflow count == 0",
+     "text": "as L5-17"
+    }
+   ],
+   "knobs": [],
+   "evidence": "check: event sysTester.Started count == 0; delta(sysTester.UptimeS) > 65."
+  },
+  {
    "id": "L5-21",
    "title": "NMEA sentence with a bad checksum",
    "purpose": "Proves a sentence with a bad checksum is discarded and the next good sentence is used.",
@@ -2039,7 +2083,7 @@
    "metrics": [
     {
      "helper": "clock_offset_within",
-     "text": "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)",
+     "text": "|Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)",
      "args": {
       "bound_s": 0.5
      }

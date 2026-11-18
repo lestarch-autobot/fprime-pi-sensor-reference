@@ -27,7 +27,7 @@ TIMES = [H("product_time_within", "bench time of CAPTURE sent - 2 s <= capture t
 t("L0-1", "Image and platform identity, prototype image", "Proves the running image is the manifest's prototype image and runs on a Raspberry Pi 5 under Raspberry Pi OS 13, over TCP.", R(42, 16),
   "Prototype image running on the Raspberry Pi 5; link up.",
   ["MARK(10)", "VERSION(ALL)", "PLATFORM()", "bracket (2 Heartbeat samples)", "action: list TCP sockets of the deployment process", "MARK(11)"], [W(10, 11)],
-  metrics=[H("clock_offset_within", "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)", bound_s=0.5)],
+  metrics=[H("clock_offset_within", "|Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)", bound_s=0.5)],
   evidence="Version events equal the manifest describe strings; check: sysTester.Platform model starts with \"Raspberry Pi 5\" and os_version == 13; check: one TCP connection, to the bridge port.")
 t("L0-2", "Marker round-trip", "Proves the marker command round-trips so every later window can be bracketed.", [], "As L0-1.",
   ["MARK(20)", "bracket (2 Heartbeat samples)", "MARK(0xA5A5)", "MARK(21)"], [W(20, 21)], evidence="Three Marker events in order, ids byte-exact.")
@@ -55,7 +55,7 @@ def restart(id, m, title, action, extra):
     t(id, title, f"Proves Table 1 telemetry resumes within 60 s of {extra} without ground commands and a stored product is still downlinkable, unchanged.", R(38, 39), NOM,
       [f"MARK({m})", "CAPTURE()", "DUMP_SHA256(P, 1)", f"MARK({m+1})", f"action: {action}", "wait first Table 1 samples at the ground", f"MARK({m+2})", "PLATFORM()", "DUMP_SHA256(P, 2)", "DOWNLINK(P)", "wait CFDP transaction finished at the ground", f"MARK({m+3})"],
       [W(m, m+1, "W1"), W(m+1, m+2, "R"), W(m+2, m+3, "W2")],
-      metrics=[H("first_samples_after_action_within", "first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them", action=action, bound_s=60), H("clock_offset_within", "W2: |time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)", bound_s=0.5)],
+      metrics=[H("first_samples_after_action_within", "first sample of every Table 1 channel - bench time of the action <= 60 s, no command sent between them", action=action, bound_s=60), H("clock_offset_within", "W2: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)", bound_s=0.5)],
       knobs=["corrupt_before_second_hash"] if id == "L3-1" else [],
       evidence="R: check event sysTester.Started count == 1 and last(sysTester.UptimeS) < 60; W2: check the two Sha256 events are equal and sha256 of record/raw/files/<P> == hash in the first Sha256 event.",
       rationale=[("event sysTester.Started count == 1", "the Pi system clock does not step back at a restart, so the restart is judged by the start-up event, not by a clock epoch")])
@@ -64,7 +64,7 @@ restart("L3-2", 74, "Reboot", "reboot the Raspberry Pi", "a reboot")
 def interrupted(id, m, title, action):
     t(id, title, "Proves a capture interrupted by a restart leaves no product, complete or partial.", R(29), NOM,
       [f"MARK({m})", "LIST_DIR(products)", "CAPTURE() without waiting for completion", "wait event piCamera.CaptureStarted", f"action: {action}, triggered by the CaptureStarted event", "wait first Table 1 samples at the ground", "LIST_DIR(products)", "LIST_PRODUCTS()", f"MARK({m+1})"], [W(m, m+1)],
-      evidence="require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.",
+      evidence="require (else UNVERIFIED, the race was lost): event piCamera.CaptureStarted count == 1 and event productManager.ProductWritten count == 0 before the action. An orderly stop that lets the capture finish is not allowed: the product count must be unchanged. `DirListing` carries file times: a new complete product older than the bench time of the action means the capture ended before the action (UNVERIFIED, not FAIL). L0 bench confirmation measures the capture duration against the trigger latency. check: event sysTester.Started count == 1; check: file names and count of the two sysTester.DirListing events are equal; check: event productManager.ProductWritten count == 0; product list empty.",
       rationale=[("commands_sent == count(event cmdDisp.OpCodeDispatched)", "the CAPTURE has no completion; the window requires STD-RST (dispatch counted per process run)")])
 interrupted("L3-3", 80, "Capture interrupted by a process kill", "kill the deployment process (SIGKILL)")
 interrupted("L3-4", 82, "Capture interrupted by a service stop", "stop and start the service unit (SIGTERM, then SIGKILL after the unit stop time of 2 s)")
@@ -98,7 +98,7 @@ t("L5-6", "GPS silence for 120 s", "Proves a long GPS silence is reported once a
   metrics=GPSM(0), evidence="As L5-5 with one GpsSilent event over 120 s.")
 t("L5-7", "GPS without a fix", "Proves a receiver reporting no fix reads fix invalid, raises no silence event, and gives location invalid in a product.", R(24, 9), NOM,
   ["MARK(130)", "action: GPS source sends no-fix GGA sentences at 1 Hz", "wait 10 s", "CAPTURE()", "DOWNLINK(P)", "wait CFDP transaction finished at the ground", "action: GPS source sends fix sentences at 1 Hz", "MARK(131)"], [W(130, 131)],
-  metrics=[H("invalid_after_action_within", "first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 3 s (one GGA period of 1 s plus one telemetry period of 2 s), INVALID from then to the CAPTURE", channel="sensorMonitor.FixValid", bound_s=3)],
+  metrics=[H("invalid_after_action_within", "first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s (1 s GGA period + 2 s telemetry period + 2 s clock tolerance, decision D12; a test settling time, REQ-PiSensor-024 has no time bound), INVALID from then to the CAPTURE", channel="sensorMonitor.FixValid", bound_s=5)],
   evidence="check: sensorMonitor.FixValid == INVALID from 3 s after the action to the CAPTURE; event sensorMonitor.GpsSilent count == 0; source byte counter advances; ground file: location validity record INVALID, temperature and attitude VALID.")
 t("L5-8", "GPS fix lost and regained", "Proves the no-fix indication clears when the fix returns and a product captured then has a valid location.", R(24, 9), NOM,
   ["MARK(132)", "action: GPS source sends no-fix GGA sentences at 1 Hz", "wait 10 s", "CAPTURE()", "action: GPS source sends fix sentences at 1 Hz", "wait 10 s", "CAPTURE()", "DOWNLINK(P1)", "DOWNLINK(P2)", "wait CFDP transactions finished at the ground", "MARK(133)"], [W(132, 133)],
@@ -146,6 +146,10 @@ t("L5-20", "Ground-system outage of 120 s", "Proves recovery within 10 s from a 
   ["MARK(166)", "action: stop the whole ground stack (YAMCS server and `fprime-comm-bridge`)", "wait 120 s", "action: start the whole ground stack", "NO_OP()", "MARK(167)"], [W(166, 167)],
   metrics=[H("resume_after_action_within", "first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s", action="yamcs_ready", bound_s=10)],
   evidence="check: " + NORESTART + "; delta(sysTester.UptimeS) > 120.", rationale=[("event comQueue.QueueOverflow count == 0", "as L5-17")])
+t("L5-24", "Ground-stack outage of 65 s", "Proves the flight software reconnects and commanding and telemetry resume within 10 s after the whole ground stack, bridge included, was down for 65 s.", R(37), NOM,
+  ["MARK(168)", "action: stop the whole ground stack (YAMCS server and `fprime-comm-bridge`)", "wait 65 s", "action: start the whole ground stack", "NO_OP()", "MARK(169)"], [W(168, 169)],
+  metrics=[H("resume_after_action_within", "first Table 1 sample received by YAMCS and NO_OP completion - bench time YAMCS reports ready <= 10 s", action="yamcs_ready", bound_s=10)],
+  evidence="check: " + NORESTART + "; delta(sysTester.UptimeS) > 65.", rationale=[("event comQueue.QueueOverflow count == 0", "as L5-17")])
 A, B, C = "A (48.1173 N, 11.5167 E)", "B (10.0000 N, 20.0000 E)", "C (48.2000 N, 11.6000 E)"
 t("L5-21", "NMEA sentence with a bad checksum", "Proves a sentence with a bad checksum is discarded and the next good sentence is used.", R(25), NOM,
   ["MARK(170)", f"action: GPS source sends position {A} at 1 Hz for 5 s", f"action: GPS source sends position {B} with checksum + 1, at 1 Hz for 5 s", f"action: GPS source sends position {C} at 1 Hz for 5 s", "MARK(171)"], [W(170, 171)],
@@ -164,7 +168,7 @@ t("L6-2", "Corrupted uplink frames, burst", "Proves five corrupted frames dispat
 t("L0-3", "Image and platform identity, flight image", "Proves the flight image is the manifest's and the marker round-trips over the RFM69.", R(42, 15),
   "action before the window: stop the prototype service unit, start the flight service unit. " + FLT,
   ["MARK(200)", "VERSION(ALL)", "PLATFORM()", "MARK(0x5A5A)", "bracket (2 Heartbeat samples)", "action: list TCP sockets of the deployment process", "MARK(201)"], [W(200, 201)],
-  metrics=[H("clock_offset_within", "|time of the sysTester.Platform event - bench time of its reception| <= 0.5 s (require)", bound_s=0.5)],
+  metrics=[H("clock_offset_within", "|Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)", bound_s=0.5)],
   evidence="Version events equal the manifest describe strings of the flight image; Platform check as L0-1; marker ids byte-exact; socket list empty.")
 t("L2-9", "Flight configuration: telemetry, capture, downlink", "Proves commands, telemetry, events and a CFDP file pass over the RFM69, with the 2 s period outside the downlink and the 10 s period during it.", R(15, 17, 1, 2, 3, 12, 13, 18), FLT,
   ["MARK(210)", "wait 30 s", "CAPTURE()", "DUMP_SHA256(P, 1)", "MARK(211)", "DOWNLINK(P)", "wait CFDP transaction finished at the ground", "action: list TCP sockets of the deployment process", "MARK(212)"], [W(210, 211, "Q"), W(211, 212, "D")],
