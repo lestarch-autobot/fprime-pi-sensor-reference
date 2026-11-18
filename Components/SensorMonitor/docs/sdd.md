@@ -20,12 +20,12 @@
 | REQ-SensorMonitor-010 | The component shall read the MPU6050 identity register on each schedule call. | Unit Test |
 | REQ-SensorMonitor-011 | Attitude shall be reported invalid unless the latest identity read returned the identity value. | Unit Test |
 | REQ-SensorMonitor-012 | A metric shall be reported valid while no condition of REQ-SensorMonitor-005 to -011 holds. | Unit Test |
-| REQ-SensorMonitor-013 | On a schedule call, a sensor shall become lost when a Table 2 loss condition holds. | Unit Test |
-| REQ-SensorMonitor-014 | A sensor's Table 2 loss event shall be emitted on the schedule call it becomes lost. | Unit Test |
-| REQ-SensorMonitor-015 | On a schedule call, a lost sensor shall return when no Table 2 loss condition holds. | Unit Test |
-| REQ-SensorMonitor-016 | A sensor's Table 2 return event shall be emitted on the schedule call it returns. | Unit Test |
+| REQ-SensorMonitor-013 | A sensor shall become lost at a schedule call where its Table 2 condition holds. | Unit Test |
+| REQ-SensorMonitor-014 | A sensor's Table 2 loss event shall be emitted once, when it becomes lost. | Unit Test |
+| REQ-SensorMonitor-015 | A lost sensor shall return at a schedule call where its Table 2 condition clears. | Unit Test |
+| REQ-SensorMonitor-016 | A sensor's Table 2 return event shall be emitted once, when it returns. | Unit Test |
 | REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. | Unit Test |
-| REQ-SensorMonitor-018 | A request shall return each Table 1 value, validity and reading time from the latest reading. | Unit Test |
+| REQ-SensorMonitor-018 | A request shall return each latest Table 1 value with validity and reading time. | Unit Test |
 | REQ-SensorMonitor-019 | Returned validity shall follow REQ-SensorMonitor-005 to -012 with reading age taken at the request time. | Unit Test |
 | REQ-SensorMonitor-020 | Schedule calls, GPS sentences and sample requests shall be handled one at a time. | Inspection |
 | REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. | Unit Test |
