@@ -14,7 +14,7 @@ L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> ev
 - Image built from the manifest SHAs; L0-1 passes; product directory empty at the start of each test (teardown removes the products; L7-1 has no teardown).
 
 ## 2 Test levels
-L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `NO_BUFFER`, rejected return) are unit tests.
+L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `PICTURE_OUTSTANDING`, rejected return) are unit tests.
 
 ## 3 Test entries
 
@@ -23,7 +23,7 @@ Window rule: rows from the **last** `sysTester.Marker(id=START)` row that preced
 Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (STD-ERR): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 1; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (STD-RST): both markers present; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
-Packets (named channel sets for `<packet> samples >= n`): Heartbeat = sysTester.UptimeS, cmdDisp.CommandsDispatched, piCamera.CapturesCompleted, piCamera.CapturesFailed, piCamera.LastPictureSize.
+Packets (named channel sets for `<packet> samples >= n`): Heartbeat = sysTester.UptimeS, cmdDisp.CommandsDispatched, piCamera.CapturesCompleted, piCamera.CapturesFailed, piCamera.LastPictureSize, piCamera.CameraPresent, piCamera.PictureOutstanding.
 
 ID:        L0-1
 Title:     Image identity
@@ -99,7 +99,7 @@ Setup:     Prototype image running, link up, camera attached and free, product d
 Procedure: MARK(40); bracket (2 Heartbeat samples); BENCH_LINE(CAMERA, OFF); CAPTURE(); BENCH_LINE(CAMERA, ON); CAPTURE(); DOWNLINK(P1); wait CFDP transaction finished at the ground; bracket (2 Heartbeat samples); MARK(41).
 Window:    Marker(id=40) … Marker(id=41)
 Pass rule: named checks declared in the integration test (test_L5_1). metrics: picture record of P1 is JFIF, SOI to EOI, 640 x 480.
-Evidence:  check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=NO_CAMERA) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0.
+Evidence:  check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=NO_CAMERA, step=DETECT) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0.
 Planted faults:camera_kept_absent
 
 ID:        L5-2
@@ -110,7 +110,7 @@ Setup:     Prototype image running, link up, camera attached and free, product d
 Procedure: MARK(42); bracket (2 Heartbeat samples); action: start `rpicam-hello -t 0` on the Pi (holds the camera); CAPTURE(); action: stop rpicam-hello; CAPTURE(); DOWNLINK(P1); wait CFDP transaction finished at the ground; bracket (2 Heartbeat samples); MARK(43).
 Window:    Marker(id=42) … Marker(id=43)
 Pass rule: named checks declared in the integration test (test_L5_2). metrics: picture record of P1 is JFIF, SOI to EOI, 640 x 480.
-Evidence:  check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=CAMERA_ERROR) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0.
+Evidence:  check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=CAMERA_ERROR, step=OPEN) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L7-1
@@ -148,6 +148,9 @@ Planted faults:none
 | REQ-PiCamera-019 | Integration Test |  |
 | REQ-PiCamera-020 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
 | REQ-PiCamera-021 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
+| REQ-PiCamera-022 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
+| REQ-PiCamera-023 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
+| REQ-PiCamera-024 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
 
 ## 5 Metrics
 - L0-2: libcamera-dev version starts with 0.8.0; ldd lists libcamera and no opencv
@@ -163,7 +166,7 @@ Planted faults:none
 Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): camera_kept_absent (stimulus; L5-1); capture_dropped (stimulus; L2-1); corrupt_picture (uut-state; L2-2); no_restart (harness-expectation; L3-1).
 
 ## 7 Not covered
-- REQ-PiCamera-003 to -013, -015, -018, -020, -021: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `TOO_LARGE` and a rejected return cannot be forced on the bench.
+- REQ-PiCamera-003 to -013, -015, -018, -020 to -024: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `PICTURE_OUTSTANDING`, `TOO_LARGE` and a rejected return cannot be forced on the bench.
 - REQ-PiCamera-016: inspection.
 - A camera that stops answering during a capture (`TIMEOUT`) and a frame the library marks bad: not plantable on the bench without touching the ribbon cable under power.
 - Picture content (exposure, focus).

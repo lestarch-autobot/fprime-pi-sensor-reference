@@ -9,7 +9,7 @@
  "event_patterns": {
   "sysTester.Marker": "SystemTester marker (?P<id>\\d+)$",
   "piCamera.CaptureStarted": "Capture (?P<context>\\d+) started$",
-  "piCamera.CaptureFailed": "Capture (?P<context>\\d+) failed: (?P<reason>\\w+)$"
+  "piCamera.CaptureFailed": "Capture (?P<context>\\d+) failed: (?P<reason>\\w+) at (?P<step>\\w+) code (?P<code>-?\\d+)$"
  },
  "packets": {
   "Heartbeat": [
@@ -17,7 +17,9 @@
    "cmdDisp.CommandsDispatched",
    "piCamera.CapturesCompleted",
    "piCamera.CapturesFailed",
-   "piCamera.LastPictureSize"
+   "piCamera.LastPictureSize",
+   "piCamera.CameraPresent",
+   "piCamera.PictureOutstanding"
   ]
  },
  "std_complete": [
@@ -63,7 +65,7 @@
   },
   "not_covered_ack": [
    "Library error returns of the libcamera implementation of the camera interface (configure, allocate, queue request) that the bench cannot force: the unit tests force each through the camera substitute at the component boundary.",
-   "Queue-overflow hooks: not reachable on the bench with one requester; unit tests cover them."
+   "Refusals `BUSY` and `PICTURE_OUTSTANDING` and a dropped `acquire`: not reachable on the bench with one requester; unit tests cover them."
   ],
   "rationale": "Baselines of the skill. Unit-test lines are measured on the component with the camera substitute; the libcamera implementation of the camera interface is measured on target only."
  },
@@ -197,6 +199,21 @@
    "tests": [],
    "verification": "Unit Test (unit-test list, SDD section 8)",
    "note": "needs the camera substitute and the port tester of the unit-test build"
+  },
+  "REQ-PiCamera-022": {
+   "tests": [],
+   "verification": "Unit Test (unit-test list, SDD section 8)",
+   "note": "needs the camera substitute and the port tester of the unit-test build"
+  },
+  "REQ-PiCamera-023": {
+   "tests": [],
+   "verification": "Unit Test (unit-test list, SDD section 8)",
+   "note": "needs the camera substitute and the port tester of the unit-test build"
+  },
+  "REQ-PiCamera-024": {
+   "tests": [],
+   "verification": "Unit Test (unit-test list, SDD section 8)",
+   "note": "needs the camera substitute and the port tester of the unit-test build"
   }
  },
  "scope": [
@@ -213,10 +230,10 @@
   "- Image built from the manifest SHAs; L0-1 passes; product directory empty at the start of each test (teardown removes the products; L7-1 has no teardown)."
  ],
  "levels": [
-  "L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `NO_BUFFER`, rejected return) are unit tests."
+  "L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `PICTURE_OUTSTANDING`, rejected return) are unit tests."
  ],
  "not_covered": [
-  "- REQ-PiCamera-003 to -013, -015, -018, -020, -021: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `TOO_LARGE` and a rejected return cannot be forced on the bench.",
+  "- REQ-PiCamera-003 to -013, -015, -018, -020 to -024: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `PICTURE_OUTSTANDING`, `TOO_LARGE` and a rejected return cannot be forced on the bench.",
   "- REQ-PiCamera-016: inspection.",
   "- A camera that stops answering during a capture (`TIMEOUT`) and a frame the library marks bad: not plantable on the bench without touching the ribbon cable under power.",
   "- Picture content (exposure, focus)."
@@ -566,7 +583,7 @@
    "knobs": [
     "camera_kept_absent"
    ],
-   "evidence": "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=NO_CAMERA) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
+   "evidence": "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=NO_CAMERA, step=DETECT) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
   },
   {
    "id": "L5-2",
@@ -614,7 +631,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=CAMERA_ERROR) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
+   "evidence": "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason=CAMERA_ERROR, step=OPEN) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
   },
   {
    "id": "L7-1",

@@ -40,14 +40,14 @@ for i, (tid, how, a) in enumerate([("L3-1", "a process kill", "kill the deployme
        "CAPTURE()", "DOWNLINK(P1)", "wait CFDP transaction finished at the ground", f"MARK({31+2*i})"], W(30+2*i, 31+2*i),
       metrics=[jfif("P1")], knobs=["no_restart"] if i == 0 else [], evidence=RST,
       rationale=[("commands_sent == count(event cmdDisp.OpCodeDispatched)", "the first CAPTURE has no completion; the window requires STD-RST (dispatch counted per process run)")])
-FLT = "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason={r}) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
+FLT = "check: first CAPTURE completes with error; check: event piCamera.CaptureFailed(reason={r}, step={st}) count == 1; check: event piCamera.CaptureFailed count == 1; check: delta(piCamera.CapturesFailed) == 1; check: second CAPTURE completes; check: delta(piCamera.CapturesCompleted) == 1; check: event sysTester.Started count == 0."
 t("L5-1", "Camera absent, then back", "Proves an absent camera gives NO_CAMERA and the next capture succeeds without a restart.", R(14), NOM,
   ["MARK(40)", "bracket (2 Heartbeat samples)", "BENCH_LINE(CAMERA, OFF)", "CAPTURE()", "BENCH_LINE(CAMERA, ON)", "CAPTURE()", "DOWNLINK(P1)", "wait CFDP transaction finished at the ground", "bracket (2 Heartbeat samples)", "MARK(41)"], W(40, 41),
-  metrics=[jfif("P1")], knobs=["camera_kept_absent"], evidence=FLT.format(r="NO_CAMERA"),
+  metrics=[jfif("P1")], knobs=["camera_kept_absent"], evidence=FLT.format(r="NO_CAMERA", st="DETECT"),
   rationale=[("event cmdDisp.OpCodeError count == 0", "the first CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)")])
 t("L5-2", "Camera held by another process, then free", "Proves a camera in use elsewhere gives CAMERA_ERROR and the next capture succeeds without a restart.", R(14), NOM,
   ["MARK(42)", "bracket (2 Heartbeat samples)", "action: start `rpicam-hello -t 0` on the Pi (holds the camera)", "CAPTURE()", "action: stop rpicam-hello", "CAPTURE()", "DOWNLINK(P1)", "wait CFDP transaction finished at the ground", "bracket (2 Heartbeat samples)", "MARK(43)"], W(42, 43),
-  metrics=[jfif("P1")], evidence=FLT.format(r="CAMERA_ERROR"),
+  metrics=[jfif("P1")], evidence=FLT.format(r="CAMERA_ERROR", st="OPEN"),
   rationale=[("event cmdDisp.OpCodeError count == 0", "the first CAPTURE is expected to fail; the window requires STD-ERR (exactly one OpCodeError, of CAPTURE)")])
 t("L7-1", "Final picture for independent verification", "Proves the last picture on board is the 640x480 JFIF picture received at the ground.", R(1, 2), NOM,
   ["MARK(50)", "bracket (2 Heartbeat samples)", "CAPTURE()", "DOWNLINK(P1)", "wait CFDP transaction finished at the ground", "bracket (2 Heartbeat samples)", "MARK(51)"], W(50, 51),
@@ -58,7 +58,7 @@ req = {}
 for x in T:
     for r in x["covers"]: req.setdefault(r, {"tests": [], "verification": "Integration Test", "note": ""})["tests"].append(x["id"])
 UT = "Unit Test (unit-test list, SDD section 8)"
-for n in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 20, 21): req[R(n)[0]] = {"tests": [], "verification": UT, "note": "needs the camera substitute and the port tester of the unit-test build"}
+for n in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 20, 21, 22, 23, 24): req[R(n)[0]] = {"tests": [], "verification": UT, "note": "needs the camera substitute and the port tester of the unit-test build"}
 req[R(16)[0]] = {"tests": [], "verification": "Inspection", "note": "build inputs and linked libraries of the camera software; L0-2 records the linked libraries"}
 STD = ["both markers present", "commands_sent == count(event cmdDisp.OpCodeDispatched)", "event cmdDisp.OpCodeError count == 0", "event cmdDisp.TooManyCommands count == 0", "event comQueue.QueueOverflow count == 0", "Heartbeat samples >= 2"]
 plan = {
@@ -66,8 +66,8 @@ plan = {
  "markers": {"command": "sysTester.MARK", "event": "sysTester.Marker", "arg": "id", "reserved_min": 4294901760},
  "event_patterns": {"sysTester.Marker": "SystemTester marker (?P<id>\\d+)$",
                     "piCamera.CaptureStarted": "Capture (?P<context>\\d+) started$",
-                    "piCamera.CaptureFailed": "Capture (?P<context>\\d+) failed: (?P<reason>\\w+)$"},
- "packets": {"Heartbeat": ["sysTester.UptimeS", "cmdDisp.CommandsDispatched", "piCamera.CapturesCompleted", "piCamera.CapturesFailed", "piCamera.LastPictureSize"]},
+                    "piCamera.CaptureFailed": "Capture (?P<context>\\d+) failed: (?P<reason>\\w+) at (?P<step>\\w+) code (?P<code>-?\\d+)$"},
+ "packets": {"Heartbeat": ["sysTester.UptimeS", "cmdDisp.CommandsDispatched", "piCamera.CapturesCompleted", "piCamera.CapturesFailed", "piCamera.LastPictureSize", "piCamera.CameraPresent", "piCamera.PictureOutstanding"]},
  "std_complete": STD,
  "abs": {"STD-ERR": [p.replace("OpCodeError count == 0", "OpCodeError count == 1") for p in STD],
          "STD-RST": ["both markers present", "event comQueue.QueueOverflow count == 0", "Heartbeat samples >= 2"]},
@@ -77,7 +77,7 @@ plan = {
  "deployment": "PiSensor full system deployment plus the harness component sysTester, prototype image (TCP); the test deployment of the project plan (SSDD decision D13)",
  "coverage": {"ut": {"lines_min": 95}, "system": {"lines_min": 75},
               "not_covered_ack": ["Library error returns of the libcamera implementation of the camera interface (configure, allocate, queue request) that the bench cannot force: the unit tests force each through the camera substitute at the component boundary.",
-                                  "Queue-overflow hooks: not reachable on the bench with one requester; unit tests cover them."],
+                                  "Refusals `BUSY` and `PICTURE_OUTSTANDING` and a dropped `acquire`: not reachable on the bench with one requester; unit tests cover them."],
               "rationale": "Baselines of the skill. Unit-test lines are measured on the component with the camera substitute; the libcamera implementation of the camera interface is measured on target only."},
  "image_version": {"policy": "required"},
  "final_state": {"accepted_evidence": "bench sha256sum of the L7-1 product file, taken over ssh after the run into record/raw/final-state.txt, compared by the auditor with the sha256 of the ground file in record/raw/files/",
@@ -92,8 +92,8 @@ plan = {
                  "- `dpkg-query -W libcamera-dev` on the target read once; a version other than 0.8.0 reopens REQ-PiCamera-017 before any run.",
                  "- Bench line CAMERA of `sysTester.BENCH_LINE` makes the camera unavailable and available without a process restart (driver unbind and bind, as project test L5-11); confirmed at L0 on the bench.",
                  "- Image built from the manifest SHAs; L0-1 passes; product directory empty at the start of each test (teardown removes the products; L7-1 has no teardown)."],
- "levels": ["L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `NO_BUFFER`, rejected return) are unit tests."],
- "not_covered": ["- REQ-PiCamera-003 to -013, -015, -018, -020, -021: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `TOO_LARGE` and a rejected return cannot be forced on the bench.",
+ "levels": ["L0 provenance and feasibility · L2 functional · L3 restart · L5 fault paths · L7 final state. No L4: no requirement has an endurance bound. No L6: the component has no command to reject; refusals at its ports (`BUSY`, `PICTURE_OUTSTANDING`, rejected return) are unit tests."],
+ "not_covered": ["- REQ-PiCamera-003 to -013, -015, -018, -020 to -024: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `PICTURE_OUTSTANDING`, `TOO_LARGE` and a rejected return cannot be forced on the bench.",
                  "- REQ-PiCamera-016: inspection.",
                  "- A camera that stops answering during a capture (`TIMEOUT`) and a frame the library marks bad: not plantable on the bench without touching the ribbon cable under power.",
                  "- Picture content (exposure, focus)."],
