@@ -1,16 +1,19 @@
 # SensorMonitor component test plan
 
 ## 0 Scope
-L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> event `sysTester.Marker(id)`, as in the project plan (`SystemTester/test/int/plan.json`). Event rate of this plan: at most 2 events per second in any window. The 19 component channels at 1 Hz fit the project's link budget for Table 1 telemetry [I: seven added channels of 1 to 4 bytes].
+L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> event `sysTester.Marker(id)`, as in the project plan (`SystemTester/test/int/plan.json`). Event rate of this plan, from the pinned sources: worst one-second burst 13 events = `MARK` (Marker + 2 cmdDisp events) + `BENCH_LINE` (2 cmdDisp events) + up to 5 throttled manager warnings (`BmpManager.fpp` events with `throttle 5` at 10 Hz, or `imuManager.I2cError`) + 1 loss event + up to 2 `gpsManager` warnings (1 Hz sentences, `throttle 5`); over any 10 s window at most 20 events, 2 per second on average. The burst is above the project plan's figure of 5 events per second in any window: reported to the project campaign; the bench check at L0 replaces this estimate. The 19 component channels at 1 Hz add 7 channels of 1 byte to the project's Table 1 telemetry [I].
 - UUT: component `PiSensor.SensorMonitor`, instance `sensorMonitor`, in the PiSensor deployment on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS 13.
-- Test deployment: the project's full deployment plus `sysTester` (SSDD decision D13), prototype image over TCP; ground system fprime-yamcs at the project pin.
-- `sysTester` commands used: `MARK(id)`, `BENCH_LINE(line, state)` with lines BMP280, MPU6050, GPS (GPS = the bench sentence source stops or resumes). Bench actions drive the GPS sentence source content and the tilt of L2-2; each is logged with bench time in bench-actions.log.
+- Test deployment: the project's full deployment plus `sysTester` (SSDD decision D13, pending the human's ruling at Approve SSDD), prototype image over TCP; ground system fprime-yamcs at the project pin. Fallback if D13 is refused: the base deployment (`deploy/base`, which already carries `sysTester`) plus `sensorMonitor`.
+- Stimuli: `sysTester.MARK(id)`; `sysTester.BENCH_LINE(line, state)` with `line` in {BMP280, MPU6050} and `state` in {OFF, ON} (signature of the project plan; the command is not in `SystemTester.fpp` at the base deployment yet). The GPS sentence source is on the workstation and is driven by bench actions only (stop, resume, sentence content from `bench/gps-script.nmea`), each logged with bench time in bench-actions.log. The tilt of L2-2 is a bench action.
+- Pairing rule for the Reading comparisons: each component sample is paired with the manager `Reading` sample nearest in FSW time; the managers run at 10 Hz and the telemetry flush at 1 Hz, so the pair can be two different 10 Hz samples and the bounds are noise allowances.
 - Out of scope: data product content (campaign `prodmgr` and the project plan), downlink period at the ground (project L2-1), RFM69 link (project flight block).
 
 ## 1 Entry gates
-- Unit tests of `SensorMonitor` pass with the plan's coverage; the project's base deployment with `sensorMonitor` wired builds from the manifest SHAs.
-- L0-1 passes on the bench; marker round-trip and event rate confirmed (replaces the desk check).
-- Bench recipe of the project plan: bench lines BMP280 and MPU6050 (supply switches, I2C isolated), GPS sentence source on the GPS UART in place of the receiver.
+- Unit tests of `SensorMonitor` pass with the plan's coverage; the project's deployment with `sensorMonitor` wired builds from the manifest SHAs.
+- L0-1 passes on the bench; marker round-trip, event rate and the noise allowances of L2-1 and L2-2 confirmed (replaces the desk check).
+- `sysTester.BENCH_LINE(line, state)` exists in the harness model with the argument names and enum values above; the planted-fault functions are re-verified against it (`fth verify-plan --tests`).
+- Bench recipe of the project plan: bench lines BMP280 and MPU6050 (supply switches, I2C isolated), GPS sentence source on the GPS UART in place of the receiver, with `bench/gps-script.nmea` pinned in the manifest.
+- Between tests the harness waits until the three sensor states are PRESENT (bound 20 s); each test's `sensors_present_at_start` precondition judges it.
 - Today's bench cannot run L2-1 to L7-1: the BMP280 and the GPS source do not answer and the bench lines are absent (project ledger).
 
 ## 2 Test levels
@@ -22,6 +25,8 @@ Window rule: rows from the **last** `sysTester.Marker(id=START)` row that preced
 
 Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event sysTester.Started count == 0.
+Standard absence block (ABS-LOSS): event sensorMonitor.Bmp280Lost count == 0; event sensorMonitor.Mpu6050Lost count == 0; event sensorMonitor.GpsSilent count == 0.
+Standard absence block (ABS-MGR): event bmpManager.DeviceFailure count == 0; event bmpManager.DeviceReadFailure count == 0; event imuManager.I2cError count == 0; event gpsManager.MalformedMessage count == 0; event gpsManager.InvalidData count == 0.
 Packets (named channel sets for `<packet> samples >= n`): Heartbeat = sysTester.UptimeS, cmdDisp.CommandsDispatched; SensorMonitorTable1 = sensorMonitor.Temperature, sensorMonitor.TemperatureValid, sensorMonitor.Roll, sensorMonitor.Pitch, sensorMonitor.AttitudeValid, sensorMonitor.GyroX, sensorMonitor.GyroY, sensorMonitor.GyroZ, sensorMonitor.Latitude, sensorMonitor.Longitude, sensorMonitor.Altitude, sensorMonitor.FixValid; SensorMonitorTable2 = sensorMonitor.TemperatureInvalidReason, sensorMonitor.AttitudeInvalidReason, sensorMonitor.FixInvalidReason, sensorMonitor.Bmp280State, sensorMonitor.Mpu6050State, sensorMonitor.GpsState, sensorMonitor.GpsQuality.
 
 ID:        L0-1
@@ -32,155 +37,157 @@ Setup:     Prototype image running on the Raspberry Pi 5; link up.
 Procedure: MARK(10); VERSION(ALL); bracket (2 Heartbeat samples); MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
 Pass rule: named checks declared in the integration test (test_L0_1).
-Evidence:  Version events equal the manifest describe strings; check: SensorMonitorTable1 samples >= 1 and SensorMonitorTable2 samples >= 1 (the component is in the image and scheduled).
+Evidence:  Version events equal the manifest describe strings; check: SensorMonitorTable1 samples >= 1; SensorMonitorTable2 samples >= 1.
 Planted faults:none
 
 ID:        L2-1
 Title:     Sensor telemetry, all sensors present
 Purpose:   Proves every Table 1 and Table 2 channel is published each second and reads valid.
-Covers:    REQ-SensorMonitor-001, REQ-SensorMonitor-002, REQ-SensorMonitor-003, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
-Procedure: MARK(30); wait 60 s; BENCH_LINE(BMP280, ON); MARK(31).
+Covers:    REQ-SensorMonitor-001, REQ-SensorMonitor-002, REQ-SensorMonitor-012
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz. The Pi is at rest.
+Procedure: MARK(30); wait 60 s; MARK(31); BENCH_LINE(BMP280, ON); wait 10 s.
 Window:    Marker(id=30) … Marker(id=31)
-Pass rule: named checks declared in the integration test (test_L2_1). metrics: largest gap between FSW time tags of every Table 1 and Table 2 channel in the window <= 1.5 s (1 Hz schedule call plus half a period of rate-group jitter; FSW time tags, so the downlink does not enter); Temperature, GyroX, GyroY, GyroZ, Latitude, Longitude, Altitude equal the manager Reading sample nearest in time; |Roll - atan2(a_y, a_z)| <= 0.1 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 0.1 deg against the imuManager.Reading sample of the same second, Pi at rest (0.1 degrees is REQ-SensorMonitor-003; reference computed on the ground from the manager's channel).
-Evidence:  Channel strips over 60 s; check: last(sensorMonitor.TemperatureValid) == VALID, last(sensorMonitor.AttitudeValid) == VALID, last(sensorMonitor.FixValid) == VALID, last(sensorMonitor.TemperatureInvalidReason) == NONE, last(sensorMonitor.AttitudeInvalidReason) == NONE, last(sensorMonitor.FixInvalidReason) == NONE, last(sensorMonitor.Bmp280State) == PRESENT, last(sensorMonitor.Mpu6050State) == PRESENT, last(sensorMonitor.GpsState) == PRESENT, event sensorMonitor.Bmp280Lost count == 0, event sensorMonitor.Mpu6050Lost count == 0, event sensorMonitor.GpsSilent count == 0. The closing BENCH_LINE(BMP280, ON) is a no-op on a healthy bench.
+Pass rule: named checks declared in the integration test (test_L2_1). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); largest gap between FSW time tags of every Table 1 and Table 2 channel, counted from the START marker to the first sample and from the last sample to the END marker, <= 1.5 s; at least 55 samples of each channel (1 Hz schedule call plus half a period, a test allowance for rate-group jitter confirmed at L0; FSW time tags, so the downlink does not enter; 55 = 60 s at 1 Hz less the flush phase at both markers); every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time; at least 30 pairs each (0.5 degC and 1.0 deg/s are noise allowances for the 10 Hz pairing race, measured at L0 and replaced at the stage-2 refresh; exact equality is unit test UT-02); |Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, Pi at rest; at least 30 pairs (the reading the component used and the Reading sample the ground holds can be different 10 Hz samples (managers in rateGroup10Hz, tlmSend flush at 1 Hz), so the bound is a noise allowance, not REQ-SensorMonitor-003: MPU6050 accelerometer noise 400 ug/sqrt(Hz) (PS-MPU-6000A-00 Rev. 3.4, section 6.2) gives about 0.3 deg rms [I]; the allowance is measured at L0 and replaced at the stage-2 refresh; the 0.1 deg requirement is unit test UT-03); every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples (the script is bench-owned evidence outside the component's reporting path).
+Evidence:  check: last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; event sensorMonitor.Bmp280Lost count == 0; event sensorMonitor.Mpu6050Lost count == 0; event sensorMonitor.GpsSilent count == 0; ABS; ABS-MGR. The BENCH_LINE(BMP280, ON) after the END marker and its 10 s settle wait are outside the window.
 Planted faults:bmp_line_dropped
 
 ID:        L2-2
-Title:     Roll and pitch against the acceleration
-Purpose:   Proves roll and pitch follow the Table 1 formulas for the reported acceleration.
-Covers:    REQ-SensorMonitor-001, REQ-SensorMonitor-002, REQ-SensorMonitor-003, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT. The Pi rests in two attitudes in turn: flat, then tilted by more than 20 degrees about one axis (bench action).
-Procedure: MARK(40); wait 20 s; action: tilt the Pi by more than 20 degrees and hold; wait 20 s; MARK(41).
+Title:     Roll and pitch follow a tilt
+Purpose:   Proves roll or pitch steps with a bench tilt and matches the reported acceleration.
+Covers:    REQ-SensorMonitor-001, REQ-SensorMonitor-002, REQ-SensorMonitor-012
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz. The Pi rests flat, then is tilted by more than 20 degrees about one axis and held (bench action, logged with bench time).
+Procedure: MARK(40); wait 20 s; action: tilt the Pi by more than 20 degrees and hold; wait 20 s; MARK(41); BENCH_LINE(MPU6050, ON); wait 10 s.
 Window:    Marker(id=40) … Marker(id=41)
-Pass rule: named checks declared in the integration test (test_L2_2). metrics: |Roll - atan2(a_y, a_z)| <= 0.1 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 0.1 deg against the imuManager.Reading sample of the same second (0.1 degrees is REQ-SensorMonitor-003; the reference is computed on the ground from the manager's own channel, outside the component); Roll, Pitch, AttitudeValid of one schedule call carry one FSW time tag.
-Evidence:  Roll and pitch strips beside the angles computed from imuManager.Reading; check: last(sensorMonitor.AttitudeValid) == VALID; the tilt shows as a step of more than 20 degrees in Roll or Pitch.
-Planted faults:none
+Pass rule: named checks declared in the integration test (test_L2_2). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); |last Roll - first Roll| >= 20 deg or |last Pitch - first Pitch| >= 20 deg across the tilt action; |Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, samples within 3 s of the logged tilt action excluded; at least 25 pairs (the reading the component used and the Reading sample the ground holds can be different 10 Hz samples (managers in rateGroup10Hz, tlmSend flush at 1 Hz), so the bound is a noise allowance, not REQ-SensorMonitor-003: MPU6050 accelerometer noise 400 ug/sqrt(Hz) (PS-MPU-6000A-00 Rev. 3.4, section 6.2) gives about 0.3 deg rms [I]; the allowance is measured at L0 and replaced at the stage-2 refresh; the 0.1 deg requirement is unit test UT-03); Roll, Pitch and AttitudeValid samples of one schedule call carry one FSW time tag, every call of the window.
+Evidence:  check: last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.Mpu6050State) == PRESENT; event sensorMonitor.Mpu6050Lost count == 0; ABS; ABS-MGR. The BENCH_LINE(MPU6050, ON) after the END marker and its settle wait are outside the window.
+Planted faults:mpu_line_dropped
 
 ID:        L5-1
 Title:     BMP280 loss and return
 Purpose:   Proves a stopped BMP280 is reported lost once, reads invalid, and returns valid.
 Covers:    REQ-SensorMonitor-005, REQ-SensorMonitor-013, REQ-SensorMonitor-014, REQ-SensorMonitor-015, REQ-SensorMonitor-016, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
 Procedure: MARK(100); BENCH_LINE(BMP280, OFF); wait 15 s; MARK(101); BENCH_LINE(BMP280, ON); wait 15 s; MARK(102).
 Window:    F = Marker(id=100) … Marker(id=101); B = Marker(id=101) … Marker(id=102)
-Pass rule: named checks declared in the integration test (test_L5_1). metrics: t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s (N = 5 schedule calls at 1 Hz (SDD Table 2) plus 2 s reading age and command latency; the system bound of REQ-PiSensor-019 to -021 is 10 s); first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s.
-Evidence:  F: check event sensorMonitor.Bmp280Lost count == 1 (WARNING_HI), last(sensorMonitor.Bmp280State) == LOST, last(sensorMonitor.TemperatureValid) == INVALID, event sensorMonitor.Bmp280Returned count == 0, the other two states PRESENT and validities VALID. B: event sensorMonitor.Bmp280Returned count == 1, event sensorMonitor.Bmp280Lost count == 0, last(sensorMonitor.Bmp280State) == PRESENT, last(sensorMonitor.TemperatureValid) == VALID; both: event sysTester.Started count == 0.
+Pass rule: named checks declared in the integration test (test_L5_1). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 3.5 s <= t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE(line=BMP280, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window) (lower bound 3.5 s: the fifth schedule call without a new reading falls 4 s to 5 s after the supply is cut (N = 5, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-019); B: first sensorMonitor.TemperatureValid == VALID - t(sysTester.BENCH_LINE(line=BMP280, state=ON) sent) <= 10 s (FSW clock).
+Evidence:  check: F: event sensorMonitor.Bmp280Lost count == 1; F: event sensorMonitor.Bmp280Returned count == 0; F: last(sensorMonitor.Bmp280State) == LOST; F: last(sensorMonitor.TemperatureValid) == INVALID; F: last(sensorMonitor.TemperatureInvalidReason) == STALE; F: last(sensorMonitor.Mpu6050State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.AttitudeValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Bmp280Returned count == 1; B: event sensorMonitor.Bmp280Lost count == 0; B: last(sensorMonitor.Bmp280State) == PRESENT; B: last(sensorMonitor.TemperatureValid) == VALID; B: last(sensorMonitor.TemperatureInvalidReason) == NONE; every window: ABS.
 Planted faults:sensor_line_kept_on
 
 ID:        L5-2
 Title:     MPU6050 loss and return
-Purpose:   Proves a stopped MPU6050 is reported lost once, reads invalid, and returns valid.
+Purpose:   Proves a stopped MPU6050 is reported lost once by its identity read, and returns valid.
 Covers:    REQ-SensorMonitor-005, REQ-SensorMonitor-010, REQ-SensorMonitor-011, REQ-SensorMonitor-013, REQ-SensorMonitor-014, REQ-SensorMonitor-015, REQ-SensorMonitor-016, REQ-SensorMonitor-021, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
 Procedure: MARK(110); BENCH_LINE(MPU6050, OFF); wait 15 s; MARK(111); BENCH_LINE(MPU6050, ON); wait 15 s; MARK(112).
 Window:    F = Marker(id=110) … Marker(id=111); B = Marker(id=111) … Marker(id=112)
-Pass rule: named checks declared in the integration test (test_L5_2). metrics: t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s (N = 5 schedule calls at 1 Hz (SDD Table 2) plus 2 s reading age and command latency; the system bound of REQ-PiSensor-019 to -021 is 10 s); first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s.
-Evidence:  F: check event sensorMonitor.Mpu6050Lost count == 1 (WARNING_HI), last(sensorMonitor.Mpu6050State) == LOST, last(sensorMonitor.AttitudeValid) == INVALID, event sensorMonitor.Mpu6050Returned count == 0, the other two states PRESENT and validities VALID. B: event sensorMonitor.Mpu6050Returned count == 1, event sensorMonitor.Mpu6050Lost count == 0, last(sensorMonitor.Mpu6050State) == PRESENT, last(sensorMonitor.AttitudeValid) == VALID; both: event sysTester.Started count == 0.
+Pass rule: named checks declared in the integration test (test_L5_2). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window) (lower bound 1.5 s: the third failed identity read falls 2 s to 3 s after the supply is cut (M = 3, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-020); B: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock).
+Evidence:  check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS.
 Planted faults:sensor_line_kept_on
 
 ID:        L5-3
 Title:     GPS silence and return
 Purpose:   Proves a silent GPS is reported once, reads invalid, and returns valid.
 Covers:    REQ-SensorMonitor-005, REQ-SensorMonitor-013, REQ-SensorMonitor-014, REQ-SensorMonitor-015, REQ-SensorMonitor-016, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
-Procedure: MARK(120); BENCH_LINE(GPS, OFF); wait 15 s; MARK(121); BENCH_LINE(GPS, ON); wait 15 s; MARK(122).
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
+Procedure: MARK(120); action: GPS sentence source stops; wait 15 s; MARK(121); action: GPS sentence source resumes the scripted fix sentences; wait 15 s; MARK(122).
 Window:    F = Marker(id=120) … Marker(id=121); B = Marker(id=121) … Marker(id=122)
-Pass rule: named checks declared in the integration test (test_L5_3). metrics: t(event sensorMonitor.GpsSilent) - t(sysTester.BENCH_LINE sent) <= 10 s (N = 5 schedule calls at 1 Hz (SDD Table 2) plus 2 s reading age and command latency; the system bound of REQ-PiSensor-019 to -021 is 10 s); first sensorMonitor.FixValid == VALID after the return - time of the return <= 10 s.
-Evidence:  F: check event sensorMonitor.GpsSilent count == 1 (WARNING_HI), last(sensorMonitor.GpsState) == LOST, last(sensorMonitor.FixValid) == INVALID, event sensorMonitor.GpsReturned count == 0, the other two states PRESENT and validities VALID. B: event sensorMonitor.GpsReturned count == 1, event sensorMonitor.GpsSilent count == 0, last(sensorMonitor.GpsState) == PRESENT, last(sensorMonitor.FixValid) == VALID; both: event sysTester.Started count == 0.
-Planted faults:sensor_line_kept_on
+Pass rule: named checks declared in the integration test (test_L5_3). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 2 s <= t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s (fifth schedule call without a sentence falls 4 s to 5 s after the stop (N = 5); bench time against FSW time carries the 2 s clock tolerance of project decision D12, checked by the project's clock_offset_within at L0; upper bound REQ-PiSensor-021); B: first sensorMonitor.FixValid == VALID - bench time of the resume action <= 10 s.
+Evidence:  check: F: event sensorMonitor.GpsSilent count == 1; F: event sensorMonitor.GpsReturned count == 0; F: last(sensorMonitor.GpsState) == LOST; F: last(sensorMonitor.FixValid) == INVALID; F: last(sensorMonitor.FixInvalidReason) == STALE; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.Mpu6050State) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.AttitudeValid) == VALID; B: event sensorMonitor.GpsReturned count == 1; B: event sensorMonitor.GpsSilent count == 0; B: last(sensorMonitor.GpsState) == PRESENT; B: last(sensorMonitor.FixValid) == VALID; B: last(sensorMonitor.FixInvalidReason) == NONE; every window: ABS.
+Planted faults:none
 
 ID:        L5-4
 Title:     MPU6050 lost twice
 Purpose:   Proves each loss and each return of one sensor gives exactly one event.
 Covers:    REQ-SensorMonitor-005, REQ-SensorMonitor-010, REQ-SensorMonitor-011, REQ-SensorMonitor-013, REQ-SensorMonitor-014, REQ-SensorMonitor-015, REQ-SensorMonitor-016, REQ-SensorMonitor-021, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, MPU6050, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
-Procedure: MARK(130); BENCH_LINE(MPU6050, OFF); wait 15 s; MARK(131); BENCH_LINE(MPU6050, ON); wait 15 s; MARK(132); BENCH_LINE(MPU6050, OFF); wait 15 s; BENCH_LINE(MPU6050, ON); wait 15 s; MARK(133).
-Window:    F = Marker(id=130) … Marker(id=131); B = Marker(id=131) … Marker(id=132); S = Marker(id=132) … Marker(id=133)
-Pass rule: named checks declared in the integration test (test_L5_4). metrics: t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s (N = 5 schedule calls at 1 Hz (SDD Table 2) plus 2 s reading age and command latency; the system bound of REQ-PiSensor-019 to -021 is 10 s); first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s.
-Evidence:  F: check event sensorMonitor.Mpu6050Lost count == 1 (WARNING_HI), last(sensorMonitor.Mpu6050State) == LOST, last(sensorMonitor.AttitudeValid) == INVALID, event sensorMonitor.Mpu6050Returned count == 0, the other two states PRESENT and validities VALID. B: event sensorMonitor.Mpu6050Returned count == 1, event sensorMonitor.Mpu6050Lost count == 0, last(sensorMonitor.Mpu6050State) == PRESENT, last(sensorMonitor.AttitudeValid) == VALID; both: event sysTester.Started count == 0. S: event sensorMonitor.Mpu6050Lost count == 1 precedes event sensorMonitor.Mpu6050Returned count == 1; last state PRESENT. In F and S the Mpu6050Lost event text names the failed identity read status (the unpowered device does not acknowledge).
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
+Procedure: MARK(130); BENCH_LINE(MPU6050, OFF); wait 15 s; MARK(131); BENCH_LINE(MPU6050, ON); wait 15 s; MARK(132); BENCH_LINE(MPU6050, OFF); wait 15 s; MARK(133); BENCH_LINE(MPU6050, ON); wait 15 s; MARK(134).
+Window:    F = Marker(id=130) … Marker(id=131); B = Marker(id=131) … Marker(id=132); F2 = Marker(id=132) … Marker(id=133); B2 = Marker(id=133) … Marker(id=134)
+Pass rule: named checks declared in the integration test (test_L5_4). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window) (lower bound 1.5 s: the third failed identity read falls 2 s to 3 s after the supply is cut (M = 3, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-020); B: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock); F2: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window) (lower bound 1.5 s: the third failed identity read falls 2 s to 3 s after the supply is cut (M = 3, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-020); B2: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock).
+Evidence:  check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; F2: event sensorMonitor.Mpu6050Lost count == 1; F2: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F2: event sensorMonitor.Mpu6050Returned count == 0; F2: last(sensorMonitor.Mpu6050State) == LOST; F2: last(sensorMonitor.AttitudeValid) == INVALID; F2: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F2: last(sensorMonitor.Bmp280State) == PRESENT; F2: last(sensorMonitor.GpsState) == PRESENT; F2: last(sensorMonitor.TemperatureValid) == VALID; F2: last(sensorMonitor.FixValid) == VALID; B2: event sensorMonitor.Mpu6050Returned count == 1; B2: event sensorMonitor.Mpu6050Lost count == 0; B2: last(sensorMonitor.Mpu6050State) == PRESENT; B2: last(sensorMonitor.AttitudeValid) == VALID; B2: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS.
 Planted faults:none
 
 ID:        L5-5
 Title:     GPS without a fix
-Purpose:   Proves no-fix GGA sentences read location invalid, raise no silence event, and pass on.
-Covers:    REQ-SensorMonitor-009, REQ-SensorMonitor-017, REQ-SensorMonitor-022, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
-Procedure: MARK(140); action: GPS source sends no-fix GGA sentences (quality 0) at 1 Hz; wait 15 s; MARK(141); action: GPS source sends fix sentences (quality 1) at 1 Hz; wait 15 s; MARK(142).
+Purpose:   Proves no-fix GGA sentences read location invalid with reason NO_FIX and raise no silence event.
+Covers:    REQ-SensorMonitor-009, REQ-SensorMonitor-022, REQ-SensorMonitor-012
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
+Procedure: MARK(140); action: GPS source sends no-fix GGA sentences (quality 0) at 1 Hz; wait 15 s; MARK(141); action: GPS source sends the scripted fix sentences (quality 1) at 1 Hz; wait 15 s; MARK(142).
 Window:    F = Marker(id=140) … Marker(id=141); B = Marker(id=141) … Marker(id=142)
-Pass rule: named checks declared in the integration test (test_L5_5). metrics: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s (1 s GGA period + 1 s schedule call + 2 s clock tolerance + 1 s margin; a test settling time, REQ-SensorMonitor-009 has no time bound); gpsManager.Reading has a new sample for every fix sentence of window B.
-Evidence:  F: check last(sensorMonitor.FixValid) == INVALID, last(sensorMonitor.FixInvalidReason) == NO_FIX, last(sensorMonitor.GpsQuality) == 0, last(sensorMonitor.GpsState) == PRESENT, event sensorMonitor.GpsSilent count == 0. B: last(sensorMonitor.FixValid) == VALID, last(sensorMonitor.GpsQuality) == 1, event sensorMonitor.GpsReturned count == 0; the bench source byte counter advances in both.
+Pass rule: named checks declared in the integration test (test_L5_5). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s, INVALID from then to the END marker (1 s GGA period + 1 s schedule call + 2 s clock tolerance (project decision D12) + 1 s allowance; a test settling time, REQ-SensorMonitor-009 has no time bound).
+Evidence:  check: F: last(sensorMonitor.FixValid) == INVALID; F: last(sensorMonitor.FixInvalidReason) == NO_FIX; F: last(sensorMonitor.GpsQuality) == 0; F: last(sensorMonitor.GpsState) == PRESENT; F: event sensorMonitor.GpsSilent count == 0; B: last(sensorMonitor.FixValid) == VALID; B: last(sensorMonitor.FixInvalidReason) == NONE; B: last(sensorMonitor.GpsQuality) == 1; B: event sensorMonitor.GpsReturned count == 0; every window: ABS; every window: ABS-LOSS.
 Planted faults:none
 
 ID:        L5-6
-Title:     GPS fix kinds
-Purpose:   Proves the quality channel follows the GGA indicator and an empty indicator reads location invalid.
-Covers:    REQ-SensorMonitor-009, REQ-SensorMonitor-017, REQ-SensorMonitor-022
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
-Procedure: MARK(150); action: GPS source sends GGA sentences with quality 2 at 1 Hz; wait 10 s; MARK(151); action: GPS source sends GGA sentences with an empty quality field at 1 Hz; wait 10 s; MARK(152); action: GPS source sends GGA sentences with quality 8 at 1 Hz; wait 10 s; MARK(153); action: GPS source sends fix sentences (quality 1) at 1 Hz.
+Title:     GPS quality indicator values
+Purpose:   Proves quality 2 and 8 read location valid and an empty indicator reads it invalid.
+Covers:    REQ-SensorMonitor-009, REQ-SensorMonitor-022
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
+Procedure: MARK(150); action: GPS source sends GGA sentences with quality 2 at 1 Hz; wait 10 s; MARK(151); action: GPS source sends GGA sentences with an empty quality field at 1 Hz; wait 10 s; MARK(152); action: GPS source sends GGA sentences with quality 8 at 1 Hz; wait 10 s; MARK(153); action: GPS source sends the scripted fix sentences (quality 1) at 1 Hz; wait 10 s.
 Window:    Q2 = Marker(id=150) … Marker(id=151); E = Marker(id=151) … Marker(id=152); Q8 = Marker(id=152) … Marker(id=153)
-Pass rule: named checks declared in the integration test (test_L5_6).
-Evidence:  Q2: check last(sensorMonitor.GpsQuality) == 2, last(sensorMonitor.FixValid) == VALID. E: last(sensorMonitor.GpsQuality) == 255, last(sensorMonitor.FixValid) == INVALID, event sensorMonitor.GpsSilent count == 0. Q8: last(sensorMonitor.GpsQuality) == 8; FixValid in Q8 is not judged (the catalog GPS manager's handling of quality 8 decides the reading age; see not covered).
+Pass rule: named checks declared in the integration test (test_L5_6). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met).
+Evidence:  check: Q2: last(sensorMonitor.GpsQuality) == 2; Q2: last(sensorMonitor.FixValid) == VALID; E: last(sensorMonitor.GpsQuality) == 255; E: last(sensorMonitor.FixValid) == INVALID; E: last(sensorMonitor.FixInvalidReason) == NO_FIX; Q8: last(sensorMonitor.GpsQuality) == 8; Q8: last(sensorMonitor.FixValid) == VALID; every window: ABS; every window: ABS-LOSS.
 Planted faults:none
 
 ID:        L7-1
 Title:     Final state
-Purpose:   Leaves every sensor present and valid, with the MPU6050 identity read independently on the bench.
-Covers:    REQ-SensorMonitor-010, REQ-SensorMonitor-021, REQ-SensorMonitor-012
-Setup:     Prototype image running, link up, BMP280, MPU6050 and the GPS sentence source answering, all three sensor states PRESENT.
+Purpose:   Leaves every sensor present and valid, with the location equal to the bench script.
+Covers:    REQ-SensorMonitor-002, REQ-SensorMonitor-012
+Setup:     Prototype image running, link up, BMP280 and MPU6050 powered, GPS sentence source sending the scripted fix sentences (quality 1) at 1 Hz.
 Procedure: MARK(230); wait 10 s; MARK(231).
 Window:    Marker(id=230) … Marker(id=231)
-Pass rule: named checks declared in the integration test (test_L7_1).
-Evidence:  check: last(sensorMonitor.Mpu6050State) == PRESENT, last(sensorMonitor.AttitudeValid) == VALID, last(sensorMonitor.Bmp280State) == PRESENT, last(sensorMonitor.GpsState) == PRESENT. After the run the bench reads MPU6050 register 0x75 on I2C bus 1 address 0x68 (`i2cget -y 1 0x68 0x75`) over ssh into record/raw/final-state.txt; the auditor compares it with 0x68 (RM-MPU-6000A-00 Rev. 4.2).
+Pass rule: named checks declared in the integration test (test_L7_1). metrics: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples (the script is bench-owned evidence outside the component's reporting path; the same comparison is repeated by the auditor for the final state).
+Evidence:  check: last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; ABS; ABS-LOSS; ABS-MGR. After the run the bench copies the last sentence the source sent (bench-actions.log) and reads MPU6050 register 0x75 (`i2cget -y 1 0x68 0x75`, a bench health fact) into record/raw/final-state.txt.
 Planted faults:none
 
 ## 4 Traceability
 | REQ | Tests | Note |
 |---|---|---|
 | REQ-SensorMonitor-001 | L0-1, L2-1, L2-2 |  |
-| REQ-SensorMonitor-002 | L2-1, L2-2 |  |
-| REQ-SensorMonitor-003 | L2-1, L2-2 |  |
+| REQ-SensorMonitor-002 | L2-1, L2-2, L7-1 |  |
+| REQ-SensorMonitor-003 | waived: UT only | the 0.1 degree bound is below the noise of the 10 Hz pairing on the bench; L2-1 and L2-2 judge the angles within a noise allowance; unit test UT-03 is the verification of record |
 | REQ-SensorMonitor-004 | waived: UT only | start-up state before a first reading cannot be held on the bench |
 | REQ-SensorMonitor-005 | L5-1, L5-2, L5-3, L5-4 |  |
 | REQ-SensorMonitor-006 | waived: UT only | a reading time ahead of the clock needs a clock step, not plantable on a shared bench |
 | REQ-SensorMonitor-007 | waived: UT only | start-up state; a sensor absent at boot needs a restart of the shared deployment per sensor |
 | REQ-SensorMonitor-008 | waived: UT only | a sensor that answers with out-of-limit data is not plantable (project plan, not covered) |
 | REQ-SensorMonitor-009 | L5-5, L5-6 |  |
-| REQ-SensorMonitor-010 | L5-2, L5-4, L7-1 |  |
+| REQ-SensorMonitor-010 | L5-2, L5-4 |  |
 | REQ-SensorMonitor-011 | L5-2, L5-4 |  |
 | REQ-SensorMonitor-012 | L2-1, L2-2, L5-1, L5-2, L5-3, L5-4, L5-5, L7-1 |  |
 | REQ-SensorMonitor-013 | L5-1, L5-2, L5-3, L5-4 |  |
 | REQ-SensorMonitor-014 | L5-1, L5-2, L5-3, L5-4 |  |
 | REQ-SensorMonitor-015 | L5-1, L5-2, L5-3, L5-4 |  |
 | REQ-SensorMonitor-016 | L5-1, L5-2, L5-3, L5-4 |  |
-| REQ-SensorMonitor-017 | L5-5, L5-6 |  |
+| REQ-SensorMonitor-017 | waived: UT only | once, in order, unchanged cannot be judged through a 1 Hz telemetry flush; unit test UT-23; the system effect (location follows the sentences) is judged by location_equals_script in L2-1 and L7-1 |
 | REQ-SensorMonitor-018 | waived: UT only | the request port is driven by productManager; its system tests are the project's L2-3 to L2-6 and L5-9, L5-10 |
 | REQ-SensorMonitor-019 | waived: UT only | as REQ-SensorMonitor-018; the age boundary is a unit test |
 | REQ-SensorMonitor-020 | waived: Inspection | Inspection of the FPP port kinds and the guard |
-| REQ-SensorMonitor-021 | L5-2, L5-4, L7-1 |  |
+| REQ-SensorMonitor-021 | L5-2, L5-4 |  |
 | REQ-SensorMonitor-022 | L5-5, L5-6 |  |
 
 ## 5 Metrics
-- L2-1: largest gap between FSW time tags of every Table 1 and Table 2 channel in the window <= 1.5 s; Temperature, GyroX, GyroY, GyroZ, Latitude, Longitude, Altitude equal the manager Reading sample nearest in time; |Roll - atan2(a_y, a_z)| <= 0.1 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 0.1 deg against the imuManager.Reading sample of the same second, Pi at rest
-- L2-2: |Roll - atan2(a_y, a_z)| <= 0.1 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 0.1 deg against the imuManager.Reading sample of the same second; Roll, Pitch, AttitudeValid of one schedule call carry one FSW time tag
-- L5-1: t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.TemperatureValid == VALID after the return - time of the return <= 10 s
-- L5-2: t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s
-- L5-3: t(event sensorMonitor.GpsSilent) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.FixValid == VALID after the return - time of the return <= 10 s
-- L5-4: t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE sent) <= 10 s; first sensorMonitor.AttitudeValid == VALID after the return - time of the return <= 10 s
-- L5-5: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s; gpsManager.Reading has a new sample for every fix sentence of window B
+- L2-1: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); largest gap between FSW time tags of every Table 1 and Table 2 channel, counted from the START marker to the first sample and from the last sample to the END marker, <= 1.5 s; at least 55 samples of each channel; every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time; at least 30 pairs each; |Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, Pi at rest; at least 30 pairs; every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples
+- L2-2: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); |last Roll - first Roll| >= 20 deg or |last Pitch - first Pitch| >= 20 deg across the tilt action; |Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, samples within 3 s of the logged tilt action excluded; at least 25 pairs; Roll, Pitch and AttitudeValid samples of one schedule call carry one FSW time tag, every call of the window
+- L5-1: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 3.5 s <= t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE(line=BMP280, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window); B: first sensorMonitor.TemperatureValid == VALID - t(sysTester.BENCH_LINE(line=BMP280, state=ON) sent) <= 10 s (FSW clock)
+- L5-2: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window); B: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock)
+- L5-3: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 2 s <= t(event sensorMonitor.GpsSilent) - bench time of the stop action <= 10 s; B: first sensorMonitor.FixValid == VALID - bench time of the resume action <= 10 s
+- L5-4: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window); B: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock); F2: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window); B2: first sensorMonitor.AttitudeValid == VALID - t(sysTester.BENCH_LINE(line=MPU6050, state=ON) sent) <= 10 s (FSW clock)
+- L5-5: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); F: first sensorMonitor.FixValid == INVALID - bench time of the no-fix action <= 5 s, INVALID from then to the END marker
+- L5-6: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)
+- L7-1: precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met); every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples
 
 ## 6 Fault menu
-Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): bmp_line_dropped (uut-state; L2-1); sensor_line_kept_on (stimulus; L5-1, L5-2, L5-3).
+Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): bmp_line_dropped (uut-state; L2-1); mpu_line_dropped (uut-state; L2-2); sensor_line_kept_on (stimulus; L5-1, L5-2).
 
 ## 7 Not covered
-- REQ-SensorMonitor-004, -006, -007, -008, -018, -019, -020: unit test or inspection only; reasons in the requirements block.
-- Wrong MPU6050 identity value with the device answering (REQ-PiSensor-043): not plantable on the bench without another device at address 0x68; unit test.
-- Identity persistence M = 3 and loss count N = 5 at their boundaries: unit tests; the bench tests judge the 10 s system bound only.
-- GGA quality 8 with a valid location: the catalog GPS manager's handling of quality values above 1 is not confirmed on the bench (no receiver identified); L5-6 judges the quality channel only.
+- REQ-SensorMonitor-003, -004, -006, -007, -008, -017, -018, -019, -020: unit test or inspection only; reasons in the requirements block.
+- Wrong MPU6050 identity value with the device answering (REQ-PiSensor-043): not plantable on the bench without another device at address 0x68; unit tests UT-13.
+- Identity persistence M = 3 and loss count N = 5 at their exact boundaries: unit tests; the bench tests judge a lower and an upper time bound.
 - Concurrency of the five inputs under load: inspection (REQ-SensorMonitor-020); no bench stimulus forces an interleaving.
 
 ## 8 Decision log
-1. 2026-11-17 designer — test deployment = the project's full deployment + `sysTester` (project decision D13); no component-only deployment.
+1. 2026-11-17 designer — test deployment = the project's full deployment + `sysTester` (project decision D13, an author proposal pending the human's ruling at Approve SSDD); fallback named in the scope.
 2. 2026-11-17 designer — coverage thresholds at the skill baselines (UT 95 % lines, on-target 75 % lines).
 3. 2026-11-17 designer — markers, bench lines and helpers follow the project plan so one harness serves both plans; marker ids 10 to 231 are local to this plan's record.
-4. 2026-11-17 designer — requirements with a single system test are verified by unit test of record (waiver in the requirements block), not counted as system-covered.
+4. 2026-11-17 designer — REQ-SensorMonitor-003 and -017 are verified by unit test of record; the bench judges their system effect within stated allowances.
+5. 2026-11-17 designer — review round 1 (system-test-review Mode A, 11 must fix / 12 could fix): all accepted; dispositions in the campaign's review record.

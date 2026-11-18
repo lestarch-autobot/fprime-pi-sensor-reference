@@ -36,12 +36,12 @@ module PiSensor {
   @ Why a metric is invalid, in the order the conditions are tested
   enum InvalidReason : U8 {
     NONE = 0 @< The metric is valid
-    NO_READING = 1 @< No reading since start-up
-    FUTURE_TIME = 2 @< Reading time is after the current time or of another time base
-    STALE = 3 @< Reading is older than SENSOR_STALE_SECONDS
-    OUT_OF_LIMITS = 4 @< A value is not finite or outside its limits
-    IDENTITY = 5 @< Latest MPU6050 identity read failed or returned another value
-    NO_FIX = 6 @< Newest GGA sentence carries no quality indicator 1 to 8
+    IDENTITY = 1 @< Latest MPU6050 identity read failed or returned another value
+    NO_FIX = 2 @< Newest GGA sentence carries no quality indicator 1 to 8
+    NO_READING = 3 @< No reading since start-up
+    FUTURE_TIME = 4 @< Reading time is after the current time or of another time base
+    STALE = 5 @< Reading is older than SENSOR_STALE_SECONDS
+    OUT_OF_LIMITS = 6 @< A value is not finite or outside its limits
   }
 
   @ One sample of every metric, with validity and sample time

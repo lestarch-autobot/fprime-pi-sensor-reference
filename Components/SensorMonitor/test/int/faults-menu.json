@@ -12,10 +12,33 @@
           "last(sensorMonitor.TemperatureValid) == VALID",
           "last(sensorMonitor.TemperatureInvalidReason) == NONE",
           "last(sensorMonitor.Bmp280State) == PRESENT",
-          "event sensorMonitor.Bmp280Lost count == 0"
+          "event sensorMonitor.Bmp280Lost count == 0",
+          "event bmpManager.DeviceReadFailure count == 0",
+          "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time; at least 30 pairs each"
         ]
       },
-      "mechanism": "sysTester.BENCH_LINE(BMP280, OFF) is inserted before the first MARK of the test: the BMP280 is unpowered during a window that expects every metric valid; the closing BENCH_LINE(BMP280, ON) of the procedure restores it",
+      "mechanism": "sysTester.BENCH_LINE(BMP280, OFF) is inserted before the START marker: the BMP280 is unpowered for the whole window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. Which bmpManager warning the unpowered sensor raises is confirmed by the single-fault vector at stage 2",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "mpu_line_dropped",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-2"
+      ],
+      "fails": {
+        "L2-2": [
+          "last(sensorMonitor.AttitudeValid) == VALID",
+          "last(sensorMonitor.AttitudeInvalidReason) == NONE",
+          "last(sensorMonitor.Mpu6050State) == PRESENT",
+          "event sensorMonitor.Mpu6050Lost count == 0",
+          "event imuManager.I2cError count == 0",
+          "|last Roll - first Roll| >= 20 deg or |last Pitch - first Pitch| >= 20 deg across the tilt action",
+          "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, samples within 3 s of the logged tilt action excluded; at least 25 pairs"
+        ]
+      },
+      "mechanism": "sysTester.BENCH_LINE(MPU6050, OFF) is inserted before the START marker: the MPU6050 is unpowered for the whole window, so roll and pitch freeze and the tilt is not seen; the procedure's BENCH_LINE(MPU6050, ON) after the END marker and its settle wait restore it",
       "kind": "insert",
       "ripples_to": {}
     },
@@ -24,35 +47,36 @@
       "class": "stimulus",
       "applies_to": [
         "L5-1",
-        "L5-2",
-        "L5-3"
+        "L5-2"
       ],
       "fails": {
         "L5-1": [
-          "event sensorMonitor.Bmp280Lost count == 1",
+          "F: event sensorMonitor.Bmp280Lost count == 1",
           "F: last(sensorMonitor.Bmp280State) == LOST",
-          "F: last(sensorMonitor.TemperatureValid) == INVALID"
+          "F: last(sensorMonitor.TemperatureValid) == INVALID",
+          "F: last(sensorMonitor.TemperatureInvalidReason) == STALE",
+          "B: event sensorMonitor.Bmp280Returned count == 1",
+          "F: 3.5 s <= t(event sensorMonitor.Bmp280Lost) - t(sysTester.BENCH_LINE(line=BMP280, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window)"
         ],
         "L5-2": [
-          "event sensorMonitor.Mpu6050Lost count == 1",
+          "F: event sensorMonitor.Mpu6050Lost count == 1",
+          "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1",
           "F: last(sensorMonitor.Mpu6050State) == LOST",
-          "F: last(sensorMonitor.AttitudeValid) == INVALID"
-        ],
-        "L5-3": [
-          "event sensorMonitor.GpsSilent count == 1",
-          "F: last(sensorMonitor.GpsState) == LOST",
-          "F: last(sensorMonitor.FixValid) == INVALID"
+          "F: last(sensorMonitor.AttitudeValid) == INVALID",
+          "F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY",
+          "B: event sensorMonitor.Mpu6050Returned count == 1",
+          "F: 1.5 s <= t(event sensorMonitor.Mpu6050Lost) - t(sysTester.BENCH_LINE(line=MPU6050, state=OFF) sent) <= 10 s (FSW clock, the one such command and event of the window)"
         ]
       },
-      "mechanism": "argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering",
+      "mechanism": "argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering, so it is never lost and never returns",
       "kind": "rewrite",
       "ripples_to": {}
     }
   ],
   "tests_covered": [
     "L2-1",
+    "L2-2",
     "L5-1",
-    "L5-2",
-    "L5-3"
+    "L5-2"
   ]
 }

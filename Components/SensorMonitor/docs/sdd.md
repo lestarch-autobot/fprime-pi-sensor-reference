@@ -31,9 +31,7 @@
 | REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. (REQ-PiSensor-043) | Unit Test |
 | REQ-SensorMonitor-022 | The GGA quality indicator read shall be compliant with NMEA 0183 Version 4.11. (REQ-PiSensor-024) | Unit Test |
 
-Each row ends with the system requirements it derives from; `(proposal)` marks a row that derives from none and is proposed to the approver.
-
-Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). A reading time of another time base than the current time counts as after it. Age is the current time minus the reading time.
+Each row ends with the system requirements it derives from; `(proposal)` marks a row that derives from none. Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). A reading time of another time base than the current time counts as after it. Age is the current time minus the reading time.
 
 | Metric | Validity and reason channel | Source reading | Value channel | Unit | Value | Limits (a value that is not a finite number is outside) |
 |---|---|---|---|---|---|---|
@@ -135,7 +133,7 @@ The Table 1 limits are constants in `SensorMonitor.hpp`; `GPS_READING_CHANNEL_OF
 - **`gpsSentenceIn`**: admitted for every buffer. It sets `m_sentenceSeen`, stores the quality indicator when the sentence is a GGA sentence (bounded scan, buffer not written), and sends the same buffer and context on `gpsSentenceOut`.
 - **`samplesGetIn`**: admitted once configured. It fetches the GPS reading and fills `SensorSamples` with the latest values, reading times and validity taken at the request time, with `m_fixQuality` and the latest identity result as they stand.
 
-Validity is tested in the order of `InvalidReason` and the first condition that holds is the reason; age is computed only after the reading time is found comparable and not later than the current time. A GPS reading that `tlmGetOut` returns empty, or that does not deserialize into `NmeaGps.GpsData`, is no reading. `Mpu6050Lost` carries the latest identity result for either reason, `reason` is `IDENTITY` when both conditions hold, and a change of cause while lost emits no event. The identity read lasts at most the kernel I2C adapter time-out (`Drv.LinuxI2cDriver` sets none), which is a failed read; its value is measured in development against a limit of 500 ms, half the 1 Hz period.
+Validity is tested in the order of `InvalidReason` (identity and fix first, because the GPS manager publishes no reading without a fix) and the first condition that holds is the reason; age is computed only after the reading time is found comparable and not later than the current time. A GPS reading that `tlmGetOut` returns empty, or that does not deserialize into `NmeaGps.GpsData`, is no reading. `Mpu6050Lost` carries the latest identity result for either reason, `reason` is `IDENTITY` when both conditions hold, and a change of cause while lost emits no event. The identity read lasts at most the kernel I2C adapter time-out (`Drv.LinuxI2cDriver` sets none), which is a failed read; its value is measured in development against a limit of 500 ms, half the 1 Hz period.
 
 ## Data Product Format
 
