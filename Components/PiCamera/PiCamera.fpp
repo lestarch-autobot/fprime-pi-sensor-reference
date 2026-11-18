@@ -64,6 +64,11 @@ module PiSensor {
       capture: U32 @< Number of the capture
     ) drop
 
+    @ Close the camera of a capture that timed out
+    internal port abort(
+      capture: U32 @< Number of the capture
+    ) drop
+
     @ The camera library reports the frame of a capture, from its own thread
     internal port frameDone(
       capture: U32 @< Number of the capture the frame belongs to
@@ -79,7 +84,7 @@ module PiSensor {
     @ Acquisition of a picture begins
     event CaptureStarted(
       context: U32 @< Context of the request
-    ) severity activity low id 0 format "Capture {} started"
+    ) severity activity low format "Capture {} started"
 
     @ A capture request failed
     event CaptureFailed(
@@ -87,35 +92,35 @@ module PiSensor {
       reason: CaptureStatus @< Failure reason
       step: CaptureStep @< Step at which the failure was found
       code: I32 @< Return code of the camera or JPEG library at that step, else 0
-    ) severity warning low id 1 format "Capture {} failed: {} at {} code {}"
+    ) severity warning low format "Capture {} failed: {} at {} code {}"
 
     @ A returned buffer was not released: it is not the delivered picture
     event ReturnRejected(
       bytes: FwSizeType @< Size in bytes of the returned buffer
-    ) severity warning low id 2 format "Returned buffer of {} bytes rejected"
+    ) severity warning low format "Returned buffer of {} bytes rejected"
 
     @ A camera is detected at start
     event CameraFound(
       camera: string size 80 @< Identification the camera library gives
-    ) severity activity low id 3 format "Camera found: {}"
+    ) severity activity low format "Camera found: {}"
 
     @ No camera is detected at start
-    event CameraNotFound severity warning low id 4 format "No camera found"
+    event CameraNotFound severity warning low format "No camera found"
 
     @ Count of success replies since start
-    telemetry CapturesCompleted: U32 id 0
+    telemetry CapturesCompleted: U32
 
     @ Count of failure replies since start
-    telemetry CapturesFailed: U32 id 1
+    telemetry CapturesFailed: U32
 
     @ Size in bytes of the last delivered JPEG
-    telemetry LastPictureSize: U32 id 2
+    telemetry LastPictureSize: U32
 
     @ A camera was detected at the last detection
-    telemetry CameraPresent: bool id 3
+    telemetry CameraPresent: bool
 
     @ A delivered picture is not yet returned
-    telemetry PictureOutstanding: bool id 4
+    telemetry PictureOutstanding: bool
 
   }
 }

@@ -79,18 +79,20 @@ External References
 
 ### 3.1 Component Diagram
 
+```mermaid
+flowchart LR
+    captureIn["captureIn : PiSensor.CaptureRequest"] --> C["PiCamera (active)"]
+    imageReturnIn["imageReturnIn : Fw.BufferSend"] --> C
+    run["run : Svc.Sched"] --> C
+    pingIn["pingIn : Svc.Ping"] --> C
+    C --> imageOut["imageOut : PiSensor.CaptureReply"]
+    C --> allocate["allocate : Fw.BufferGet"]
+    C --> deallocate["deallocate : Fw.BufferSend"]
+    C --> pingOut["pingOut : Svc.Ping"]
+    C --> special["eventOut, textEventOut, tlmOut, timeGetOut"]
 ```
-                      +------------------------+
-captureIn :         [ ]                        [ ] imageOut : PiSensor.CaptureReply
-PiSensor.CaptureRequest                        |
-imageReturnIn :     [ ]       PiCamera         [ ] allocate : Fw.BufferGet
-Fw.BufferSend         |                        |
-run : Svc.Sched     [ ]                        [ ] deallocate : Fw.BufferSend
-                      |                        |
-pingIn : Svc.Ping   [ ]                        [ ] pingOut : Svc.Ping
-                      +------------------------+
-  special ports: eventOut, textEventOut, tlmOut, timeGetOut
-```
+
+`PiCamera` is an active component: its thread makes the camera calls, which take seconds.
 
 ### 3.2 Ports
 
@@ -105,18 +107,21 @@ pingIn : Svc.Ping   [ ]                        [ ] pingOut : Svc.Ping
 | `pingIn`, `pingOut` | async input (drop), output | `Svc.Ping` | Health ping of the component thread |
 | `detect` | internal, drop | — | Camera detection at start |
 | `acquire` | internal, drop | — | Camera work of one capture |
+| `abort` | internal, drop | — | Camera teardown of a capture that timed out |
 | `frameDone` | internal, drop | — | Camera library thread reports the frame |
 
 `CaptureStatus`, `CaptureRequest` and `CaptureReply` are in `Components/CapturePorts`, a library of their own, so a requester does not link the camera library.
 
 `CaptureReply` carries `context: U32`, `status: CaptureStatus`, `acquired: Fw.Time` and `picture: Fw.Buffer`; the size of `picture` is the JPEG length in bytes.
 
+Pattern: guarded front, worker thread. Requests, returns and the timeout are decided in the caller's thread under the guard; only camera-library calls run on the component thread, so a stuck library call cannot delay a reply.
+
 Three threads enter the component.
 
 | Thread | Runs | Touches |
 |---|---|---|
 | Caller of a guarded port | `captureIn`, `imageReturnIn`, `run` | Table of 3.3, under the component guard |
-| Component thread | `detect`, `acquire`, `frameDone`, `pingIn` | Camera interface, outside the guard; table of 3.3 and the encoder, under the guard |
+| Component thread | `detect`, `acquire`, `abort`, `frameDone`, `pingIn` | Camera interface, outside the guard; table of 3.3 and the encoder, under the guard |
 | Camera library thread | Frame callback of the camera interface | Reads the time, counts settle frames, sends `frameDone`; no member of 3.3 |
 
 ### 3.3 State
@@ -133,7 +138,7 @@ Three threads enter the component.
 
 At start `m_state` is `IDLE`, `m_delivered` is invalid, the counts are 0 and the camera is closed, whatever an earlier run left.
 
-The camera interface is closed, open or started; it is closed whenever the component thread is not inside `acquire` or between `acquire` and its `frameDone`.
+The camera interface is closed, open or started, and only the component thread changes it. It is left open or started only for the current capture, between its `acquire` and its `frameDone` or `abort`.
 
 ```mermaid
 stateDiagram-v2
@@ -166,7 +171,7 @@ The instance of the system sketch with a larger queue and stack; `run` connects 
 
 `allocate` and `deallocate` connect to one `Svc.BufferManager` that holds at least one buffer of `PICTURE_BUFFER_SIZE` bytes for this component; the component holds at most one.
 
-The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `stop`, `close`, frame access) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. Unit tests substitute the interface, and a build that finds no libcamera uses an implementation that detects no camera.
+The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `stop`, `close`, frame access) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
 
 ### 3.5 Port Handlers
 
@@ -176,19 +181,25 @@ Admitted always. In `ACQUIRING` it replies `BUSY`; with a picture outstanding it
 
 #### acquire
 
-Admitted when its capture number is current. It detects, opens, configures and starts the camera outside the guard. A step that fails closes the camera and, when the capture is still current, replies `NO_CAMERA` or `CAMERA_ERROR`.
+It first closes a camera left open. Admitted further when its capture number is current: it detects, opens, configures and starts the camera outside the guard. A step that fails closes the camera and, when the capture is still current, replies `NO_CAMERA` or `CAMERA_ERROR`.
 
 #### frameDone
 
 The camera interface discards `SETTLE_FRAMES` frames, reports the next one once and keeps its pixels unchanged until `close`.
 
-The handler stops the camera. Under the guard, when its capture number is current, it gets a buffer, encodes the frame into it and replies `OK` with the reported time, or releases the buffer and replies `CAMERA_ERROR`, `NO_BUFFER` or `TOO_LARGE`. It then closes the camera.
+Admitted when its capture number is current; a report of another capture is discarded and touches nothing.
 
-The guard is held during encoding, so a tick cannot end a capture whose buffer is in use.
+The handler stops the camera. Under the guard, when its capture number is still current, it gets a buffer, encodes the frame into it and replies `OK` with the reported time, or releases the buffer and replies `CAMERA_ERROR`, `NO_BUFFER` or `TOO_LARGE`. It then closes the camera.
+
+The guard is held from allocation to reply, so a tick cannot end a capture whose buffer is in use. The hold is bounded by the encoding of one `PICTURE_WIDTH` x `PICTURE_HEIGHT` frame; no camera call and no wait happens under the guard, and guarded handlers make no camera call. The guard is held for at most 100 ms, measured on the target in DEVELOPMENT; a measurement above that moves encoding outside the guard behind an `ENCODING` state in which a tick does not end the capture.
 
 #### run
 
-The first tick sends `detect`. In `ACQUIRING` it counts a tick and at `CAPTURE_TIMEOUT_TICKS` replies `TIMEOUT` and enters `IDLE`, also while the component thread is inside a camera call; that call's result is then discarded by its capture number and the camera closed.
+The first tick sends `detect`. In `ACQUIRING` it counts a tick and at `CAPTURE_TIMEOUT_TICKS` replies `TIMEOUT`, enters `IDLE` and sends `abort`, also while the component thread is inside a camera call.
+
+#### abort
+
+It stops and closes the camera when the camera of its capture is still open.
 
 #### detect
 
@@ -202,7 +213,7 @@ Admitted when the buffer's data pointer is that of the delivered picture. It rel
 
 It echoes the key on `pingOut`.
 
-Every reply publishes the channels it changed. Every failure reply emits `CaptureFailed` with its reason, its step and the library return code; each step value has one emission site.
+Every reply publishes the channels it changed. Every failure reply emits `CaptureFailed` with its reason, its step and the library return code; each reason and step pair has one emission site.
 
 | Reason | Steps |
 |---|---|
@@ -265,7 +276,9 @@ sequenceDiagram
 | Camera model, sensor modes and identification reply | Recorded when the camera is attached; `CameraFound` reports it |
 | Requester never returns a picture: later requests get `PICTURE_OUTSTANDING` | Requester |
 | Component thread stuck in a camera call: requests get `TIMEOUT`, health ping fails | System health |
+| Longest camera call expected is under 2 s; the ping limits of `piCamera` are set above it | Topology |
 | Constants change by rebuild only | Deployment |
+| Guard held during encoding delays the 1 Hz rate group and the requester by the encoding time | Component (bound in 3.5) |
 | Picture content (exposure, focus, scene) | Not judged |
 | Command failure, `WARNING_HI` event and product removal after a failure reply | Requester |
 
@@ -307,7 +320,9 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 | CameraErrorFails | Each camera step error and a bad frame give `CAMERA_ERROR`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
 | TimeoutFails | No frame gives `TIMEOUT` at tick `CAPTURE_TIMEOUT_TICKS`, not before. | REQ-PiCamera-005, REQ-PiCamera-008, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
 | TimeoutDuringCameraCall | A tick at `CAPTURE_TIMEOUT_TICKS` while `acquire` has not run replies `TIMEOUT`; the later camera result sends no reply and closes the camera. | REQ-PiCamera-004, REQ-PiCamera-008, REQ-PiCamera-010 |
-| LateFrameOfEarlierCaptureIgnored | A frame report of a timed-out capture does not answer the next request. | REQ-PiCamera-004, REQ-PiCamera-005 |
+| LateFrameOfEarlierCaptureIgnored | A frame report of a timed-out capture does not answer the next request and does not stop its camera. | REQ-PiCamera-004, REQ-PiCamera-005, REQ-PiCamera-013 |
+| TimeoutClosesCamera | `TIMEOUT` while waiting for a frame closes the camera before the next capture opens it. | REQ-PiCamera-014 |
+| AbortDroppedStillCloses | With `abort` dropped, the next `acquire` closes the camera left open. | REQ-PiCamera-014 |
 | NoBufferFails | An invalid or short allocation gives `NO_BUFFER`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011 |
 | PictureOutstandingFails | A request before the delivered picture returns gives `PICTURE_OUTSTANDING`. | REQ-PiCamera-005, REQ-PiCamera-020 |
 | TooLargeFails | A JPEG larger than the buffer gives `TOO_LARGE` and the buffer is released. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
