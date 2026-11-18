@@ -54,11 +54,29 @@ services:
     args:
       inStream: tm_realtime
       bucket: fprimeFilesIn
-      fileApid: 3
+      fileApid: 2046  # APID 3 carries CFDP PDUs in this project (see etc/cfdp.sql)
       downloadTimeoutMs: 8000
       uplinkChunkSize: ${FPRIME_UPLINK_CHUNK_SIZE:512}
       downlinkMirrorDir: ${FPRIME_DOWNLINK_DIR:/tmp/runner/fprime-downlink}
       
+  # CFDP class 2 entity of the ground (project addition). PDUs arrive in APID 3
+  # space packets behind the 2-byte F Prime packet descriptor; see etc/cfdp.sql.
+  - class: org.yamcs.cfdp.CfdpService
+    args:
+      inStream: cfdp_in
+      outStream: cfdp_out
+      incomingBucket: cfdpDown
+      entityIdLength: 4
+      sequenceNrLength: 4
+      localEntities:
+        - name: ground
+          id: 100
+      remoteEntities:
+        - name: pisensor
+          id: 42
+      receiverFaultHandlers:
+        AckLimitReached: suspend
+
 dataLinks:
   - name: UDP_TM_IN
     class: org.yamcs.tctm.ccsds.UdpTmFrameLink
@@ -106,7 +124,10 @@ mdb:
 
 # Configuration for streams created at server startup
 streamConfig:
-  tm:
+  # YAMCS 5.13.7 creates these streams in key order, not file order. The keys
+  # TM, TC and sQLFile (matched without case) are spelled so that the SQL file
+  # is loaded after the streams it reads and writes. Re-check at a YAMCS change.
+  TM:
     - name: "tm_realtime"
       processor: "realtime"
     - name: "tm_dump"
@@ -114,6 +135,7 @@ streamConfig:
   event: ["events_realtime", "events_dump"]
   param: ["pp_realtime", "pp_dump", "sys_param", "proc_param"]
   parameterAlarm: ["alarms_realtime"]
-  tc:
+  TC:
     - name: "tc_realtime"
       processor: "realtime"
+  sQLFile: "etc/cfdp.sql"
