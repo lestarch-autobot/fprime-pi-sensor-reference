@@ -24,9 +24,9 @@ module PiSensor {
   struct LocationRecord {
     valid: Validity @< Validity mark set by the product manager
     sampleTime: Fw.TimeValue @< Time of the sample, system time source
-    latitude: F64 @< deg, north positive
-    longitude: F64 @< deg, east positive
-    altitude: F64 @< m above mean sea level
+    latitude: F64 @< deg, WGS 84, north positive
+    longitude: F64 @< deg, WGS 84, east positive
+    altitude: F64 @< m above mean sea level, as the receiver reports
   }
 
   @ Product manager: capture, downlink, delete and list commands; builds the data product

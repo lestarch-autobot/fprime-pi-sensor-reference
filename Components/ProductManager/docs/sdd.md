@@ -140,7 +140,7 @@ Table 3: allocated system requirement (REQ-PiSensor-) and the rows (REQ-ProductM
 | `fileDoneIn` | async input, hook | `Svc.SendFileComplete` | File transfer ended |
 | `run` | async input, drop | `Svc.Sched` | 1 Hz tick: time-outs, stored check, listing |
 
-The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow a command hook answers `BUSY`; the `imageIn` and `fileDoneIn` hooks, which run in the caller's thread, store the reply in a member under a mutex and call no port, and the next `run` tick handles it as a queued one. The mutex is held only to copy the reply; each tick empties both members, a stored transfer report is dropped outside a downlink, and `DOWNLINK` clears it before calling `sendFileOut`.
+The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow a command hook answers `BUSY`; the `imageIn` and `fileDoneIn` hooks, which run in the caller's thread, store the reply in a member under a mutex and call no port, and the next `run` tick handles it as a queued one, before it counts the time-outs. A stored camera reply that holds a valid buffer is not overwritten: a reply arriving while it is held is dropped. The mutex is held only to copy the reply; each tick empties both members, a stored transfer report is dropped outside a downlink, and `DOWNLINK` clears it before calling `sendFileOut`.
 
 ### 3.3. State
 
@@ -186,7 +186,7 @@ The model uses `CaptureRequest`, `CaptureReply` and `CaptureStatus` of `Componen
 ### 3.5. Behavior
 
 The first message dispatched runs the start-up scan, one pass of at most `SCAN_MAX_ENTRIES` entries: it removes every partial product and always ends with `ScanComplete`, whose `truncated` tells a scan cut short or failed. Header lengths are read with `Fw::DpContainer`; a product file that cannot be opened or read is left in place and reported with `FileSystemError(FILE_READ)` naming it, a `DOWNLINK` or `DELETE` naming it fails with that event, and a scan, listing or `WAIT_WRITTEN` check goes on.
-`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns each valid buffer and acts only on the context of the current capture: a status other than `OK` fails it with `CaptureFailed` carrying the status; else it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way: on a tick it runs before the `WAIT_WRITTEN` time-out.
+`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns each valid buffer and acts only on the context of the current capture: a status other than `OK` fails it with `CaptureFailed` carrying the status; else it stores `acquired` field by field as `CaptureTime`, reads the samples, sets each record `VALID` only when its source field (`temperatureValid`, `attitudeValid`, `fixValid`) is `VALID` and its sample time has the time base of `acquired` and lies within 2 s of it, either side, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way: on a tick it runs before the `WAIT_WRITTEN` time-out.
 `DOWNLINK` and `DELETE` act on a stored product; the file of a capture in `WAIT_WRITTEN` or under re-check is not one, and a command naming it fails with `ProductNotFound`. `DOWNLINK` calls `sendFileOut` with the product as source and its name as destination; `fileDoneIn` ends the downlink and is ignored outside one. No time-out runs on a downlink: a transfer that does not end is ended from the ground with `cfdpManager.CancelTransaction`. `LIST_PRODUCTS` opens the directory and `run` reports its stored products. Section 6 holds the timing diagrams.
 
 ## 4. Data Product Format
@@ -210,8 +210,8 @@ The first message dispatched runs the start-up scan, one pass of at most `SCAN_M
 | `TemperatureRecord` | `temperature` | `F32` | °C |
 | `AttitudeRecord` | `roll`, `pitch` | `F32` | °, MPU6050 body frame |
 | `AttitudeRecord` | `gyro` | `FprimeSensors.GeometricVector3` | °/s about the body x, y, z axes |
-| `LocationRecord` | `latitude`, `longitude` | `F64` | °, north and east positive |
-| `LocationRecord` | `altitude` | `F64` | m above mean sea level |
+| `LocationRecord` | `latitude`, `longitude` | `F64` | °, WGS 84, north and east positive |
+| `LocationRecord` | `altitude` | `F64` | m above mean sea level, as the receiver reports |
 
 ## 5. Ground Interface
 
@@ -246,7 +246,7 @@ The first message dispatched runs the start-up scan, one pass of at most `SCAN_M
 | `DownlinkActivity` | `Activity` | on change | Downlink in progress |
 | `ListingActivity` | `Activity` | on change | Listing in progress |
 
-The three channels are written once when the start-up scan ends and then on each change. The component has no parameters.
+In `CaptureFailed` the camera status names the cause only with reason `CAMERA_FAILED`; it is `OK` with `PICTURE_TIMEOUT` (no reply) and `PICTURE_EMPTY`. The three channels are written once when the start-up scan ends and then on each change. The component has no parameters.
 
 ## 6. Example Uses
 
