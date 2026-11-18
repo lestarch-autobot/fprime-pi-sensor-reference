@@ -8,28 +8,30 @@
 
 | ID | Requirement | Verification |
 |---|---|---|
-| REQ-SensorMonitor-001 | On each schedule call, the component shall publish every Table 1 and Table 2 channel. | Unit Test |
-| REQ-SensorMonitor-002 | Each value channel shall carry its Table 1 value, computed from the latest source reading. | Unit Test |
-| REQ-SensorMonitor-003 | Valid roll and pitch shall be within 0.1 degrees of their Table 1 formulas. | Unit Test |
-| REQ-SensorMonitor-004 | A value shall be zero, with reading time zero, until its source's first reading. | Unit Test |
-| REQ-SensorMonitor-005 | A metric shall be reported invalid while its reading is over 2 s old. | Unit Test |
-| REQ-SensorMonitor-006 | A metric shall be reported invalid while its reading time is after the current time. | Unit Test |
-| REQ-SensorMonitor-007 | A metric shall be reported invalid until its source delivers a first reading. | Unit Test |
-| REQ-SensorMonitor-008 | A metric shall be reported invalid while its reading is outside its Table 1 limits. | Unit Test |
-| REQ-SensorMonitor-009 | Location shall be reported invalid unless the newest GGA sentence carries quality indicator 1–8. | Unit Test |
-| REQ-SensorMonitor-010 | The component shall read the MPU6050 identity register on each schedule call. | Unit Test |
-| REQ-SensorMonitor-011 | Attitude shall be reported invalid unless the latest identity read returned the identity value. | Unit Test |
-| REQ-SensorMonitor-012 | A metric shall be reported valid while no condition of REQ-SensorMonitor-005 to -011 holds. | Unit Test |
-| REQ-SensorMonitor-013 | A sensor shall become lost at a schedule call where its Table 2 condition holds. | Unit Test |
-| REQ-SensorMonitor-014 | A sensor's Table 2 loss event shall be emitted once, when it becomes lost. | Unit Test |
-| REQ-SensorMonitor-015 | A lost sensor shall return at a schedule call where its Table 2 condition clears. | Unit Test |
-| REQ-SensorMonitor-016 | A sensor's Table 2 return event shall be emitted once, when it returns. | Unit Test |
-| REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. | Unit Test |
-| REQ-SensorMonitor-018 | A request shall return each latest Table 1 value with validity and reading time. | Unit Test |
-| REQ-SensorMonitor-019 | Returned validity shall follow REQ-SensorMonitor-005 to -012 with reading age taken at the request time. | Unit Test |
-| REQ-SensorMonitor-020 | Schedule calls, readings, GPS sentences and sample requests shall be handled one at a time. | Inspection |
-| REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. | Unit Test |
-| REQ-SensorMonitor-022 | The GGA quality indicator read shall be compliant with NMEA 0183 Version 4.11. | Unit Test |
+| REQ-SensorMonitor-001 | On each schedule call, the component shall publish every Table 1 and Table 2 channel. (REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-022, REQ-PiSensor-024) | Unit Test |
+| REQ-SensorMonitor-002 | Each value channel shall carry its Table 1 value, computed from the latest source reading. (REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003) | Unit Test |
+| REQ-SensorMonitor-003 | Valid roll and pitch shall be within 0.1 degrees of their Table 1 formulas. (REQ-PiSensor-002) | Unit Test |
+| REQ-SensorMonitor-004 | A value shall be zero, with reading time zero, until its source's first reading. (proposal) | Unit Test |
+| REQ-SensorMonitor-005 | A metric shall be reported invalid while its reading is over 2 s old. (REQ-PiSensor-008, REQ-PiSensor-022) | Unit Test |
+| REQ-SensorMonitor-006 | A metric shall be reported invalid while its reading time is after the current time. (proposal) | Unit Test |
+| REQ-SensorMonitor-007 | A metric shall be reported invalid until its source delivers a first reading. (REQ-PiSensor-022) | Unit Test |
+| REQ-SensorMonitor-008 | A metric shall be reported invalid while its reading is outside its Table 1 limits. (proposal) | Unit Test |
+| REQ-SensorMonitor-009 | Location shall be reported invalid unless the newest GGA sentence carries quality indicator 1–8. (REQ-PiSensor-009, REQ-PiSensor-024) | Unit Test |
+| REQ-SensorMonitor-010 | The component shall read the MPU6050 identity register on each schedule call. (REQ-PiSensor-043) | Unit Test |
+| REQ-SensorMonitor-011 | Attitude shall be reported invalid unless the latest identity read returned the identity value. (REQ-PiSensor-043, REQ-PiSensor-022, REQ-PiSensor-020) | Unit Test |
+| REQ-SensorMonitor-012 | A metric shall be reported valid while no condition of REQ-SensorMonitor-005 to -011 holds. (REQ-PiSensor-023) | Unit Test |
+| REQ-SensorMonitor-013 | A sensor shall become lost at a schedule call where its Table 2 condition holds. (REQ-PiSensor-019, REQ-PiSensor-020, REQ-PiSensor-021, REQ-PiSensor-043) | Unit Test |
+| REQ-SensorMonitor-014 | A sensor's Table 2 loss event shall be emitted once, when it becomes lost. (REQ-PiSensor-019, REQ-PiSensor-020, REQ-PiSensor-021) | Unit Test |
+| REQ-SensorMonitor-015 | A lost sensor shall return at a schedule call where its Table 2 condition clears. (REQ-PiSensor-023) | Unit Test |
+| REQ-SensorMonitor-016 | A sensor's Table 2 return event shall be emitted once, when it returns. (proposal) | Unit Test |
+| REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. (REQ-PiSensor-003) | Unit Test |
+| REQ-SensorMonitor-018 | A request shall return each latest Table 1 value with validity and reading time. (REQ-PiSensor-005, REQ-PiSensor-007) | Unit Test |
+| REQ-SensorMonitor-019 | Returned validity shall follow REQ-SensorMonitor-005 to -012 with reading age taken at the request time. (REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009) | Unit Test |
+| REQ-SensorMonitor-020 | Schedule calls, readings, GPS sentences and sample requests shall be handled one at a time. (proposal) | Inspection |
+| REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. (REQ-PiSensor-043) | Unit Test |
+| REQ-SensorMonitor-022 | The GGA quality indicator read shall be compliant with NMEA 0183 Version 4.11. (REQ-PiSensor-024) | Unit Test |
+
+Each row ends with the system requirements it derives from; `(proposal)` marks a row that derives from none and is proposed to the approver.
 
 Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). A reading time of another time base than the current time counts as after it. Age is the current time minus the reading time.
 
