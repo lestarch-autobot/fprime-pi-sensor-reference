@@ -9,7 +9,7 @@
 | ID | Requirement | Verification |
 |---|---|---|
 | REQ-SensorMonitor-001 | On each schedule call, the component shall publish every Table 1 and Table 2 channel. (REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-022, REQ-PiSensor-024) | Unit Test |
-| REQ-SensorMonitor-002 | Each value channel shall carry its Table 1 value, computed from the latest source reading. (REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003) | Unit Test |
+| REQ-SensorMonitor-002 | Each value channel shall carry its Table 1 value, computed from the latest source reading. (REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-025) | Unit Test |
 | REQ-SensorMonitor-003 | Valid roll and pitch shall be within 0.1 degrees of their Table 1 formulas. (REQ-PiSensor-002) | Unit Test |
 | REQ-SensorMonitor-004 | A value shall be zero, with reading time zero, until its source's first reading. (proposal) | Unit Test |
 | REQ-SensorMonitor-005 | A metric shall be reported invalid while its reading is over 2 s old. (REQ-PiSensor-008, REQ-PiSensor-022) | Unit Test |
@@ -24,7 +24,7 @@
 | REQ-SensorMonitor-014 | A sensor's Table 2 loss event shall be emitted once, when it becomes lost. (REQ-PiSensor-019, REQ-PiSensor-020, REQ-PiSensor-021) | Unit Test |
 | REQ-SensorMonitor-015 | A lost sensor shall return at a schedule call where its Table 2 condition clears. (REQ-PiSensor-023) | Unit Test |
 | REQ-SensorMonitor-016 | A sensor's Table 2 return event shall be emitted once, when it returns. (proposal) | Unit Test |
-| REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. (REQ-PiSensor-003) | Unit Test |
+| REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. (REQ-PiSensor-003, REQ-PiSensor-025) | Unit Test |
 | REQ-SensorMonitor-018 | A request shall return each latest Table 1 value with validity and reading time. (REQ-PiSensor-005, REQ-PiSensor-007) | Unit Test |
 | REQ-SensorMonitor-019 | Returned validity shall follow REQ-SensorMonitor-005 to -012 with reading age taken at the request time. (REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009) | Unit Test |
 | REQ-SensorMonitor-020 | Schedule calls, readings, GPS sentences and sample requests shall be handled one at a time. (proposal) | Inspection |
@@ -88,7 +88,7 @@ Table 2 — sensors.
 | `imuIdentityOut` | output | `Drv.I2cWriteRead` | MPU6050 identity register read |
 | `gpsSentenceOut` | output | `Svc.ComDataWithContext` | GPS sentence passed on |
 
-The component is a cyclic passive component with a pass-through tap: four inputs are guarded because the 10 Hz rate group, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. `run` is `sync`: it reads the identity register before it takes the same guard for the evaluation, so the component guard is never held across a bus transaction; `run` has one caller, `rateGroup1Hz`. The identity read holds the IMU bus driver guard, so `imuManager` in the 10 Hz rate group can wait for one identity read. A guarded call waits for at most one evaluation or one GPS sentence pass-through. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `NmeaGps.bufferManager` guard, `tlmSend` guard; no component called from a handler may call a `sensorMonitor` input.
+The component is a cyclic passive component with a pass-through tap: four inputs are guarded because the 10 Hz rate group, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. `run` is `sync`: it reads the identity register before it takes the same guard for the evaluation, so the component guard is never held across a bus transaction; `run` has one caller, `rateGroup1Hz`. The identity read shares the guarded `writeRead` of the IMU bus driver with `imuManager`, which reads at 10 Hz, so each can wait for one transaction of the other. A guarded call waits for at most one evaluation or one GPS sentence pass-through. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `NmeaGps.bufferManager` guard, `tlmSend` guard; no component called from a handler may call a `sensorMonitor` input.
 
 ### State
 
@@ -124,7 +124,7 @@ sensorMonitor.configure(NmeaGps::gpsManager.getIdBase() + GPS_READING_CHANNEL_OF
 instance sensorMonitor: PiSensor.SensorMonitor base id 0x10009000
 ```
 
-The Table 1 limits are constants in `SensorMonitor.hpp`; `GPS_READING_CHANNEL_OFFSET` (0 at the pinned catalog commit) is a constant of the topology definitions, because the generated channel id of the inherited manager is not public. `bmpManager` and `imuManager` run in `rateGroup10Hz` and push a reading on every good read, `sensorMonitor` runs in `rateGroup1Hz`, and the GPS manager publishes on the GPS receive thread, so a GPS reading is up to one GGA period old at a schedule call.
+The Table 1 limits are constants in `SensorMonitor.hpp`; `GPS_READING_CHANNEL_OFFSET` (0 at the pinned catalog commit) is a constant of the topology definitions, because the generated channel id of the inherited manager is not public. Assumed reading rates of the aged readings: `Bmp280.bmpManager.run` and `MpuImu.imuManager.run` are on `rateGroup10Hz` and push a reading on every good read, so a BMP280 or MPU6050 reading is at most about 0.1 s old; the GPS manager publishes on the GPS receive thread once per GGA sentence, assumed at 1 Hz, so a GPS reading is up to 1 s old; `sensorMonitor` runs in `rateGroup1Hz`.
 
 ### Port Handlers
 
