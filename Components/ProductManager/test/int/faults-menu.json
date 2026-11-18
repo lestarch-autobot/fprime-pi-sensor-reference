@@ -9,8 +9,8 @@
       ],
       "fails": {
         "L2-1": [
-          "event productManager.ProductWritten count == 1",
-          "the sysTester.DirListing event names P and no other file"
+          "event productManager.ProductWritten count == 1, naming P",
+          "sysTester.DirListing event 2 names P and no other file"
         ]
       },
       "mechanism": "CAPTURE is sent twice in a row; two products are written where the test expects one",
@@ -25,29 +25,26 @@
       ],
       "fails": {
         "L2-2": [
-          "the two sysTester.Sha256 events of P1 are equal"
+          "the two sysTester.Sha256 events of P1 carry the same hash"
         ]
       },
-      "mechanism": "sysTester.CORRUPT_PRODUCT(P1) is inserted before the second DUMP_SHA256 of P1: the first two bytes of its picture record are overwritten on board, as an overwriting second capture would; the test removes its products at teardown",
+      "mechanism": "sysTester.CORRUPT_PRODUCT(P1) is inserted before the second DUMP_SHA256 of P1: the first two bytes of its picture record are overwritten on board, as an overwriting second capture would; the teardown removes the product",
       "kind": "insert",
       "ripples_to": {}
     },
     {
-      "name": "delete_before_downlink",
+      "name": "corrupt_in_transfer",
       "class": "uut-state",
       "applies_to": [
         "L5-5"
       ],
       "fails": {
         "L5-5": [
-          "event productManager.CommandRejected count == 1",
-          "event productManager.ProductDeleted count == 0",
-          "sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event",
-          "the two sysTester.Sha256 events are equal",
-          "the sysTester.DirListing event names P"
+          "sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event of P",
+          "the two sysTester.Sha256 events of P carry the same hash"
         ]
       },
-      "mechanism": "DELETE(P) is inserted before DOWNLINK(P): the product is removed on board, so nothing is delivered and the later DELETE names no stored product",
+      "mechanism": "sysTester.CORRUPT_PRODUCT(P) is inserted before DOWNLINK(P), after the first DUMP_SHA256: the product sent and kept differs from the product hashed; the transfer still runs, so the test's preconditions hold",
       "kind": "insert",
       "ripples_to": {}
     },
@@ -59,12 +56,14 @@
       ],
       "fails": {
         "L2-4": [
-          "event productManager.ProductDeleted count == 1 and names P1",
-          "the sysTester.DirListing event names P2 only",
-          "event productManager.ProductStored count == 1 and names P2"
+          "event productManager.ProductDeleted count == 1, naming P1",
+          "sysTester.DirListing event 2 names P2 only",
+          "the two sysTester.Sha256 events of P2 carry the same hash",
+          "event productManager.ProductStored count == 1, naming P2",
+          "event cmdDisp.OpCodeError count == 0"
         ]
       },
-      "mechanism": "DELETE(P1) is sent as DELETE(P2), the product hashed by the preceding DUMP_SHA256; the wrong product is removed",
+      "mechanism": "DELETE(P1) is sent as DELETE(P2), the product named by the preceding DUMP_SHA256; the wrong product is removed, and the second DUMP_SHA256 of P2 fails on a missing file",
       "kind": "rewrite",
       "ripples_to": {}
     },
@@ -76,12 +75,13 @@
       ],
       "fails": {
         "L6-1": [
-          "event productManager.ProductNotFound count == 1",
+          "event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1",
+          "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes",
           "event productManager.DownlinkStarted count == 0",
-          "no CFDP transaction starts at the ground in the window"
+          "ground CFDP transactions in the window: none"
         ]
       },
-      "mechanism": "DOWNLINK(Dp_missing.fxd) is sent with the name of the product the test captured (read from the preceding ProductWritten event); the product is sent",
+      "mechanism": "DOWNLINK(Dp_missing.fxd) is sent with the name of the test's own product, taken from the preceding DUMP_SHA256 command; the product is sent",
       "kind": "rewrite",
       "ripples_to": {}
     },
@@ -93,11 +93,12 @@
       ],
       "fails": {
         "L5-1": [
-          "event productManager.CommandRejected count == 1"
+          "event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
+          "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes"
         ]
       },
-      "mechanism": "the second CAPTURE is sent as cmdDisp.CMD_NO_OP; no command is rejected",
-      "kind": "rewrite",
+      "mechanism": "LIST_PRODUCTS (accepted during a capture) is sent in place of the second CAPTURE; no command is rejected",
+      "kind": "insert",
       "ripples_to": {}
     }
   ],

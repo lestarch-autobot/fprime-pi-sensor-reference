@@ -1,0 +1,1032 @@
+{
+ "L0-1": {
+  "require": [],
+  "check": [
+   {
+    "helper": "version_matches_manifest",
+    "text": "Svc.Version events equal the describe strings of the manifest's prototype image",
+    "args": {
+     "image": "prototype"
+    }
+   },
+   "event sysTester.Marker(id=42405) count == 1",
+   "event cmdDisp.OpCodeError count == 0"
+  ]
+ },
+ "L0-2": {
+  "require": [],
+  "check": [
+   {
+    "helper": "version_matches_manifest",
+    "text": "Svc.Version events equal the describe strings of the manifest's flight image",
+    "args": {
+     "image": "flight"
+    }
+   },
+   "event sysTester.Marker(id=42405) count == 1",
+   "event cmdDisp.OpCodeError count == 0"
+  ]
+ },
+ "L2-1": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 1, naming P",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductWritten event has severity ACTIVITY_HI",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "severity": "ACTIVITY_HI"
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P and no other file",
+    "args": {
+     "index": 2,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   "event cmdDisp.OpCodeError count == 0",
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L2-2": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 2, naming P1 and P2, different",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 2,
+     "names": [
+      "P1",
+      "P2"
+     ]
+    }
+   },
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductWritten event has severity ACTIVITY_HI",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "severity": "ACTIVITY_HI"
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P1 carry the same hash",
+    "args": {
+     "product": "P1"
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P1 and P2 only",
+    "args": {
+     "index": 2,
+     "names": [
+      "P1",
+      "P2"
+     ]
+    }
+   },
+   "event cmdDisp.OpCodeError count == 0",
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L2-3": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 3, naming P1, P2 and P3, all different",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 3,
+     "names": [
+      "P1",
+      "P2",
+      "P3"
+     ]
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P1 carry the same hash",
+    "args": {
+     "product": "P1"
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P2 carry the same hash",
+    "args": {
+     "product": "P2"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductDeleted count == 1, naming P2",
+    "args": {
+     "event": "productManager.ProductDeleted",
+     "count": 1,
+     "names": [
+      "P2"
+     ]
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P1 and P3 only",
+    "args": {
+     "index": 2,
+     "names": [
+      "P1",
+      "P3"
+     ]
+    }
+   },
+   "event cmdDisp.OpCodeError count == 0",
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L2-4": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductDeleted count == 1, naming P1",
+    "args": {
+     "event": "productManager.ProductDeleted",
+     "count": 1,
+     "names": [
+      "P1"
+     ]
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P2 only",
+    "args": {
+     "index": 2,
+     "names": [
+      "P2"
+     ]
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P2 carry the same hash",
+    "args": {
+     "product": "P2"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductStored count == 1, naming P2",
+    "args": {
+     "event": "productManager.ProductStored",
+     "count": 1,
+     "names": [
+      "P2"
+     ]
+    }
+   },
+   "event productManager.ProductsListed(count=1) count == 1",
+   "event cmdDisp.OpCodeError count == 0",
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-1": {
+  "require": [
+   {
+    "helper": "dispatched_before_event_by",
+    "text": "the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten",
+    "args": {
+     "after_command": "productManager.CAPTURE",
+     "event": "productManager.ProductWritten",
+     "margin_s": 1
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes",
+    "args": {
+     "command": "CAPTURE"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 1, naming P",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P and no other file",
+    "args": {
+     "index": 2,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-2": {
+  "require": [
+   {
+    "helper": "dispatched_before_event_by",
+    "text": "the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten",
+    "args": {
+     "after_command": "productManager.CAPTURE",
+     "event": "productManager.ProductWritten",
+     "margin_s": 1
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes",
+    "args": {
+     "command": "CAPTURE"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 2, naming P1 and P2, different",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 2,
+     "names": [
+      "P1",
+      "P2"
+     ]
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P1 and P2 only",
+    "args": {
+     "index": 2,
+     "names": [
+      "P1",
+      "P2"
+     ]
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-3": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   },
+   {
+    "helper": "dispatched_inside_transfer",
+    "text": "the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction",
+    "args": {
+     "margin_s": 2
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes",
+    "args": {
+     "command": "DOWNLINK"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkStarted count == 1, naming P1",
+    "args": {
+     "event": "productManager.DownlinkStarted",
+     "count": 1,
+     "names": [
+      "P1"
+     ]
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkComplete count == 1, naming P1",
+    "args": {
+     "event": "productManager.DownlinkComplete",
+     "count": 1,
+     "names": [
+      "P1"
+     ]
+    }
+   },
+   {
+    "helper": "ground_cfdp_transactions",
+    "text": "ground CFDP transactions in the window: exactly one, of file P1, finished complete",
+    "args": {
+     "count": 1
+    }
+   },
+   {
+    "helper": "ground_file_hash_equals",
+    "text": "sha256 of record/raw/files/<P1> == hash in the first sysTester.Sha256 event of P1",
+    "args": {
+     "product": "P1"
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-4": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   },
+   {
+    "helper": "dispatched_inside_transfer",
+    "text": "the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction",
+    "args": {
+     "margin_s": 2
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes",
+    "args": {
+     "command": "DOWNLINK"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkStarted count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkStarted",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkComplete count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkComplete",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "ground_cfdp_transactions",
+    "text": "ground CFDP transactions in the window: exactly one, of file P, finished complete",
+    "args": {
+     "count": 1
+    }
+   },
+   {
+    "helper": "ground_file_hash_equals",
+    "text": "sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event of P",
+    "args": {
+     "product": "P"
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-5": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   },
+   {
+    "helper": "dispatched_inside_transfer",
+    "text": "the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction",
+    "args": {
+     "margin_s": 2
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes",
+    "args": {
+     "command": "DELETE"
+    }
+   },
+   "event productManager.ProductDeleted count == 0",
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkStarted count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkStarted",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkComplete count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkComplete",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "ground_file_hash_equals",
+    "text": "sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event of P",
+    "args": {
+     "product": "P"
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P carry the same hash",
+    "args": {
+     "product": "P"
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P and no other file",
+    "args": {
+     "index": 2,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L5-6": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   },
+   {
+    "helper": "dispatched_inside_transfer",
+    "text": "the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction",
+    "args": {
+     "margin_s": 2
+    }
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.CommandRejected event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.CommandRejected",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes",
+    "args": {
+     "command": "DELETE"
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkStarted count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkStarted",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.DownlinkComplete count == 1, naming P",
+    "args": {
+     "event": "productManager.DownlinkComplete",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   "event productManager.CommandRejected precedes event productManager.DownlinkComplete",
+   "event productManager.DownlinkComplete precedes event productManager.ProductDeleted",
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductDeleted count == 1, naming P",
+    "args": {
+     "event": "productManager.ProductDeleted",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names no file",
+    "args": {
+     "index": 2,
+     "names": []
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L6-1": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductNotFound event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes",
+    "args": {
+     "command": "DOWNLINK"
+    }
+   },
+   "event productManager.DownlinkStarted count == 0",
+   {
+    "helper": "ground_cfdp_transactions",
+    "text": "ground CFDP transactions in the window: none",
+    "args": {
+     "count": 0
+    }
+   },
+   {
+    "helper": "sha_events_equal",
+    "text": "the two sysTester.Sha256 events of P carry the same hash",
+    "args": {
+     "product": "P"
+    }
+   },
+   {
+    "helper": "dir_listings_equal",
+    "text": "sysTester.DirListing events 2 and 3 carry the same file names and count",
+    "args": {
+     "a": 2,
+     "b": 3
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L6-2": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   "event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1",
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductNotFound event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes",
+    "args": {
+     "command": "DELETE"
+    }
+   },
+   "event productManager.ProductDeleted count == 0",
+   {
+    "helper": "dir_listings_equal",
+    "text": "sysTester.DirListing events 2 and 3 carry the same file names and count",
+    "args": {
+     "a": 2,
+     "b": 3
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L6-3": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductNotFound count == 1, naming ./P",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "count": 1,
+     "names": [
+      "./P"
+     ]
+    }
+   },
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductNotFound event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes",
+    "args": {
+     "command": "DELETE"
+    }
+   },
+   "event productManager.ProductDeleted count == 0",
+   {
+    "helper": "dir_listings_equal",
+    "text": "sysTester.DirListing events 2 and 3 carry the same file names and count",
+    "args": {
+     "a": 2,
+     "b": 3
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L6-4": {
+  "require": [
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   }
+  ],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductNotFound count == 1, naming ./P",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "count": 1,
+     "names": [
+      "./P"
+     ]
+    }
+   },
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductNotFound event has severity WARNING_LO",
+    "args": {
+     "event": "productManager.ProductNotFound",
+     "severity": "WARNING_LO"
+    }
+   },
+   {
+    "helper": "only_failed_command",
+    "text": "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes",
+    "args": {
+     "command": "DOWNLINK"
+    }
+   },
+   "event productManager.DownlinkStarted count == 0",
+   {
+    "helper": "ground_cfdp_transactions",
+    "text": "ground CFDP transactions in the window: none",
+    "args": {
+     "count": 0
+    }
+   },
+   {
+    "helper": "dir_listings_equal",
+    "text": "sysTester.DirListing events 2 and 3 carry the same file names and count",
+    "args": {
+     "a": 2,
+     "b": 3
+    }
+   },
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ },
+ "L7-1": {
+  "require": [],
+  "check": [
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductWritten count == 1, naming P",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "count": 1,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   {
+    "helper": "event_severity",
+    "text": "every productManager.ProductWritten event has severity ACTIVITY_HI",
+    "args": {
+     "event": "productManager.ProductWritten",
+     "severity": "ACTIVITY_HI"
+    }
+   },
+   {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 2 names P and no other file",
+    "args": {
+     "index": 2,
+     "names": [
+      "P"
+     ]
+    }
+   },
+   "event cmdDisp.OpCodeError count == 0",
+   "event productManager.CaptureFailed count == 0",
+   "event productManager.StorageFailed count == 0",
+   "event productManager.DownlinkStalled count == 0",
+   "event productManager.FileSystemError count == 0",
+   "event productManager.ProductDiscarded count == 0",
+   "event sysTester.Started count == 0"
+  ]
+ }
+}

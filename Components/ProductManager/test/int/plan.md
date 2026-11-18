@@ -5,10 +5,13 @@ L0: desk-checked; bench confirmation pending. Marker `sysTester.MARK(U32)` -> ev
 - UUT: component `PiSensor::ProductManager`, instance `productManager`, in the PiSensor deployment on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS 13.
 - Test deployment: the project's base deployment plus `sysTester` (SSDD decision D13), the configuration of the project plan `SystemTester/test/int/plan.json`; its scope lines on the ground system, record content, completeness and clocks apply unchanged.
 - This plan holds the component rows the project plan delegates (`delegated: prodmgr`): REQ-PiSensor-011, -014, -030, -032, -033, -041, and the one requirement of the component verified by integration test (REQ-ProductManager-015). Every other requirement is verified by the unit-test list of the SDD.
-- `sysTester` commands used: `MARK(id)`, `LIST_DIR(dir)`, `DUMP_SHA256(name, pass)`, `CORRUPT_PRODUCT(name)` (planted fault only). `CORRUPT_PRODUCT` overwrites the first two bytes of the picture record and leaves the header, so the file stays a stored product (ledger note N1).
-- Order: the prototype block (L0-1 to L2-4, L5-1, L5-2, L6-1 to L6-3, L7-1 last, TCP), then the flight block (L5-3 to L5-6, RFM69). L7-1 runs after the flight block on the prototype image when both blocks run in one record.
-- Downlink-in-progress tests run on the flight image: over RFM69 a product takes at least 60 s (project plan link budget), over TCP about a second, too short to send a second command inside the transfer. Each requires a transfer of at least 10 s, else UNVERIFIED.
-- Capture-in-progress tests rely on the capture taking longer than one command round trip (SSDD: a capture may take seconds); each requires the second command dispatched before `ProductWritten`, else UNVERIFIED. L0 bench confirmation measures the capture duration.
+- `sysTester` commands used: `MARK(id)`, `LIST_DIR(dir)`, `DUMP_SHA256(name, pass)`, `CORRUPT_PRODUCT(name)` (planted fault only). `CORRUPT_PRODUCT` overwrites the first two bytes of the picture record and leaves the header, so the file stays a stored product (ledger note N1). Dependency on the project's harness lane: `LIST_DIR`, `DUMP_SHA256`, `CORRUPT_PRODUCT` and the events `DirListing` and `Sha256` are not in `sysTester` at `deploy/base`@383a9ce; their formats are fixed there, and the helpers `dir_listing_equals`, `dir_listings_equal`, `sha_events_equal`, `ground_file_hash_equals` and the event patterns for the two events are written against them at the stage-2 refresh. `DUMP_SHA256` of a missing file must fail its command and emit no `Sha256` event.
+- Pass rules: every check and precondition of a test is listed by name in its evidence line; a name is a predicate of the plan grammar or the text of a registered helper (`planted_faults.py`), and is the name the stimulus test declares. Event arguments are read with `event_patterns`, taken from the formats of `ProductManager.fpp`. STD holds no UUT fact: a failed command is judged by the check `event cmdDisp.OpCodeError count == 0` (nominal tests) or by the helper `only_failed_command` (rejection tests), never by a precondition.
+- Flight block budget [I]: project plan link budget, RFM69 at 19200 bit/s carries 2400 byte/s; events of this plan during a transfer are at most 3 in 10 s (under 100 byte/s) beside 1 Hz telemetry, so markers and rejection events fit while CFDP uses the rest. L0-2 confirms the marker round-trip on the flight image; the bench check replaces the estimate.
+- Teardown is a bench action inside the window (`action: teardown`, files removed over ssh, logged in bench-actions.log); every test starts with `LIST_DIR(products)` and the check that it names no file.
+- Order: the flight block (L0-2, L5-3 to L5-6, RFM69), then the prototype block (L0-1, L2-1 to L2-4, L5-1, L5-2, L6-1 to L6-4, TCP), L7-1 last.
+- Downlink-in-progress tests run on the flight image: over RFM69 a product takes at least 60 s (project plan link budget), over TCP about a second, too short to send a second command inside the transfer. Each requires the second command dispatched inside the transfer by the ground transfer record, else UNVERIFIED.
+- Capture-in-progress tests rely on the capture taking longer than one command round trip (SSDD: a capture may take seconds); each requires the second command dispatched at least 1 s (one `run` tick, SDD 3.4) before `ProductWritten`, else UNVERIFIED. L0 bench confirmation measures the capture duration.
 - Out of scope: product content, timing of metrics, camera, storage, link and restart faults (project plan L2, L3, L5).
 
 ## 1 Entry gates
@@ -24,174 +27,195 @@ L0 provenance and feasibility · L2 functional · L5 fault paths · L6 negative 
 
 Window rule: rows from the **last** `sysTester.Marker(id=START)` row that precedes the first `sysTester.Marker(id=END)` row following it, through that END row plus the END `sysTester.MARK` command's own `cmdDisp` rows (at most two), inclusive; ordering key `t = epoch·1e6 + fsw`, archive index on ties. Channel rows are those with `t` between the first and last window event. `commands_sent` = commands from the matching START sending (its last sending if re-sent) through the END sending, inclusive.
 
-Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
+Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
-Standard absence block (STD-ERR): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 1; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Packets (named channel sets for `<packet> samples >= n`): Heartbeat = sysTester.UptimeS, cmdDisp.CommandsDispatched.
 
 ID:        L0-1
-Title:     Image identity and marker round-trip
+Title:     Image identity and marker round-trip, prototype image
 Purpose:   Proves the running image is the manifest's prototype image and the marker round-trips.
 Covers:    —
-Setup:     Prototype image running on the Raspberry Pi 5; link up.
+Setup:     Prototype image running on the Raspberry Pi 5; link up over TCP.
 Procedure: MARK(1000); VERSION(ALL); bracket (2 Heartbeat samples); MARK(0xA5A5); MARK(1001).
 Window:    Marker(id=1000) … Marker(id=1001)
 Pass rule: named checks declared in the integration test (test_L0_1).
-Evidence:  Version events equal the manifest describe strings; three Marker events in order, ids byte-exact.
+Evidence:  require (else UNVERIFIED): STD. check: Svc.Version events equal the describe strings of the manifest's prototype image; event sysTester.Marker(id=42405) count == 1; event cmdDisp.OpCodeError count == 0.
+Planted faults:none
+
+ID:        L0-2
+Title:     Image identity and marker round-trip, flight image
+Purpose:   Proves the running image is the manifest's flight image and the marker round-trips.
+Covers:    —
+Setup:     Flight image running; ground Pi with RFM69 and groundRadio up.
+Procedure: MARK(1002); VERSION(ALL); bracket (2 Heartbeat samples); MARK(0xA5A5); MARK(1003).
+Window:    Marker(id=1002) … Marker(id=1003)
+Pass rule: named checks declared in the integration test (test_L0_2).
+Evidence:  require (else UNVERIFIED): STD. check: Svc.Version events equal the describe strings of the manifest's flight image; event sysTester.Marker(id=42405) count == 1; event cmdDisp.OpCodeError count == 0.
 Planted faults:none
 
 ID:        L2-1
 Title:     Capture names its product
 Purpose:   Proves a successful capture emits ProductWritten naming the one new product file.
 Covers:    REQ-ProductManager-014
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1010); CAPTURE(); LIST_DIR(products); MARK(1011).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1010); LIST_DIR(products); CAPTURE(); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1011).
 Window:    Marker(id=1010) … Marker(id=1011)
-Pass rule: named checks declared in the integration test (test_L2_1). metrics: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s.
-Evidence:  check: event productManager.ProductWritten count == 1 (ACTIVITY_HI, names P); check: the sysTester.DirListing event names P and no other file; check: ABS.
+Pass rule: named checks declared in the integration test (test_L2_1).
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductWritten count == 1, naming P; every productManager.ProductWritten event has severity ACTIVITY_HI; sysTester.DirListing event 2 names P and no other file; event cmdDisp.OpCodeError count == 0; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:capture_twice
 
 ID:        L2-2
 Title:     Second capture leaves the first product unchanged
 Purpose:   Proves a second capture names a new product and leaves the first unchanged.
 Covers:    REQ-ProductManager-014, REQ-ProductManager-015
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1012); CAPTURE(); DUMP_SHA256(P1, 1); CAPTURE(); DUMP_SHA256(P1, 2); LIST_DIR(products); MARK(1013).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1012); LIST_DIR(products); CAPTURE(); DUMP_SHA256(P1, 1); CAPTURE(); DUMP_SHA256(P1, 2); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1013).
 Window:    Marker(id=1012) … Marker(id=1013)
 Pass rule: named checks declared in the integration test (test_L2_2).
-Evidence:  check: event productManager.ProductWritten count == 2 with different names (P1, P2); check: the two sysTester.Sha256 events of P1 are equal; check: the sysTester.DirListing event names P1 and P2 only; check: ABS.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductWritten count == 2, naming P1 and P2, different; every productManager.ProductWritten event has severity ACTIVITY_HI; the two sysTester.Sha256 events of P1 carry the same hash; sysTester.DirListing event 2 names P1 and P2 only; event cmdDisp.OpCodeError count == 0; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:corrupt_first_product
 
 ID:        L2-3
-Title:     Captures around a delete leave the first product unchanged
-Purpose:   Proves captures and a delete of another product leave a stored product unchanged.
+Title:     A third capture leaves both stored products unchanged
+Purpose:   Proves a capture leaves every stored product unchanged, and DELETE then removes one.
 Covers:    REQ-ProductManager-015, REQ-ProductManager-034
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1014); CAPTURE(); DUMP_SHA256(P1, 1); CAPTURE(); DELETE(P2); CAPTURE(); DUMP_SHA256(P1, 2); LIST_DIR(products); MARK(1015).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1014); LIST_DIR(products); CAPTURE(); CAPTURE(); DUMP_SHA256(P1, 1); DUMP_SHA256(P2, 1); CAPTURE(); DUMP_SHA256(P1, 2); DUMP_SHA256(P2, 2); DELETE(P2); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1015).
 Window:    Marker(id=1014) … Marker(id=1015)
 Pass rule: named checks declared in the integration test (test_L2_3).
-Evidence:  check: event productManager.ProductWritten count == 3 with three different names (P1, P2, P3); check: event productManager.ProductDeleted count == 1 and names P2; check: the two sysTester.Sha256 events of P1 are equal; check: the sysTester.DirListing event names P1 and P3 only; check: ABS.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductWritten count == 3, naming P1, P2 and P3, all different; the two sysTester.Sha256 events of P1 carry the same hash; the two sysTester.Sha256 events of P2 carry the same hash; event productManager.ProductDeleted count == 1, naming P2; sysTester.DirListing event 2 names P1 and P3 only; event cmdDisp.OpCodeError count == 0; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L2-4
 Title:     Delete removes the named product
 Purpose:   Proves DELETE removes the named product and no other, before its command response.
 Covers:    REQ-ProductManager-034
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1016); CAPTURE(); CAPTURE(); DUMP_SHA256(P2, 1); DELETE(P1); LIST_DIR(products); DUMP_SHA256(P2, 2); LIST_PRODUCTS(); MARK(1017).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1016); LIST_DIR(products); CAPTURE(); CAPTURE(); DUMP_SHA256(P2, 1); DELETE(P1); LIST_DIR(products); DUMP_SHA256(P2, 2); LIST_PRODUCTS(); action: teardown, remove the product files of this test over ssh; MARK(1017).
 Window:    Marker(id=1016) … Marker(id=1017)
 Pass rule: named checks declared in the integration test (test_L2_4).
-Evidence:  check: event productManager.ProductDeleted count == 1 and names P1; check: the sysTester.DirListing event names P2 only; check: the two sysTester.Sha256 events of P2 are equal; check: event productManager.ProductStored count == 1 and names P2; check: event productManager.ProductsListed count == 1 with count 1; check: ABS.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductDeleted count == 1, naming P1; sysTester.DirListing event 2 names P2 only; the two sysTester.Sha256 events of P2 carry the same hash; event productManager.ProductStored count == 1, naming P2; event productManager.ProductsListed(count=1) count == 1; event cmdDisp.OpCodeError count == 0; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:delete_other
 
 ID:        L5-1
 Title:     Capture during a capture
 Purpose:   Proves a CAPTURE during a capture is rejected and the first capture stores its product.
 Covers:    REQ-ProductManager-025
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1020); CAPTURE() without waiting for completion; CAPTURE(); wait event productManager.ProductWritten; LIST_DIR(products); MARK(1021).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1020); LIST_DIR(products); CAPTURE() without waiting for completion; CAPTURE(); wait event productManager.ProductWritten (at most 30 s, REQ-PiSensor-010; on time-out continue to END); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1021).
 Window:    Marker(id=1020) … Marker(id=1021)
-Pass rule: named checks declared in the integration test (test_L5_1). metrics: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s.
-Evidence:  require (else UNVERIFIED, the race was lost): the second CAPTURE is dispatched before the ProductWritten event. check: event productManager.CommandRejected count == 1 (WARNING_LO, reason CAPTURE_IN_PROGRESS); check: event productManager.ProductWritten count == 1; check: the sysTester.DirListing event names one file, the product named by ProductWritten; check: ABS.
+Pass rule: named checks declared in the integration test (test_L5_1).
+Evidence:  require (else UNVERIFIED): STD; the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes; event productManager.ProductWritten count == 1, naming P; sysTester.DirListing event 2 names P and no other file; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:second_capture_dropped
 
 ID:        L5-2
 Title:     Capture after a rejected capture
 Purpose:   Proves a rejected CAPTURE does not disturb the capture in progress or the next one.
 Covers:    REQ-ProductManager-025
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1022); CAPTURE() without waiting for completion; CAPTURE(); wait event productManager.ProductWritten; CAPTURE(); LIST_DIR(products); MARK(1023).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1022); LIST_DIR(products); CAPTURE() without waiting for completion; CAPTURE(); wait event productManager.ProductWritten (at most 30 s, REQ-PiSensor-010; on time-out continue to END); CAPTURE(); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1023).
 Window:    Marker(id=1022) … Marker(id=1023)
 Pass rule: named checks declared in the integration test (test_L5_2).
-Evidence:  require (else UNVERIFIED, the race was lost): the second CAPTURE is dispatched before the first ProductWritten event. check: event productManager.CommandRejected count == 1 (reason CAPTURE_IN_PROGRESS); check: event productManager.ProductWritten count == 2 with different names; check: the sysTester.DirListing event names those two files only; check: ABS.
+Evidence:  require (else UNVERIFIED): STD; the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes; event productManager.ProductWritten count == 2, naming P1 and P2, different; sysTester.DirListing event 2 names P1 and P2 only; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L5-3
 Title:     Downlink during a downlink
 Purpose:   Proves a DOWNLINK during a downlink is rejected and the first transfer delivers its product.
 Covers:    REQ-ProductManager-031
-Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering, product directory empty.
-Procedure: MARK(1030); CAPTURE(); CAPTURE(); DUMP_SHA256(P1, 1); DOWNLINK(P1) without waiting for completion; wait event productManager.DownlinkStarted; DOWNLINK(P2); wait CFDP transaction finished at the ground; MARK(1031).
+Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering.
+Procedure: MARK(1030); LIST_DIR(products); CAPTURE(); CAPTURE(); DUMP_SHA256(P1, 1); DOWNLINK(P1) without waiting for completion; wait event productManager.DownlinkStarted (at most 10 s; on time-out continue to END); DOWNLINK(P2); wait CFDP transaction finished at the ground (at most 600 s; on time-out continue to END); wait event productManager.DownlinkComplete (at most 30 s; on time-out continue to END); action: teardown, remove the product files of this test over ssh; MARK(1031).
 Window:    Marker(id=1030) … Marker(id=1031)
-Pass rule: named checks declared in the integration test (test_L5_3). metrics: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require).
-Evidence:  check: event productManager.CommandRejected count == 1 (WARNING_LO, reason DOWNLINK_IN_PROGRESS); check: event productManager.DownlinkStarted count == 1; check: exactly one file arrived and its name is P1; check: sha256 of record/raw/files/<P1> == hash in the sysTester.Sha256 event; check: event productManager.DownlinkComplete count == 1; check: ABS.
+Pass rule: named checks declared in the integration test (test_L5_3).
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it); the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes; event productManager.DownlinkStarted count == 1, naming P1; event productManager.DownlinkComplete count == 1, naming P1; ground CFDP transactions in the window: exactly one, of file P1, finished complete; sha256 of record/raw/files/<P1> == hash in the first sysTester.Sha256 event of P1; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L5-4
 Title:     Repeated downlink of the product in transfer
 Purpose:   Proves a DOWNLINK naming the product in transfer is rejected without a second transfer.
 Covers:    REQ-ProductManager-031
-Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering, product directory empty.
-Procedure: MARK(1032); CAPTURE(); DUMP_SHA256(P, 1); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted; DOWNLINK(P); wait CFDP transaction finished at the ground; MARK(1033).
+Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering.
+Procedure: MARK(1032); LIST_DIR(products); CAPTURE(); DUMP_SHA256(P, 1); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted (at most 10 s; on time-out continue to END); DOWNLINK(P); wait CFDP transaction finished at the ground (at most 600 s; on time-out continue to END); wait event productManager.DownlinkComplete (at most 30 s; on time-out continue to END); action: teardown, remove the product files of this test over ssh; MARK(1033).
 Window:    Marker(id=1032) … Marker(id=1033)
-Pass rule: named checks declared in the integration test (test_L5_4). metrics: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require).
-Evidence:  check: event productManager.CommandRejected count == 1 (reason DOWNLINK_IN_PROGRESS); check: exactly one CFDP transaction at the ground, finished complete; check: sha256 of record/raw/files/<P> == hash in the sysTester.Sha256 event; check: ABS.
+Pass rule: named checks declared in the integration test (test_L5_4).
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it); the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes; event productManager.DownlinkStarted count == 1, naming P; event productManager.DownlinkComplete count == 1, naming P; ground CFDP transactions in the window: exactly one, of file P, finished complete; sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event of P; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L5-5
 Title:     Delete during the product's downlink
-Purpose:   Proves a DELETE of the product in transfer is rejected and the product is delivered and kept.
+Purpose:   Proves a DELETE of the product in transfer is rejected; the product is delivered, kept.
 Covers:    REQ-ProductManager-035
-Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering, product directory empty.
-Procedure: MARK(1034); CAPTURE(); DUMP_SHA256(P, 1); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted; DELETE(P); wait CFDP transaction finished at the ground; DUMP_SHA256(P, 2); LIST_DIR(products); MARK(1035).
+Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering.
+Procedure: MARK(1034); LIST_DIR(products); CAPTURE(); DUMP_SHA256(P, 1); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted (at most 10 s; on time-out continue to END); DELETE(P); wait CFDP transaction finished at the ground (at most 600 s; on time-out continue to END); wait event productManager.DownlinkComplete (at most 30 s; on time-out continue to END); DUMP_SHA256(P, 2); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1035).
 Window:    Marker(id=1034) … Marker(id=1035)
-Pass rule: named checks declared in the integration test (test_L5_5). metrics: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require).
-Evidence:  check: event productManager.CommandRejected count == 1 (WARNING_LO, reason PRODUCT_IN_DOWNLINK); check: event productManager.ProductDeleted count == 0; check: sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event; check: the two sysTester.Sha256 events are equal; check: the sysTester.DirListing event names P; check: ABS.
-Planted faults:delete_before_downlink
+Pass rule: named checks declared in the integration test (test_L5_5).
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it); the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes; event productManager.ProductDeleted count == 0; event productManager.DownlinkStarted count == 1, naming P; event productManager.DownlinkComplete count == 1, naming P; sha256 of record/raw/files/<P> == hash in the first sysTester.Sha256 event of P; the two sysTester.Sha256 events of P carry the same hash; sysTester.DirListing event 2 names P and no other file; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
+Planted faults:corrupt_in_transfer
 
 ID:        L5-6
 Title:     Delete after the product's downlink
 Purpose:   Proves a DELETE rejected during the downlink succeeds once the transfer has ended.
 Covers:    REQ-ProductManager-035, REQ-ProductManager-034
-Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering, product directory empty.
-Procedure: MARK(1036); CAPTURE(); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted; DELETE(P); wait CFDP transaction finished at the ground; wait event productManager.DownlinkComplete; DELETE(P); LIST_DIR(products); MARK(1037).
+Setup:     Flight image running, ground Pi with RFM69 and groundRadio up, camera answering.
+Procedure: MARK(1036); LIST_DIR(products); CAPTURE(); DOWNLINK(P) without waiting for completion; wait event productManager.DownlinkStarted (at most 10 s; on time-out continue to END); DELETE(P); wait CFDP transaction finished at the ground (at most 600 s; on time-out continue to END); wait event productManager.DownlinkComplete (at most 30 s; on time-out continue to END); DELETE(P); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1037).
 Window:    Marker(id=1036) … Marker(id=1037)
-Pass rule: named checks declared in the integration test (test_L5_6). metrics: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require).
-Evidence:  check: event productManager.CommandRejected count == 1 (reason PRODUCT_IN_DOWNLINK) and it precedes event productManager.DownlinkComplete; check: event productManager.ProductDeleted count == 1 and it follows DownlinkComplete; check: the sysTester.DirListing event names no file; check: ABS.
+Pass rule: named checks declared in the integration test (test_L5_6).
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it); the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction. check: sysTester.DirListing event 1 names no file; event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1; every productManager.CommandRejected event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes; event productManager.DownlinkStarted count == 1, naming P; event productManager.DownlinkComplete count == 1, naming P; event productManager.CommandRejected precedes event productManager.DownlinkComplete; event productManager.DownlinkComplete precedes event productManager.ProductDeleted; event productManager.ProductDeleted count == 1, naming P; sysTester.DirListing event 2 names no file; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L6-1
 Title:     Downlink of a missing product
 Purpose:   Proves a DOWNLINK naming no stored product is rejected and nothing is sent.
 Covers:    REQ-ProductManager-033
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1040); CAPTURE(); LIST_DIR(products); DOWNLINK(Dp_missing.fxd); wait 10 s; LIST_DIR(products); MARK(1041).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1040); LIST_DIR(products); CAPTURE(); DUMP_SHA256(P, 1); LIST_DIR(products); DOWNLINK(Dp_missing.fxd); wait 10 s (twice the time in which DownlinkStarted or a ground transaction follows an accepted DOWNLINK over TCP); DUMP_SHA256(P, 2); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1041).
 Window:    Marker(id=1040) … Marker(id=1041)
 Pass rule: named checks declared in the integration test (test_L6_1).
-Evidence:  check: event productManager.ProductNotFound count == 1 (WARNING_LO, names Dp_missing.fxd); check: event productManager.DownlinkStarted count == 0; check: no CFDP transaction starts at the ground in the window; check: file names and count of the two sysTester.DirListing events are equal; check: ABS.
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it). check: sysTester.DirListing event 1 names no file; event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1; every productManager.ProductNotFound event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes; event productManager.DownlinkStarted count == 0; ground CFDP transactions in the window: none; the two sysTester.Sha256 events of P carry the same hash; sysTester.DirListing events 2 and 3 carry the same file names and count; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:downlink_existing
 
 ID:        L6-2
 Title:     Delete of a missing product
 Purpose:   Proves a DELETE naming no stored product is rejected and removes nothing.
 Covers:    REQ-ProductManager-033
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1042); CAPTURE(); LIST_DIR(products); DELETE(Dp_missing.fxd); LIST_DIR(products); MARK(1043).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1042); LIST_DIR(products); CAPTURE(); LIST_DIR(products); DELETE(Dp_missing.fxd); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1043).
 Window:    Marker(id=1042) … Marker(id=1043)
 Pass rule: named checks declared in the integration test (test_L6_2).
-Evidence:  check: event productManager.ProductNotFound count == 1 (names Dp_missing.fxd); check: event productManager.ProductDeleted count == 0; check: file names and count of the two sysTester.DirListing events are equal; check: ABS.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1; every productManager.ProductNotFound event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes; event productManager.ProductDeleted count == 0; sysTester.DirListing events 2 and 3 carry the same file names and count; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L6-3
 Title:     Delete with a path as name
-Purpose:   Proves a DELETE whose name is a path to a stored product is rejected and removes nothing.
+Purpose:   Proves a DELETE naming a path to a stored product is rejected, removing nothing.
 Covers:    REQ-ProductManager-033
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1044); CAPTURE(); LIST_DIR(products); DELETE(./P); LIST_DIR(products); MARK(1045).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1044); LIST_DIR(products); CAPTURE(); LIST_DIR(products); DELETE(./P); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1045).
 Window:    Marker(id=1044) … Marker(id=1045)
 Pass rule: named checks declared in the integration test (test_L6_3).
-Evidence:  check: event productManager.ProductNotFound count == 1; check: event productManager.ProductDeleted count == 0; check: file names and count of the two sysTester.DirListing events are equal; check: ABS.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductNotFound count == 1, naming ./P; every productManager.ProductNotFound event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DELETE; every other command completes; event productManager.ProductDeleted count == 0; sysTester.DirListing events 2 and 3 carry the same file names and count; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
+Planted faults:none
+
+ID:        L6-4
+Title:     Downlink with a path as name
+Purpose:   Proves a DOWNLINK naming a path to a stored product is rejected and nothing is sent.
+Covers:    REQ-ProductManager-033
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1046); LIST_DIR(products); CAPTURE(); LIST_DIR(products); DOWNLINK(./P); wait 10 s (as L6-1); LIST_DIR(products); action: teardown, remove the product files of this test over ssh; MARK(1047).
+Window:    Marker(id=1046) … Marker(id=1047)
+Pass rule: named checks declared in the integration test (test_L6_4).
+Evidence:  require (else UNVERIFIED): STD; the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it). check: sysTester.DirListing event 1 names no file; event productManager.ProductNotFound count == 1, naming ./P; every productManager.ProductNotFound event has severity WARNING_LO; exactly one command fails (cmdDisp.OpCodeError) and it is the rejected DOWNLINK; every other command completes; event productManager.DownlinkStarted count == 0; ground CFDP transactions in the window: none; sysTester.DirListing events 2 and 3 carry the same file names and count; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0.
 Planted faults:none
 
 ID:        L7-1
 Title:     Final state
 Purpose:   Leaves one known product on board for the independent final-state check.
 Covers:    REQ-ProductManager-014
-Setup:     Prototype image running, link up, camera answering, product directory empty.
-Procedure: MARK(1050); CAPTURE(); DUMP_SHA256(P, 1); LIST_DIR(products); MARK(1051).
+Setup:     Prototype image running, link up, camera answering.
+Procedure: MARK(1050); LIST_DIR(products); CAPTURE(); DUMP_SHA256(P, 1); LIST_DIR(products); MARK(1051).
 Window:    Marker(id=1050) … Marker(id=1051)
 Pass rule: named checks declared in the integration test (test_L7_1).
-Evidence:  check: event productManager.ProductWritten count == 1 (names P); the DirListing event names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt; the auditor compares it with the hash of the Sha256 event.
+Evidence:  require (else UNVERIFIED): STD. check: sysTester.DirListing event 1 names no file; event productManager.ProductWritten count == 1, naming P; every productManager.ProductWritten event has severity ACTIVITY_HI; sysTester.DirListing event 2 names P and no other file; event cmdDisp.OpCodeError count == 0; event productManager.CaptureFailed count == 0; event productManager.StorageFailed count == 0; event productManager.DownlinkStalled count == 0; event productManager.FileSystemError count == 0; event productManager.ProductDiscarded count == 0; event sysTester.Started count == 0. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt; the auditor compares it with the hash of the Sha256 event.
 Planted faults:none
 
 ## 4 Traceability
@@ -229,7 +253,7 @@ Planted faults:none
 | REQ-ProductManager-030 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
 | REQ-ProductManager-031 | L5-3, L5-4; unit test |  |
 | REQ-ProductManager-032 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
-| REQ-ProductManager-033 | L6-1, L6-2, L6-3; unit test |  |
+| REQ-ProductManager-033 | L6-1, L6-2, L6-3, L6-4; unit test |  |
 | REQ-ProductManager-034 | L2-3, L2-4, L5-6; unit test |  |
 | REQ-ProductManager-035 | L5-5, L5-6; unit test |  |
 | REQ-ProductManager-036 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
@@ -248,15 +272,10 @@ Planted faults:none
 | REQ-ProductManager-049 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
 
 ## 5 Metrics
-- L2-1: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s
-- L5-1: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s
-- L5-3: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require)
-- L5-4: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require)
-- L5-5: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require)
-- L5-6: CFDP transaction duration of the first DOWNLINK from the ground transfer record >= 10 s (require)
+- (none)
 
 ## 6 Fault menu
-Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): capture_twice (stimulus; L2-1); corrupt_first_product (uut-state; L2-2); delete_before_downlink (uut-state; L5-5); delete_other (stimulus; L2-4); downlink_existing (stimulus; L6-1); second_capture_dropped (stimulus; L5-1).
+Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): capture_twice (stimulus; L2-1); corrupt_first_product (uut-state; L2-2); corrupt_in_transfer (uut-state; L5-5); delete_other (stimulus; L2-4); downlink_existing (stimulus; L6-1); second_capture_dropped (stimulus; L5-1).
 
 ## 7 Not covered
 - Every requirement marked `UT only`: verified by the unit-test list, and at system level by the project plan where it traces a system requirement.
@@ -267,4 +286,5 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 ## 8 Decision log
 1. 2026-11-17 designer — the component tests run in the project's base deployment with `sysTester`; no component-only deployment.
 2. 2026-11-17 designer — downlink-in-progress tests run on the flight image, where a transfer lasts long enough to command inside it.
-3. 2026-11-17 designer — planted faults rewrite or insert commands only; one is `uut-state` (`corrupt_first_product`).
+3. 2026-11-17 designer — planted faults rewrite or insert commands only; two are `uut-state` (`corrupt_first_product`, `corrupt_in_transfer`).
+4. 2026-11-17 designer, review round 1 — checks are named predicates and helpers listed per test; `OpCodeError` left the completeness block; flight-image identity test L0-2 and fault-free L6-4 added; system coverage threshold set to 55 with its reason.
