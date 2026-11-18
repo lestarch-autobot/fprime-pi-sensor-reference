@@ -1,0 +1,58 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "bmp_line_dropped",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-1"
+      ],
+      "fails": {
+        "L2-1": [
+          "last(sensorMonitor.TemperatureValid) == VALID",
+          "last(sensorMonitor.TemperatureInvalidReason) == NONE",
+          "last(sensorMonitor.Bmp280State) == PRESENT",
+          "event sensorMonitor.Bmp280Lost count == 0"
+        ]
+      },
+      "mechanism": "sysTester.BENCH_LINE(BMP280, OFF) is inserted before the first MARK of the test: the BMP280 is unpowered during a window that expects every metric valid; the closing BENCH_LINE(BMP280, ON) of the procedure restores it",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "sensor_line_kept_on",
+      "class": "stimulus",
+      "applies_to": [
+        "L5-1",
+        "L5-2",
+        "L5-3"
+      ],
+      "fails": {
+        "L5-1": [
+          "event sensorMonitor.Bmp280Lost count == 1",
+          "F: last(sensorMonitor.Bmp280State) == LOST",
+          "F: last(sensorMonitor.TemperatureValid) == INVALID"
+        ],
+        "L5-2": [
+          "event sensorMonitor.Mpu6050Lost count == 1",
+          "F: last(sensorMonitor.Mpu6050State) == LOST",
+          "F: last(sensorMonitor.AttitudeValid) == INVALID"
+        ],
+        "L5-3": [
+          "event sensorMonitor.GpsSilent count == 1",
+          "F: last(sensorMonitor.GpsState) == LOST",
+          "F: last(sensorMonitor.FixValid) == INVALID"
+        ]
+      },
+      "mechanism": "argument `state` of sysTester.BENCH_LINE is rewritten from OFF to ON: the sensor keeps answering",
+      "kind": "rewrite",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "L2-1",
+    "L5-1",
+    "L5-2",
+    "L5-3"
+  ]
+}
