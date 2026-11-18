@@ -1,0 +1,13 @@
+[WARNING] PiSensor.cfdpManager stack size of 131072  is too small, clamping to 131072
+[WARNING] PiSensor.cfdpManager stack size of 131072  is too small, clamping to 131072
+EVENT: (268500994) (2:1794962562,504934) ACTIVITY_LO: (PiSensor.cfdpManager) TxFileQueued : TX file queued for cfdp-test.bin (transaction 1)
+EVENT: (268501044) (2:1794962562,839606) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferStarted : TX CLASS_2 (0) transaction 1 transfer started, 42:cfdp-test.bin -> 100:cfdp-test.bin, 20000 bytes
+Assert: "/home/devin/pisensor-campaign/project/lib/fprime/Svc/ComAggregator/ComAggregator.cpp:109" 1011
+FATAL 16797697 handled.
+[WARNING] PiSensor.cfdpManager stack size of 131072  is too small, clamping to 131072
+[WARNING] PiSensor.cfdpManager stack size of 131072  is too small, clamping to 131072
+EVENT: (268500994) (2:1794962624,812622) ACTIVITY_LO: (PiSensor.cfdpManager) TxFileQueued : TX file queued for cfdp-test.bin (transaction 1)
+EVENT: (268501044) (2:1794962624,872757) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferStarted : TX CLASS_2 (0) transaction 1 transfer started, 42:cfdp-test.bin -> 100:cfdp-test2.bin, 20000 bytes
+EVENT: (268500994) (2:1794962661,874613) ACTIVITY_LO: (PiSensor.cfdpManager) TxFileQueued : TX file queued for cfdp-test.bin (transaction 2)
+EVENT: (268501044) (2:1794962662,872707) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferStarted : TX CLASS_2 (0) transaction 2 transfer started, 42:cfdp-test.bin -> 100:cfdp-test3.bin, 20000 bytes
+EVENT: (268501045) (2:1794962664,484629) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferCompleted : TX CLASS_2 (0) transaction 2 completed, 42:cfdp-test.bin -> 100:cfdp-test3.bin, 20000 bytes
