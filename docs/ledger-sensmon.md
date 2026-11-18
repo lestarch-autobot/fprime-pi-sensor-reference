@@ -1,0 +1,7 @@
+# Campaign ledger — sensmon (`sensorMonitor`)
+
+Child of project campaign fvp-2026-11-17-1; approver `project-campaign` (contract §9.2). `[V]` verified, `[I]` inferred.
+
+- 2026-11-17 setup [V]: skills source lestarch-autobot/fprime `system-campaign-skills` @ aa3ab031a6c67d40652e8047a2e1f9a8a8c2b26c (nasa/fprime#6388 open). UUT lestarch-autobot/fprime-pi-sensor-reference, branch `design/sensmon` cut from `design/ssdd` @ ba498d7. Catalogs: nasa/fprime v4.4.2 (f22ce8f), fprime-sensors e5d83d1. Tooling pin: fprime-testing-harness v0.1.2 (855dd4f). Review bound 3 (source: default). DESIGN lane only; no bench contact (bench facts taken from the project ledger).
+- 2026-11-17 setup [V]: the repository holds no F Prime project yet (base deployment is project lane 3); the FPP model is checked with `fpp-check` against the pinned catalogs.
+- 2026-11-17 requirements: 22 draft rows REQ-SensorMonitor-001..022 from the 14 allocated system requirements; rationale and parent trace local (`docs/review/sensmon/requirements-rationale.md`). Author proposals (for the approver): validity age 2 s (D1); loss events after 5 s (half of the 10 s system bound); return events `ACTIVITY_HI`; identity read failure of any kind counts as wrong identity.
