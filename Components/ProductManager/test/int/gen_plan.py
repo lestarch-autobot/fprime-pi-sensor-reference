@@ -11,8 +11,9 @@ T = []
 def name(c): return c if isinstance(c, str) else c["text"]
 ALLC = collections.OrderedDict()   # test id -> {"require": [...], "check": [...]}
 def t(id, title, purpose, covers, setup, procedure, windows, checks=(), requires=(), knobs=(), rationale=(), note=""):
-    ALLC[id] = {"require": list(requires), "check": list(checks)}
+    requires = ([] if id.startswith("L0") else [EMPTY]) + list(requires)
     ev = ("require (else UNVERIFIED): STD; " + "; ".join(name(c) for c in requires) + ". " if requires else "require (else UNVERIFIED): STD. ")
+    ALLC[id] = {"require": list(requires), "check": list(checks)}
     ev += "check: " + "; ".join(name(c) for c in checks) + "." + (" " + note if note else "")
     T.append({"id": id, "title": title, "purpose": purpose, "covers": covers, "setup": setup,
               "procedure": list(procedure), "windows": windows, "metrics": [],
@@ -26,11 +27,12 @@ NOERR = "event cmdDisp.OpCodeError count == 0"
 def one_err(cmd): return H("only_failed_command", f"exactly one command fails (cmdDisp.OpCodeError) and it is the rejected {cmd}; every other command completes", command=cmd)
 def listing(k, names, text): return H("dir_listing_equals", f"sysTester.DirListing event {k} names {text}", index=k, names=names)
 def sev(ev, s): return H("event_severity", f"every {PM}{ev} event has severity {s}", event=PM + ev, severity=s)
-def named(ev, n, names, text): return H("event_names", f"event {PM}{ev} count == {n}, naming {text}", event=PM + ev, count=n, names=names)
+def named(ev, n, names, text, prefix=""): return H("event_names", f"event {PM}{ev} count == {n}, naming {text}", event=PM + ev, count=n, names=names, prefix=prefix)
 def sha_eq(p): return H("sha_events_equal", f"the two sysTester.Sha256 events of {p} carry the same hash", product=p)
 def ground_eq(p): return H("ground_file_hash_equals", f"sha256 of record/raw/files/<{p}> == hash in the first sysTester.Sha256 event of {p}", product=p)
 def cfdp(n, text): return H("ground_cfdp_transactions", f"ground CFDP transactions in the window: {text}", count=n)
 EMPTY = listing(1, [], "no file")
+WAITK = "wait cmdDisp.OpCodeCompleted of the first CAPTURE (at most 30 s; on time-out continue to END)"
 MARGIN = H("dispatched_before_event_by", "the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten", after_command=PM + "CAPTURE", event=PM + "ProductWritten", margin_s=1)
 INSIDE = H("dispatched_inside_transfer", "the command sent after the first DOWNLINK is dispatched after event productManager.DownlinkStarted and at least 2 s before the ground end time of that CFDP transaction", margin_s=2)
 GROUND = H("ground_cfdp_service_up", "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)")
@@ -50,67 +52,67 @@ ident("L0-1", "Image identity and marker round-trip, prototype image", "prototyp
 ident("L0-2", "Image identity and marker round-trip, flight image", "flight", "Flight image running; ground Pi with RFM69 and groundRadio up.", 1002, 1003)
 t("L2-1", "Capture names its product", "Proves a successful capture emits ProductWritten naming the one new product file.", R(14), NOM,
   ["MARK(1010)", LD, "CAPTURE()", LD, TEAR, "MARK(1011)"], [W(1010, 1011)], knobs=["capture_twice"],
-  checks=[EMPTY, named("ProductWritten", 1, ["P"], "P"), sev("ProductWritten", "ACTIVITY_HI"), listing(2, ["P"], "P and no other file"), NOERR] + ABS)
+  checks=[named("ProductWritten", 1, ["P"], "P"), sev("ProductWritten", "ACTIVITY_HI"), listing(2, ["P"], "P and no other file"), NOERR] + ABS)
 t("L2-2", "Second capture leaves the first product unchanged", "Proves a second capture names a new product and leaves the first unchanged.", R(14, 15), NOM,
   ["MARK(1012)", LD, "CAPTURE()", "DUMP_SHA256(P1, 1)", "CAPTURE()", "DUMP_SHA256(P1, 2)", LD, TEAR, "MARK(1013)"], [W(1012, 1013)], knobs=["corrupt_first_product"],
-  checks=[EMPTY, named("ProductWritten", 2, ["P1", "P2"], "P1 and P2, different"), sev("ProductWritten", "ACTIVITY_HI"), sha_eq("P1"), listing(2, ["P1", "P2"], "P1 and P2 only"), NOERR] + ABS)
+  checks=[named("ProductWritten", 2, ["P1", "P2"], "P1 and P2, different"), sev("ProductWritten", "ACTIVITY_HI"), sha_eq("P1"), listing(2, ["P1", "P2"], "P1 and P2 only"), NOERR] + ABS)
 t("L2-3", "A third capture leaves both stored products unchanged", "Proves a capture leaves every stored product unchanged, and DELETE then removes one.", R(15, 34), NOM,
   ["MARK(1014)", LD, "CAPTURE()", "CAPTURE()", "DUMP_SHA256(P1, 1)", "DUMP_SHA256(P2, 1)", "CAPTURE()", "DUMP_SHA256(P1, 2)", "DUMP_SHA256(P2, 2)", "DELETE(P2)", LD, TEAR, "MARK(1015)"], [W(1014, 1015)],
-  checks=[EMPTY, named("ProductWritten", 3, ["P1", "P2", "P3"], "P1, P2 and P3, all different"), sha_eq("P1"), sha_eq("P2"),
+  checks=[named("ProductWritten", 3, ["P1", "P2", "P3"], "P1, P2 and P3, all different"), sha_eq("P1"), sha_eq("P2"),
           named("ProductDeleted", 1, ["P2"], "P2"), listing(2, ["P1", "P3"], "P1 and P3 only"), NOERR] + ABS)
 t("L2-4", "Delete removes the named product", "Proves DELETE removes the named product and no other, before its command response.", R(34), NOM,
   ["MARK(1016)", LD, "CAPTURE()", "CAPTURE()", "DUMP_SHA256(P2, 1)", "DELETE(P1)", LD, "DUMP_SHA256(P2, 2)", "LIST_PRODUCTS()", TEAR, "MARK(1017)"], [W(1016, 1017)], knobs=["delete_other"],
-  checks=[EMPTY, named("ProductDeleted", 1, ["P1"], "P1"), listing(2, ["P2"], "P2 only"), sha_eq("P2"), named("ProductStored", 1, ["P2"], "P2"),
+  checks=[named("ProductDeleted", 1, ["P1"], "P1"), listing(2, ["P2"], "P2 only"), sha_eq("P2"), named("ProductStored", 1, ["P2"], "P2"),
           "event productManager.ProductsListed(count=1) count == 1", NOERR] + ABS)
 t("L5-1", "Capture during a capture", "Proves a CAPTURE during a capture is rejected and the first capture stores its product.", R(25), NOM,
-  ["MARK(1020)", LD, "CAPTURE() without waiting for completion", "CAPTURE()", WAITW, LD, TEAR, "MARK(1021)"], [W(1020, 1021)], knobs=["second_capture_dropped"],
+  ["MARK(1020)", LD, "CAPTURE() without waiting for completion", "CAPTURE()", WAITW, WAITK, "LIST_PRODUCTS()", LD, TEAR, "MARK(1021)"], [W(1020, 1021)], knobs=["second_capture_dropped"],
   requires=[MARGIN],
-  checks=[EMPTY, REJ("CAPTURE_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("CAPTURE"), named("ProductWritten", 1, ["P"], "P"), listing(2, ["P"], "P and no other file")] + ABS)
+  checks=[REJ("CAPTURE_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("CAPTURE"), named("ProductWritten", 1, ["P"], "P"), named("ProductStored", 1, ["P"], "P"), listing(2, ["P"], "P and no other file")] + ABS)
 t("L5-2", "Capture after a rejected capture", "Proves a rejected CAPTURE does not disturb the capture in progress or the next one.", R(25), NOM,
-  ["MARK(1022)", LD, "CAPTURE() without waiting for completion", "CAPTURE()", WAITW, "CAPTURE()", LD, TEAR, "MARK(1023)"], [W(1022, 1023)],
+  ["MARK(1022)", LD, "CAPTURE() without waiting for completion", "CAPTURE()", WAITW, WAITK, "CAPTURE()", "LIST_PRODUCTS()", LD, TEAR, "MARK(1023)"], [W(1022, 1023)],
   requires=[MARGIN],
-  checks=[EMPTY, REJ("CAPTURE_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("CAPTURE"), named("ProductWritten", 2, ["P1", "P2"], "P1 and P2, different"), listing(2, ["P1", "P2"], "P1 and P2 only")] + ABS)
+  checks=[REJ("CAPTURE_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("CAPTURE"), named("ProductWritten", 2, ["P1", "P2"], "P1 and P2, different"), named("ProductStored", 2, ["P1", "P2"], "P1 and P2"), listing(2, ["P1", "P2"], "P1 and P2 only")] + ABS)
 DL = [GROUND, INSIDE]
 t("L5-3", "Downlink during a downlink", "Proves a DOWNLINK during a downlink is rejected and the first transfer delivers its product.", R(31), FLT,
   ["MARK(1030)", LD, "CAPTURE()", "CAPTURE()", "DUMP_SHA256(P1, 1)", "DOWNLINK(P1) without waiting for completion", WAITS, "DOWNLINK(P2)", WAITC, WAITD, TEAR, "MARK(1031)"], [W(1030, 1031)],
   requires=DL,
-  checks=[EMPTY, REJ("DOWNLINK_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("DOWNLINK"), named("DownlinkStarted", 1, ["P1"], "P1"), named("DownlinkComplete", 1, ["P1"], "P1"),
+  checks=[REJ("DOWNLINK_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("DOWNLINK"), named("DownlinkStarted", 1, ["P1"], "P1"), named("DownlinkComplete", 1, ["P1"], "P1"),
           cfdp(1, "exactly one, of file P1, finished complete"), ground_eq("P1")] + ABS)
 t("L5-4", "Repeated downlink of the product in transfer", "Proves a DOWNLINK naming the product in transfer is rejected without a second transfer.", R(31), FLT,
   ["MARK(1032)", LD, "CAPTURE()", "DUMP_SHA256(P, 1)", "DOWNLINK(P) without waiting for completion", WAITS, "DOWNLINK(P)", WAITC, WAITD, TEAR, "MARK(1033)"], [W(1032, 1033)],
   requires=DL,
-  checks=[EMPTY, REJ("DOWNLINK_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("DOWNLINK"), named("DownlinkStarted", 1, ["P"], "P"), named("DownlinkComplete", 1, ["P"], "P"),
+  checks=[REJ("DOWNLINK_IN_PROGRESS"), sev("CommandRejected", "WARNING_LO"), one_err("DOWNLINK"), named("DownlinkStarted", 1, ["P"], "P"), named("DownlinkComplete", 1, ["P"], "P"),
           cfdp(1, "exactly one, of file P, finished complete"), ground_eq("P")] + ABS)
 t("L5-5", "Delete during the product's downlink", "Proves a DELETE of the product in transfer is rejected; the product is delivered, kept.", R(35), FLT,
   ["MARK(1034)", LD, "CAPTURE()", "DUMP_SHA256(P, 1)", "DOWNLINK(P) without waiting for completion", WAITS, "DELETE(P)", WAITC, WAITD, "DUMP_SHA256(P, 2)", LD, TEAR, "MARK(1035)"], [W(1034, 1035)], knobs=["corrupt_in_transfer"],
   requires=DL,
-  checks=[EMPTY, REJ("PRODUCT_IN_DOWNLINK"), sev("CommandRejected", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0",
+  checks=[REJ("PRODUCT_IN_DOWNLINK"), sev("CommandRejected", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0",
           named("DownlinkStarted", 1, ["P"], "P"), named("DownlinkComplete", 1, ["P"], "P"), ground_eq("P"), sha_eq("P"), listing(2, ["P"], "P and no other file")] + ABS)
 t("L5-6", "Delete after the product's downlink", "Proves a DELETE rejected during the downlink succeeds once the transfer has ended.", R(35, 34), FLT,
   ["MARK(1036)", LD, "CAPTURE()", "DOWNLINK(P) without waiting for completion", WAITS, "DELETE(P)", WAITC, WAITD, "DELETE(P)", LD, TEAR, "MARK(1037)"], [W(1036, 1037)],
   requires=DL,
-  checks=[EMPTY, REJ("PRODUCT_IN_DOWNLINK"), sev("CommandRejected", "WARNING_LO"), one_err("DELETE"), named("DownlinkStarted", 1, ["P"], "P"), named("DownlinkComplete", 1, ["P"], "P"),
+  checks=[REJ("PRODUCT_IN_DOWNLINK"), sev("CommandRejected", "WARNING_LO"), one_err("DELETE"), named("DownlinkStarted", 1, ["P"], "P"), named("DownlinkComplete", 1, ["P"], "P"),
           "event productManager.CommandRejected precedes event productManager.DownlinkComplete", "event productManager.DownlinkComplete precedes event productManager.ProductDeleted",
-          named("ProductDeleted", 1, ["P"], "P"), listing(2, [], "no file")] + ABS)
+          named("ProductDeleted", 1, ["P"], "P"), cfdp(1, "exactly one, of file P, finished complete"), listing(2, [], "no file")] + ABS)
 NF = lambda n: f"event productManager.ProductNotFound(name={n}) count == 1"
 SAME = H("dir_listings_equal", "sysTester.DirListing events 2 and 3 carry the same file names and count", a=2, b=3)
 t("L6-1", "Downlink of a missing product", "Proves a DOWNLINK naming no stored product is rejected and nothing is sent.", R(33), NOM,
   ["MARK(1040)", LD, "CAPTURE()", "DUMP_SHA256(P, 1)", LD, "DOWNLINK(Dp_missing.fxd)", "wait 10 s (twice the time in which DownlinkStarted or a ground transaction follows an accepted DOWNLINK over TCP)", "DUMP_SHA256(P, 2)", LD, TEAR, "MARK(1041)"], [W(1040, 1041)], knobs=["downlink_existing"],
   requires=[GROUND],
-  checks=[EMPTY, NF("Dp_missing.fxd"), sev("ProductNotFound", "WARNING_LO"), one_err("DOWNLINK"), "event productManager.DownlinkStarted count == 0", cfdp(0, "none"), sha_eq("P"), SAME] + ABS)
+  checks=[NF("Dp_missing.fxd"), sev("ProductNotFound", "WARNING_LO"), one_err("DOWNLINK"), "event productManager.DownlinkStarted count == 0", cfdp(0, "none"), sha_eq("P"), SAME] + ABS)
 t("L6-2", "Delete of a missing product", "Proves a DELETE naming no stored product is rejected and removes nothing.", R(33), NOM,
   ["MARK(1042)", LD, "CAPTURE()", LD, "DELETE(Dp_missing.fxd)", LD, TEAR, "MARK(1043)"], [W(1042, 1043)],
-  checks=[EMPTY, NF("Dp_missing.fxd"), sev("ProductNotFound", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0", SAME] + ABS)
+  checks=[NF("Dp_missing.fxd"), sev("ProductNotFound", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0", SAME] + ABS)
 t("L6-3", "Delete with a path as name", "Proves a DELETE naming a path to a stored product is rejected, removing nothing.", R(33), NOM,
   ["MARK(1044)", LD, "CAPTURE()", LD, "DELETE(./P)", LD, TEAR, "MARK(1045)"], [W(1044, 1045)],
-  checks=[EMPTY, named("ProductNotFound", 1, ["./P"], "./P"), sev("ProductNotFound", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0", SAME] + ABS)
+  checks=[named("ProductNotFound", 1, ["P"], "./P", prefix="./"), sev("ProductNotFound", "WARNING_LO"), one_err("DELETE"), "event productManager.ProductDeleted count == 0", SAME] + ABS)
 t("L6-4", "Downlink with a path as name", "Proves a DOWNLINK naming a path to a stored product is rejected, sending nothing.", R(33), NOM,
   ["MARK(1046)", LD, "CAPTURE()", LD, "DOWNLINK(./P)", "wait 10 s (as L6-1)", LD, TEAR, "MARK(1047)"], [W(1046, 1047)],
   requires=[GROUND],
-  checks=[EMPTY, named("ProductNotFound", 1, ["./P"], "./P"), sev("ProductNotFound", "WARNING_LO"), one_err("DOWNLINK"), "event productManager.DownlinkStarted count == 0", cfdp(0, "none"), SAME] + ABS)
+  checks=[named("ProductNotFound", 1, ["P"], "./P", prefix="./"), sev("ProductNotFound", "WARNING_LO"), one_err("DOWNLINK"), "event productManager.DownlinkStarted count == 0", cfdp(0, "none"), SAME] + ABS)
 t("L7-1", "Final state", "Leaves one known product on board for the independent final-state check.", R(14), NOM,
   ["MARK(1050)", LD, "CAPTURE()", "DUMP_SHA256(P, 1)", LD, "MARK(1051)"], [W(1050, 1051)],
-  checks=[EMPTY, named("ProductWritten", 1, ["P"], "P"), sev("ProductWritten", "ACTIVITY_HI"), listing(2, ["P"], "P and no other file"), NOERR] + ABS,
+  checks=[named("ProductWritten", 1, ["P"], "P"), sev("ProductWritten", "ACTIVITY_HI"), listing(2, ["P"], "P and no other file"), NOERR] + ABS,
   note="After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt; the auditor compares it with the hash of the Sha256 event.")
 
 ids = [x["id"] for x in T]; assert len(ids) == len(set(ids))
@@ -163,7 +165,8 @@ plan = {
            "- `sysTester` commands used: `MARK(id)`, `LIST_DIR(dir)`, `DUMP_SHA256(name, pass)`, `CORRUPT_PRODUCT(name)` (planted fault only). `CORRUPT_PRODUCT` overwrites the first two bytes of the picture record and leaves the header, so the file stays a stored product (ledger note N1). Dependency on the project's harness lane: `LIST_DIR`, `DUMP_SHA256`, `CORRUPT_PRODUCT` and the events `DirListing` and `Sha256` are not in `sysTester` at `deploy/base`@383a9ce; their formats are fixed there, and the helpers `dir_listing_equals`, `dir_listings_equal`, `sha_events_equal`, `ground_file_hash_equals` and the event patterns for the two events are written against them at the stage-2 refresh. `DUMP_SHA256` of a missing file must fail its command and emit no `Sha256` event.",
            "- Pass rules: every check and precondition of a test is listed by name in its evidence line; a name is a predicate of the plan grammar or the text of a registered helper (`planted_faults.py`), and is the name the stimulus test declares. Event arguments are read with `event_patterns`, taken from the formats of `ProductManager.fpp`. STD holds no UUT fact: a failed command is judged by the check `event cmdDisp.OpCodeError count == 0` (nominal tests) or by the helper `only_failed_command` (rejection tests), never by a precondition.",
            "- Flight block budget [I]: project plan link budget, RFM69 at 19200 bit/s carries 2400 byte/s; events of this plan during a transfer are at most 3 in 10 s (under 100 byte/s) beside 1 Hz telemetry, so markers and rejection events fit while CFDP uses the rest. L0-2 confirms the marker round-trip on the flight image; the bench check replaces the estimate.",
-           "- Teardown is a bench action inside the window (`action: teardown`, files removed over ssh, logged in bench-actions.log); every test starts with `LIST_DIR(products)` and the check that it names no file.",
+           "- Teardown is a bench action inside the window (`action: teardown`, files removed over ssh, logged in bench-actions.log); every test starts with `LIST_DIR(products)` and the precondition that it names no file (a directory left dirty is a bench fact: UNVERIFIED).",
+           "- CFDP on this bench [V project ledger, Bench CFDP]: `cfdpManager.OutgoingFileChunkSize` is 480 in the prototype image and at most 200 in the flight image; a picture is at most 262144 bytes (`piCamera`), so a flight transfer lasts up to about 5 minutes at 1600 byte/s, inside the 600 s wait. CFDP transaction numbers start again at 1 after a deployment restart and YAMCS then takes a new transfer for an old one: this plan restarts the deployment only between its two blocks (image switch), and the bench procedure of SDD 7 (clear the ground's finished transactions of the flight entity) runs after that switch, logged as a bench action.",
            "- Order: the flight block (L0-2, L5-3 to L5-6, RFM69), then the prototype block (L0-1, L2-1 to L2-4, L5-1, L5-2, L6-1 to L6-4, TCP), L7-1 last.",
            "- Downlink-in-progress tests run on the flight image: over RFM69 a product takes at least 60 s (project plan link budget), over TCP about a second, too short to send a second command inside the transfer. Each requires the second command dispatched inside the transfer by the ground transfer record, else UNVERIFIED.",
            "- Capture-in-progress tests rely on the capture taking longer than one command round trip (SSDD: a capture may take seconds); each requires the second command dispatched at least 1 s (one `run` tick, SDD 3.4) before `ProductWritten`, else UNVERIFIED. L0 bench confirmation measures the capture duration.",

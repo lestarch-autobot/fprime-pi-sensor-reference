@@ -13,7 +13,7 @@
           "sysTester.DirListing event 2 names P and no other file"
         ]
       },
-      "mechanism": "CAPTURE is sent twice in a row; two products are written where the test expects one",
+      "mechanism": "CAPTURE is sent twice in a row, each awaited to completion as `send()` does for every command it emits; two products are written where the test expects one",
       "kind": "insert",
       "ripples_to": {}
     },

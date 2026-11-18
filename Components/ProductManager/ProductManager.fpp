@@ -1,54 +1,33 @@
 module PiSensor {
 
-  @ Request to acquire one picture
-  port CaptureRequest(
-    context: U32 @< Returned with the picture
-  )
+  # Port and sample types used here and defined by their owners:
+  # PiSensor.CaptureRequest, PiSensor.CaptureReply, PiSensor.CaptureStatus (Components/CapturePorts)
+  # PiSensor.SamplesGet, PiSensor.SensorSamples, PiSensor.Validity (Components/SensorMonitor)
 
-  @ Result of one picture acquisition
-  port PictureDone(
-    context: U32 @< Context of the request
-    status: Fw.Success @< SUCCESS when the buffer holds one picture
-    captureTime: Fw.TimeValue @< Time the picture was acquired, time base of the system time source
-    ref picture: Fw.Buffer @< The picture, to be returned to the camera
-  )
-
-  @ Temperature sample or record
-  struct TemperatureSample {
-    valid: bool @< Validity mark
-    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
+  @ Temperature record of a product
+  struct TemperatureRecord {
+    valid: Validity @< Validity mark set by the product manager
+    sampleTime: Fw.TimeValue @< Time of the sample, system time source
     temperature: F32 @< degC
   }
 
-  @ Attitude sample or record
-  struct AttitudeSample {
-    valid: bool @< Validity mark
-    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
-    roll: F32 @< deg, about the sensor x axis, from gravity
-    pitch: F32 @< deg, about the sensor y axis, from gravity
-    gyroRate: [3] F32 @< deg/s about the sensor x, y, z axes; no yaw angle is given
+  @ Attitude record of a product
+  struct AttitudeRecord {
+    valid: Validity @< Validity mark set by the product manager
+    sampleTime: Fw.TimeValue @< Time of the sample, system time source
+    roll: F32 @< deg, -180 to 180, in the MPU6050 body frame
+    pitch: F32 @< deg, -90 to 90, in the MPU6050 body frame
+    gyro: FprimeSensors.GeometricVector3 @< deg/s about the MPU6050 body axes; no yaw angle is given
   }
 
-  @ Location sample or record
-  struct LocationSample {
-    valid: bool @< Validity mark
-    sampleTime: Fw.TimeValue @< Time of the sample, time base of the system time source
-    latitude: F64 @< deg, WGS 84, north positive
-    longitude: F64 @< deg, WGS 84, east positive
-    altitude: F32 @< m above mean sea level, as the receiver reports
+  @ Location record of a product
+  struct LocationRecord {
+    valid: Validity @< Validity mark set by the product manager
+    sampleTime: Fw.TimeValue @< Time of the sample, system time source
+    latitude: F64 @< deg, north positive
+    longitude: F64 @< deg, east positive
+    altitude: F64 @< m above mean sea level
   }
-
-  @ Latest sample of every metric
-  struct SampleSet {
-    temperature: TemperatureSample
-    attitude: AttitudeSample
-    location: LocationSample
-  }
-
-  @ Request for the latest sample of every metric
-  port SamplesGet(
-    ref samples: SampleSet @< Filled by the callee
-  )
 
   @ Product manager: capture, downlink, delete and list commands; builds the data product
   active component ProductManager {
@@ -139,8 +118,8 @@ module PiSensor {
     @ Picture request to the camera
     output port captureOut: CaptureRequest
 
-    @ Picture or failure from the camera
-    async input port imageIn: PictureDone hook
+    @ Picture or failure reason from the camera
+    async input port imageIn: CaptureReply hook
 
     @ Picture buffer back to the camera
     output port imageReturnOut: Fw.BufferSend
@@ -169,13 +148,13 @@ module PiSensor {
     product record CaptureTime: Fw.TimeValue id 0
 
     @ Temperature at capture
-    product record Temperature: TemperatureSample id 1
+    product record Temperature: TemperatureRecord id 1
 
     @ Attitude at capture
-    product record Attitude: AttitudeSample id 2
+    product record Attitude: AttitudeRecord id 2
 
     @ Location at capture
-    product record Location: LocationSample id 3
+    product record Location: LocationRecord id 3
 
     @ The picture, JPEG bytes as delivered
     product record Picture: U8 array id 4
@@ -216,7 +195,8 @@ module PiSensor {
     @ The camera gave no usable picture
     event CaptureFailed(
       reason: CaptureFailure
-    ) severity warning high format "Capture failed: {}"
+      status: CaptureStatus @< Status of the camera reply, OK when none arrived
+    ) severity warning high format "Capture failed: {}, camera status {}"
 
     @ The product could not be stored
     event StorageFailed(

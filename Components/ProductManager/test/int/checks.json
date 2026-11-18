@@ -28,8 +28,7 @@
   ]
  },
  "L2-1": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -37,7 +36,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductWritten count == 1, naming P",
@@ -46,7 +47,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -77,8 +79,7 @@
   ]
  },
  "L2-2": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -86,7 +87,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductWritten count == 2, naming P1 and P2, different",
@@ -96,7 +99,8 @@
      "names": [
       "P1",
       "P2"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -135,8 +139,7 @@
   ]
  },
  "L2-3": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -144,7 +147,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductWritten count == 3, naming P1, P2 and P3, all different",
@@ -155,7 +160,8 @@
       "P1",
       "P2",
       "P3"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -180,7 +186,8 @@
      "count": 1,
      "names": [
       "P2"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -204,8 +211,7 @@
   ]
  },
  "L2-4": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -213,7 +219,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductDeleted count == 1, naming P1",
@@ -222,7 +230,8 @@
      "count": 1,
      "names": [
       "P1"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -250,7 +259,8 @@
      "count": 1,
      "names": [
       "P2"
-     ]
+     ],
+     "prefix": ""
     }
    },
    "event productManager.ProductsListed(count=1) count == 1",
@@ -266,6 +276,14 @@
  "L5-1": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "dispatched_before_event_by",
     "text": "the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten",
     "args": {
@@ -276,14 +294,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
    {
     "helper": "event_severity",
@@ -308,7 +318,20 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductStored count == 1, naming P",
+    "args": {
+     "event": "productManager.ProductStored",
+     "count": 1,
+     "names": [
+      "P"
+     ],
+     "prefix": ""
     }
    },
    {
@@ -332,6 +355,14 @@
  "L5-2": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "dispatched_before_event_by",
     "text": "the command sent after the first CAPTURE is dispatched at least 1 s (one run tick) before event productManager.ProductWritten",
     "args": {
@@ -342,14 +373,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
    {
     "helper": "event_severity",
@@ -375,7 +398,21 @@
      "names": [
       "P1",
       "P2"
-     ]
+     ],
+     "prefix": ""
+    }
+   },
+   {
+    "helper": "event_names",
+    "text": "event productManager.ProductStored count == 2, naming P1 and P2",
+    "args": {
+     "event": "productManager.ProductStored",
+     "count": 2,
+     "names": [
+      "P1",
+      "P2"
+     ],
+     "prefix": ""
     }
    },
    {
@@ -400,6 +437,14 @@
  "L5-3": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "ground_cfdp_service_up",
     "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
     "args": {}
@@ -413,14 +458,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1",
    {
     "helper": "event_severity",
@@ -445,7 +482,8 @@
      "count": 1,
      "names": [
       "P1"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -456,7 +494,8 @@
      "count": 1,
      "names": [
       "P1"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -484,6 +523,14 @@
  "L5-4": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "ground_cfdp_service_up",
     "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
     "args": {}
@@ -497,14 +544,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=DOWNLINK_IN_PROGRESS) count == 1",
    {
     "helper": "event_severity",
@@ -529,7 +568,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -540,7 +580,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -568,6 +609,14 @@
  "L5-5": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "ground_cfdp_service_up",
     "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
     "args": {}
@@ -581,14 +630,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1",
    {
     "helper": "event_severity",
@@ -614,7 +655,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -625,7 +667,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -663,6 +706,14 @@
  "L5-6": {
   "require": [
    {
+    "helper": "dir_listing_equals",
+    "text": "sysTester.DirListing event 1 names no file",
+    "args": {
+     "index": 1,
+     "names": []
+    }
+   },
+   {
     "helper": "ground_cfdp_service_up",
     "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
     "args": {}
@@ -676,14 +727,6 @@
    }
   ],
   "check": [
-   {
-    "helper": "dir_listing_equals",
-    "text": "sysTester.DirListing event 1 names no file",
-    "args": {
-     "index": 1,
-     "names": []
-    }
-   },
    "event productManager.CommandRejected(reason=PRODUCT_IN_DOWNLINK) count == 1",
    {
     "helper": "event_severity",
@@ -708,7 +751,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {
@@ -719,7 +763,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    "event productManager.CommandRejected precedes event productManager.DownlinkComplete",
@@ -732,7 +777,15 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
+    }
+   },
+   {
+    "helper": "ground_cfdp_transactions",
+    "text": "ground CFDP transactions in the window: exactly one, of file P, finished complete",
+    "args": {
+     "count": 1
     }
    },
    {
@@ -754,13 +807,6 @@
  "L6-1": {
   "require": [
    {
-    "helper": "ground_cfdp_service_up",
-    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
-    "args": {}
-   }
-  ],
-  "check": [
-   {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
     "args": {
@@ -768,6 +814,13 @@
      "names": []
     }
    },
+   {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   }
+  ],
+  "check": [
    "event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1",
    {
     "helper": "event_severity",
@@ -816,8 +869,7 @@
   ]
  },
  "L6-2": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -825,7 +877,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    "event productManager.ProductNotFound(name=Dp_missing.fxd) count == 1",
    {
     "helper": "event_severity",
@@ -860,8 +914,7 @@
   ]
  },
  "L6-3": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -869,7 +922,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductNotFound count == 1, naming ./P",
@@ -877,8 +932,9 @@
      "event": "productManager.ProductNotFound",
      "count": 1,
      "names": [
-      "./P"
-     ]
+      "P"
+     ],
+     "prefix": "./"
     }
    },
    {
@@ -916,13 +972,6 @@
  "L6-4": {
   "require": [
    {
-    "helper": "ground_cfdp_service_up",
-    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
-    "args": {}
-   }
-  ],
-  "check": [
-   {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
     "args": {
@@ -931,14 +980,22 @@
     }
    },
    {
+    "helper": "ground_cfdp_service_up",
+    "text": "the ground CFDP service is up for the whole window (record/raw/cfdp.json covers it)",
+    "args": {}
+   }
+  ],
+  "check": [
+   {
     "helper": "event_names",
     "text": "event productManager.ProductNotFound count == 1, naming ./P",
     "args": {
      "event": "productManager.ProductNotFound",
      "count": 1,
      "names": [
-      "./P"
-     ]
+      "P"
+     ],
+     "prefix": "./"
     }
    },
    {
@@ -981,8 +1038,7 @@
   ]
  },
  "L7-1": {
-  "require": [],
-  "check": [
+  "require": [
    {
     "helper": "dir_listing_equals",
     "text": "sysTester.DirListing event 1 names no file",
@@ -990,7 +1046,9 @@
      "index": 1,
      "names": []
     }
-   },
+   }
+  ],
+  "check": [
    {
     "helper": "event_names",
     "text": "event productManager.ProductWritten count == 1, naming P",
@@ -999,7 +1057,8 @@
      "count": 1,
      "names": [
       "P"
-     ]
+     ],
+     "prefix": ""
     }
    },
    {

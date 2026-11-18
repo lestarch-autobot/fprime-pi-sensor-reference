@@ -28,7 +28,7 @@ for _name, _doc in [
     ("dir_listing_equals", "The index-th sysTester.DirListing event of the window names exactly the files `names` (symbols bound to the names of ProductWritten events in order)."),
     ("dir_listings_equal", "The a-th and b-th sysTester.DirListing events of the window carry the same file names and count."),
     ("event_severity", "Every event of the given name in the window has the given severity (severity column of the exported event row)."),
-    ("event_names", "The event occurs `count` times and its `name` arguments are, in order, the products bound to `names`; different symbols are different names."),
+    ("event_names", "The event occurs `count` times and its `name` arguments are, in order, `prefix` followed by the products bound to `names`; different symbols are different names."),
     ("sha_events_equal", "The two sysTester.Sha256 events of the product (pass 1 and 2) carry the same hash; fewer than two events fails."),
     ("ground_file_hash_equals", "sha256 of the ground copy record/raw/files/<product> equals the hash of the first sysTester.Sha256 event of the product."),
     ("ground_cfdp_transactions", "Count, file name and outcome of the CFDP transactions of the window in record/raw/cfdp.json."),
@@ -44,7 +44,7 @@ _seen = {}
 
 
 @planted_fault("capture_twice", applies_to=["L2-1"], cls="stimulus", kind="insert",
-               mechanism="CAPTURE is sent twice in a row; two products are written where the test expects one",
+               mechanism="CAPTURE is sent twice in a row, each awaited to completion as `send()` does for every command it emits; two products are written where the test expects one",
                fails={"L2-1": ["event productManager.ProductWritten count == 1, naming P",
                                "sysTester.DirListing event 2 names P and no other file"]})
 def capture_twice(test_id, command_name, args):
@@ -82,6 +82,8 @@ def delete_other(test_id, command_name, args):
                fails={"L5-1": ["event productManager.CommandRejected(reason=CAPTURE_IN_PROGRESS) count == 1",
                                "exactly one command fails (cmdDisp.OpCodeError) and it is the rejected CAPTURE; every other command completes"]})
 def second_capture_dropped(test_id, command_name, args):
+    if _is(command_name, "LIST_DIR"):
+        _seen[(test_id, "cap")] = 0  # every test starts with LIST_DIR: a repeated pass starts its count again
     if _is(command_name, "CAPTURE"):
         n = _seen.get((test_id, "cap"), 0) + 1
         _seen[(test_id, "cap")] = n

@@ -76,11 +76,36 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 | `DELETE` | product name | the downlink of the named product |
 | `LIST_PRODUCTS` | none | a listing |
 
+Table 3: allocated system requirement (REQ-PiSensor-) and the rows (REQ-ProductManager-) that trace to it.
+
+| System requirement | Rows |
+|---|---|
+| REQ-PiSensor-004 | 001, 004 |
+| REQ-PiSensor-005 | 002, 003, 004, 005, 006, 012, 013, 015, 044, 046 |
+| REQ-PiSensor-006 | 007 |
+| REQ-PiSensor-007 | 008, 009 |
+| REQ-PiSensor-008 | 010 |
+| REQ-PiSensor-009 | 011 |
+| REQ-PiSensor-010 | 013, 018, 021 |
+| REQ-PiSensor-011 | 014 |
+| REQ-PiSensor-012 | 026, 027, 029 |
+| REQ-PiSensor-014 | 034, 042 |
+| REQ-PiSensor-028 | 016, 017, 018 |
+| REQ-PiSensor-029 | 019, 022, 023, 024 |
+| REQ-PiSensor-030 | 025, 041, 045 |
+| REQ-PiSensor-031 | 020, 021 |
+| REQ-PiSensor-032 | 033 |
+| REQ-PiSensor-033 | 031, 041 |
+| REQ-PiSensor-034 | 028, 049 |
+| REQ-PiSensor-035 | 030, 032 |
+| REQ-PiSensor-038 | 036, 037, 038, 039, 040, 042, 043, 048 |
+| REQ-PiSensor-041 | 035, 041 |
+
 ### External References
 
 | Document | Identifier / Revision | Type | Governs |
 |---|---|---|---|
-| PiSensor SSDD | `docs/ssdd.md` at `383a9ce` | System design | Allocated requirements REQ-PiSensor-004 to -041, decisions D1 to D13 |
+| PiSensor SSDD | `docs/ssdd.md` at `0f3a6b1` | System design | Allocated requirements REQ-PiSensor-004 to -041, decisions D1 to D13 |
 | F Prime data product file format | nasa/fprime v4.4.2, `Fw/Dp/docs/sdd.md` | Format | REQ-ProductManager-006 |
 | F Prime data product file name | nasa/fprime v4.4.2, `DP_FILENAME_FORMAT` of `config/DpCfg.hpp` | Format | REQ-ProductManager-046 |
 | JPL Design Principles | DP10, External Release V4, rule 4.4.6.4 | Standard | REQ-ProductManager-047 |
@@ -91,7 +116,7 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 
 ```
                                    ┌──────────────────┐
-              imageIn : PictureDone □                  □ captureOut : CaptureRequest
+             imageIn : CaptureReply □                  □ captureOut : CaptureRequest
   fileDoneIn : Svc.SendFileComplete □  ProductManager  □ imageReturnOut : Fw.BufferSend
                     run : Svc.Sched □     (active)     □ samplesGetOut : SamplesGet
                                     │                  □ sendFileOut : Svc.SendFileRequest
@@ -106,7 +131,7 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 | Name | Kind | Type | Purpose |
 |---|---|---|---|
 | `captureOut` | output | `CaptureRequest` | Ask the camera for one picture |
-| `imageIn` | async input, hook | `PictureDone` | Picture or failure, with acquisition time |
+| `imageIn` | async input, hook | `CaptureReply` | Picture with acquisition time, or failure reason |
 | `imageReturnOut` | output | `Fw.BufferSend` | Return the picture buffer |
 | `samplesGetOut` | output | `SamplesGet` | Read the latest sample set |
 | `productGetOut` | product get | `Fw.DpGet` | Get a product buffer |
@@ -115,7 +140,7 @@ Table 2: commands, and the activity during which each is rejected with `CommandR
 | `fileDoneIn` | async input, hook | `Svc.SendFileComplete` | File transfer ended |
 | `run` | async input, drop | `Svc.Sched` | 1 Hz tick: time-outs, stored check, listing |
 
-The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow the hooks, which run in the caller's thread, return the picture buffer to the camera and answer a command with `BUSY`; the `fileDoneIn` hook stores the status in a member guarded by a mutex, and the next `run` tick ends the downlink with it. The mutex is held only to copy the status, with no port call under it; each tick empties the member and drops its content outside a downlink, and `DOWNLINK` clears it before calling `sendFileOut`.
+The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut` are synchronous calls from its thread. On queue overflow a command hook answers `BUSY`; the `imageIn` and `fileDoneIn` hooks, which run in the caller's thread, store the reply in a member under a mutex and call no port, and the next `run` tick handles it as a queued one. The mutex is held only to copy the reply; each tick empties both members, a stored transfer report is dropped outside a downlink, and `DOWNLINK` clears it before calling `sendFileOut`.
 
 ### 3.3. State
 
@@ -125,9 +150,9 @@ The component is event-driven; `samplesGetOut`, `productGetOut` and `sendFileOut
 | `m_captureContext`, `m_captureTicks` | `U32` | Number of the current capture, compared for equality with `imageIn`, wraps at 2^32; ticks in its state |
 | `m_captureName` | file name | Product of the current capture; empty in `IDLE` |
 | `m_discardName`, `m_discardTicks` | file name; `U32` | File of the last capture failed in `WAIT_WRITTEN`; ticks left to remove it if it appears |
-| `m_downlink`, `m_downlinkName`, `m_fileDoneLost` | `IDLE`, `ACTIVE`; file name; status under a mutex | Downlink activity, its product, a transfer report the queue could not take |
-| `m_listing`, `m_listCount` | `IDLE`, `ACTIVE`; `U32` | Listing activity and its event count |
-| `m_scanned` | `bool` | Start-up scan done |
+| `m_downlink`, `m_downlinkName` | `IDLE`, `ACTIVE`; file name | Downlink activity and its product |
+| `m_replyLost`, `m_fileDoneLost` | replies under a mutex | A camera reply and a transfer report the queue could not take |
+| `m_listing`, `m_listCount`, `m_scanned` | `IDLE`, `ACTIVE`; `U32`; `bool` | Listing activity, its event count, start-up scan done |
 
 ```mermaid
 stateDiagram-v2
@@ -156,12 +181,12 @@ productManager.configure(productDirectory);  // the directory Svc.DpWriter write
 ```
 
 `run` is driven at 1 Hz; time-outs count dispatched ticks, so a dropped tick lengthens them by 1 s. The product name is formed with `DP_FILENAME_FORMAT` from the container id and the capture time, the rule `Svc.DpWriter` applies; a clock that steps back can repeat a name, and that capture fails with `StorageFailed(NAME_IN_USE)`.
-Preconditions on the deployment: `productDirectory` is at most 59 characters (`configure` asserts it) and only `Svc.DpWriter` writes product files to it; `cfdpManager` parameters `FileInDefaultKeep = KEEP` and `FileInDefaultClass = CLASS_2`; the product buffer pool holds the largest picture of `piCamera` plus 200 bytes; the queue holds at least 20 messages. The start-up scan is one handler call of at most `SCAN_MAX_ENTRIES` entries; commands sent during it wait in the queue or get `BUSY`.
+The model uses `CaptureRequest`, `CaptureReply` and `CaptureStatus` of `Components/CapturePorts` and `SamplesGet`, `SensorSamples` and `Validity` of `Components/SensorMonitor`. A product name is at most 36 characters, inside the 40 of a command string argument. Preconditions on the deployment: `productDirectory` is at most 59 characters (`configure` asserts it), may be relative to the working directory, and only `Svc.DpWriter` writes product files to it; `cfdpManager` parameters `FileInDefaultKeep = KEEP` and `FileInDefaultClass = CLASS_2`; the product buffer pool holds the largest picture of `piCamera` plus 200 bytes; the queue holds at least 20 messages. The start-up scan is one handler call of at most `SCAN_MAX_ENTRIES` entries; commands sent during it wait in the queue or get `BUSY`.
 
 ### 3.5. Behavior
 
 The first message dispatched runs the start-up scan, one pass of at most `SCAN_MAX_ENTRIES` entries: it removes every partial product and always ends with `ScanComplete`, whose `truncated` tells a scan cut short or failed. Header lengths are read with `Fw::DpContainer`; a product file that cannot be opened or read is left in place and reported with `FileSystemError(FILE_READ)` naming it, a `DOWNLINK` or `DELETE` naming it fails with that event, and a scan, listing or `WAIT_WRITTEN` check goes on.
-`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns the buffer in every case and acts only on the context of the current capture: it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way: on a tick it runs before the `WAIT_WRITTEN` time-out.
+`CAPTURE` increments `m_captureContext` and requests a picture. `imageIn` returns each valid buffer and acts only on the context of the current capture: a status other than `OK` fails it with `CaptureFailed` carrying the status; else it reads the samples, sets each validity mark from the absolute time difference, fails the capture when the product name is that of a stored product, fills the container with the capture time as its time tag, and sends it. In `WAIT_WRITTEN` each tick tests whether `m_captureName` is a stored product and completes the capture on it; until then the file is `Svc.DpWriter`'s. At 5 ticks the capture fails and its file is removed, at once if present and during `DISCARD_RECHECK_TICKS` ticks if it appears; a missing file is not an error, and the re-check ends before a later capture can fail the same way: on a tick it runs before the `WAIT_WRITTEN` time-out.
 `DOWNLINK` and `DELETE` act on a stored product; the file of a capture in `WAIT_WRITTEN` or under re-check is not one, and a command naming it fails with `ProductNotFound`. `DOWNLINK` calls `sendFileOut` with the product as source and its name as destination; `fileDoneIn` ends the downlink and is ignored outside one. No time-out runs on a downlink: a transfer that does not end is ended from the ground with `cfdpManager.CancelTransaction`. `LIST_PRODUCTS` opens the directory and `run` reports its stored products. Section 6 holds the timing diagrams.
 
 ## 4. Data Product Format
@@ -173,20 +198,20 @@ The first message dispatched runs the start-up scan, one pass of at most `SCAN_M
 | Record | Id | Type | Count |
 |---|---|---|---|
 | `CaptureTime` | 0 | `Fw.TimeValue` | 1 |
-| `Temperature` | 1 | `TemperatureSample` | 1 |
-| `Attitude` | 2 | `AttitudeSample` | 1 |
-| `Location` | 3 | `LocationSample` | 1 |
+| `Temperature` | 1 | `TemperatureRecord` | 1 |
+| `Attitude` | 2 | `AttitudeRecord` | 1 |
+| `Location` | 3 | `LocationRecord` | 1 |
 | `Picture` | 4 | `U8` array, JPEG bytes as delivered | picture size |
 
 | Struct | Field | Type | Value |
 |---|---|---|---|
-| all three | `valid` | `bool` | Validity mark |
+| all three | `valid` | `Validity` | `VALID` or `INVALID`, set by the component |
 | all three | `sampleTime` | `Fw.TimeValue` | Sample time |
-| `TemperatureSample` | `temperature` | `F32` | °C |
-| `AttitudeSample` | `roll`, `pitch` | `F32` | ° |
-| `AttitudeSample` | `gyroRate` | `[3] F32` | °/s, x y z |
-| `LocationSample` | `latitude`, `longitude` | `F64` | ° |
-| `LocationSample` | `altitude` | `F32` | m |
+| `TemperatureRecord` | `temperature` | `F32` | °C |
+| `AttitudeRecord` | `roll`, `pitch` | `F32` | °, MPU6050 body frame |
+| `AttitudeRecord` | `gyro` | `FprimeSensors.GeometricVector3` | °/s about the body x, y, z axes |
+| `LocationRecord` | `latitude`, `longitude` | `F64` | °, north and east positive |
+| `LocationRecord` | `altitude` | `F64` | m above mean sea level |
 
 ## 5. Ground Interface
 
@@ -200,7 +225,7 @@ The first message dispatched runs the start-up scan, one pass of at most `SCAN_M
 | Event | Severity | Arguments | Meaning |
 |---|---|---|---|
 | `ProductWritten` | activity high | name, size | A capture ended with its product stored |
-| `CaptureFailed` | warning high | reason | The camera gave no usable picture |
+| `CaptureFailed` | warning high | reason, camera status | The camera gave no usable picture |
 | `StorageFailed` | warning high | reason | The product could not be stored |
 | `CommandRejected` | warning low | reason | Command refused during an activity (Table 2) |
 | `DownlinkStarted` | activity high | name | The file transfer accepted the product |
@@ -236,7 +261,7 @@ sequenceDiagram
     participant D as DataProducts
     G->>P: CAPTURE
     P->>C: captureOut(context)
-    C-->>P: imageIn(context, SUCCESS, captureTime, picture)
+    C-->>P: imageIn(context, OK, acquired, picture)
     P->>S: samplesGetOut(samples)
     P->>D: productGetOut, productSendOut
     P->>C: imageReturnOut(picture)
@@ -271,6 +296,7 @@ sequenceDiagram
 | Delivering the picture within 1 s of its acquisition time | `piCamera` |
 | Changing the time-outs in flight | none: rebuild (REQ-ProductManager-018, -021) |
 | Files of the product directory not named as product files | left untouched and unlisted |
+| Keeping a downlink apart from an earlier one after a restart | ground procedure: CFDP transaction numbers start again at 1 at each start of the deployment and `Svc.SendFileRequest` carries none, so before the first `DOWNLINK` after a `sysTester.Started` or restart the ground removes its finished and failed transactions of the flight entity; a downlink that does not complete is repeated |
 | Hardware input and output | none: camera, sensors and radio are reached through ports, files through the operating system |
 
 ## 8. Tests
@@ -310,7 +336,7 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 | StaleMetric | A sample exactly 2 s from capture time is valid; one further, either side, invalid. | REQ-ProductManager-009, REQ-ProductManager-010 |
 | SourceInvalid | A metric its source reports invalid is marked invalid, the others unaffected. | REQ-ProductManager-011 |
 | BufferReturned | Every delivered picture buffer is returned once, in success and in every failure. | REQ-ProductManager-012 |
-| CameraFailure | A failure status fails the capture with CaptureFailed and writes no product. | REQ-ProductManager-016, REQ-ProductManager-019 |
+| CameraFailure | Each camera status other than OK fails the capture with CaptureFailed carrying it. | REQ-ProductManager-016, REQ-ProductManager-019 |
 | EmptyPicture | An empty picture fails the capture with CaptureFailed. | REQ-ProductManager-017 |
 | PictureTimeout | No picture in 20 ticks fails the capture; 19 ticks do not. | REQ-ProductManager-018 |
 | LatePicture | A picture of an earlier capture or outside a capture writes no product. | REQ-ProductManager-019, REQ-ProductManager-012 |
@@ -339,6 +365,6 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 | ListBusy | A LIST_PRODUCTS during a listing is rejected. | REQ-ProductManager-039 |
 | CommandsDuringActivity | Commands Table 2 does not reject behave as when idle during each activity. | REQ-ProductManager-041 |
 | FileSystemErrors | A failed remove or directory read fails the command with FileSystemError. | REQ-ProductManager-042 |
-| QueueOverflow | A picture that cannot be queued is returned; a command gets a busy response. | REQ-ProductManager-044, REQ-ProductManager-045 |
+| QueueOverflow | A camera reply that cannot be queued is handled next tick; a command gets BUSY. | REQ-ProductManager-044, REQ-ProductManager-045 |
 | StrayFileDone | A transfer report outside a downlink changes nothing. | REQ-ProductManager-027 |
 | StaleFileDone | A report stored outside a downlink is dropped and does not end the next downlink. | REQ-ProductManager-027, REQ-ProductManager-049 |
