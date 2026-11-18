@@ -7,7 +7,7 @@
   "reserved_min": 4294901760
  },
  "event_patterns": {
-  "sysTester.Marker": "SystemTester marker (?P<id>\\d+)$"
+  "sysTester.Marker": "Marker (?P<id>\\d+)$"
  },
  "packets": {
   "Heartbeat": [
