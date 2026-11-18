@@ -138,6 +138,8 @@ module PiSensor {
       rateGroupDriver.CycleOut[0] -> rateGroup10Hz.CycleIn
       rateGroupDriver.CycleOut[1] -> rateGroup1Hz.CycleIn
       # Members: see the instance table in docs/ssdd.md.
+      rateGroup1Hz.RateGroupMemberOut[7] -> cfdpManager.run1Hz
+      rateGroup1Hz.RateGroupMemberOut[8] -> fileManager.schedIn
     }
 
     connections Sensors {
@@ -185,6 +187,8 @@ module PiSensor {
       ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> cfdpManager.dataReturnIn[0]
       ComCcsds.Subtopology.fileUplinkOut -> cfdpManager.dataIn[0]
       cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
+      cfdpManager.bufferAllocate[0] -> ComCcsds.Subtopology.commsBufferGetCallee
+      cfdpManager.bufferDeallocate[0] -> ComCcsds.Subtopology.commsBufferSendIn
     }
   }
 }

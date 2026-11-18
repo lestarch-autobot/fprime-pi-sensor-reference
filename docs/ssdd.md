@@ -125,6 +125,7 @@ at Approve SSDD.
 | `Rfm69.Subtopology` | subtopology | Sends and receives frames by packet radio (flight configuration) | RFM69 on SPI0 CE1 and its reset GPIO |
 | `groundRadio` | ground element | Passes frames between the ground RFM69 and fprime-yamcs (flight configuration) | Ground Pi with RFM69 |
 | `tcpLink` | component | Sends and receives frames over TCP (prototype configuration) | TCP socket to the ground host |
+| `sysTester` | component (test harness) | Marker command and event, start report, uptime channel for system tests; serves no requirement (decision D13). Built into the base deployment and the system-test image | — |
 | `sensorMonitor` | component | Publishes Table 1 telemetry with validity; reports sensor loss; serves samples; reads the MPU6050 identity register through the IMU bus driver; reads the fix field and arrival time of each GPS sentence | — |
 | `piCamera` | component | Acquires one JPEG and its acquisition time per request | Pi Camera on CSI |
 | `productManager` | component | Runs capture, downlink and delete commands; builds the data product; lists and deletes product files through the OS file interface | — |
@@ -310,9 +311,9 @@ configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 | REQ-PiSensor-022 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channel of each metric while its sensor is failed | system test |
 | REQ-PiSensor-023 | set | `Bmp`, `Imu`, `Gps`, `Cdh`, `sensorMonitor` | Validity channels after each sensor returns, no restart | system test |
 | REQ-PiSensor-024 | set | `Gps`, `Cdh`, `sensorMonitor` | Fix validity channel while the receiver reports no fix | system test |
-| REQ-PiSensor-025 | component | member `NmeaGps.frameAccumulator` of `PiGps`, as configured with `NmeaDetector` | A bad-checksum sentence with a new position is not passed on; the next good sentence is | component test |
+| REQ-PiSensor-025 | set | `Gps`, `Cdh`, `sensorMonitor` | Location channel unchanged after a bad-checksum sentence; changed after the next good one | system test |
 | REQ-PiSensor-026 | component | `Bmp280.bmpManager` | Read-failure event on a wrong identity value; none on the right value | component test |
-| REQ-PiSensor-027 | component | `ComCcsds.tcDeframer` | A corrupted frame is not passed on; the same frame uncorrupted is | component test |
+| REQ-PiSensor-027 | set | `link`, `Com`, `Cdh` | No command dispatched for a corrupted frame; the next intact command is dispatched | system test |
 | REQ-PiSensor-028 | set | `piCamera`, `productManager` | Command response and `WARNING_HI` event | system test |
 | REQ-PiSensor-029 | set | `productManager`, `piCamera`, `Dp` | No product file after the failed or interrupted capture | system test |
 | REQ-PiSensor-030 | component | `productManager` | `WARNING_LO` event; first capture's product complete | component test |
