@@ -5,50 +5,16 @@ module PiSensor {
     rateGroup1Hz
   }
 
-  @ GPS subtopology: the members of NmeaGps.Subtopology, with the sentence
-  @ path from the accumulator to the GPS adapter left open for sensorMonitor
-  topology PiGps {
-    instance NmeaGps.gpsManager
-    instance NmeaGps.gpsAdapter
-    instance NmeaGps.frameAccumulator
-    instance NmeaGps.driverInterface
-    instance NmeaGps.driver
-    instance NmeaGps.bufferManager
-
-    connections Gps {
-      NmeaGps.gpsAdapter.bufferLikeOut -> NmeaGps.gpsManager.dataIn
-      NmeaGps.gpsManager.dataReturnOut -> NmeaGps.gpsAdapter.bufferLikeIn
-      NmeaGps.frameAccumulator.bufferAllocate -> NmeaGps.bufferManager.bufferGetCallee
-      NmeaGps.frameAccumulator.bufferDeallocate -> NmeaGps.bufferManager.bufferSendIn
-      NmeaGps.gpsAdapter.commLikeOut -> NmeaGps.frameAccumulator.dataReturnIn
-      NmeaGps.driverInterface.commLikeOut -> NmeaGps.frameAccumulator.dataIn
-      NmeaGps.frameAccumulator.dataReturnOut -> NmeaGps.driverInterface.commLikeIn
-      NmeaGps.driver.$recv -> NmeaGps.driverInterface.byteStreamLikeIn
-      NmeaGps.driverInterface.bufferLikeOut -> NmeaGps.driver.recvReturnIn
-      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
-      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
-    }
-  }
-
-  @ File handling subtopology: the member components of the catalog
-  @ FileHandlingCfdp.Subtopology, instantiated here because the catalog
-  @ instance of cfdpManager does not compile at the pinned ref
-  topology PiFileHandling {
-    instance cfdpManager
-    instance fileManager
-    instance prmDb
-  }
-
   @ Base deployment: inherited elements only, prototype link over TCP
   deployment topology PiSensor {
 
     instance CdhCore.Subtopology
     instance ComCcsds.Subtopology
-    instance PiFileHandling
+    instance FileHandlingCfdp.Subtopology
     instance DataProducts.Subtopology
     instance Bmp280.Subtopology
     instance MpuImu.Subtopology
-    instance PiGps
+    instance NmeaGps.Subtopology
     instance Rfm69.Subtopology
 
     instance linuxTimer
@@ -57,14 +23,13 @@ module PiSensor {
     instance rateGroup1Hz
     instance posixTime
     instance tcpLink
-    instance sysTester
 
     command connections instance CdhCore.cmdDisp
     event connections instance CdhCore.events
     telemetry connections instance CdhCore.tlmSend
     text event connections instance CdhCore.textLogger
     health connections instance CdhCore.$health
-    param connections instance prmDb
+    param connections instance FileHandlingCfdp.prmDb
     time connections instance posixTime
 
     connections RateGroups {
@@ -85,14 +50,14 @@ module PiSensor {
       rateGroup1Hz.RateGroupMemberOut[4] -> DataProducts.Subtopology.dpBufferManagerSchedIn
       rateGroup1Hz.RateGroupMemberOut[5] -> DataProducts.Subtopology.dpWriterSchedIn
       rateGroup1Hz.RateGroupMemberOut[6] -> DataProducts.Subtopology.dpMgrSchedIn
-      rateGroup1Hz.RateGroupMemberOut[7] -> cfdpManager.run1Hz
-      rateGroup1Hz.RateGroupMemberOut[8] -> fileManager.schedIn
-      rateGroup1Hz.RateGroupMemberOut[9] -> sysTester.run
+      rateGroup1Hz.RateGroupMemberOut[7] -> FileHandlingCfdp.cfdpManager.run1Hz
+      rateGroup1Hz.RateGroupMemberOut[8] -> FileHandlingCfdp.fileManager.schedIn
     }
 
     connections Sensors {
-      # Placeholder for sensorMonitor: the sentence path is closed directly.
-      NmeaGps.frameAccumulator.dataOut -> NmeaGps.gpsAdapter.commLikeIn
+      # Not connected and not exported by NmeaGps.Subtopology as shipped.
+      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
+      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
     }
 
     connections Communications {
@@ -107,17 +72,22 @@ module PiSensor {
       Rfm69.rfm69Manager.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
     }
 
+    connections DataProducts {
+      DataProducts.Subtopology.dpCatFileOut -> FileHandlingCfdp.cfdpManager.fileIn
+      FileHandlingCfdp.cfdpManager.fileDoneOut -> DataProducts.Subtopology.dpCatFileDone
+    }
+
     connections Spine {
       CdhCore.Subtopology.eventsPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.EVENTS]
       CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
       ComCcsds.Subtopology.commandOut -> CdhCore.Subtopology.seqCmdBuff
       CdhCore.Subtopology.seqCmdStatus -> ComCcsds.Subtopology.cmdResponseIn
-      cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
-      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> cfdpManager.dataReturnIn[0]
-      ComCcsds.Subtopology.fileUplinkOut -> cfdpManager.dataIn[0]
-      cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
-      cfdpManager.bufferAllocate[0] -> ComCcsds.Subtopology.commsBufferGetCallee
-      cfdpManager.bufferDeallocate[0] -> ComCcsds.Subtopology.commsBufferSendIn
+      FileHandlingCfdp.cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
+      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> FileHandlingCfdp.cfdpManager.dataReturnIn[0]
+      ComCcsds.Subtopology.fileUplinkOut -> FileHandlingCfdp.cfdpManager.dataIn[0]
+      FileHandlingCfdp.cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
+      FileHandlingCfdp.cfdpManager.bufferAllocate[0] -> ComCcsds.Subtopology.commsBufferGetCallee
+      FileHandlingCfdp.cfdpManager.bufferDeallocate[0] -> ComCcsds.Subtopology.commsBufferSendIn
     }
   }
 }

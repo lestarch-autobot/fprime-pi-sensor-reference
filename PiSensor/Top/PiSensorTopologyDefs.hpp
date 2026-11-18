@@ -6,10 +6,12 @@
 #include "Svc/Subtopologies/CdhCore/PingEntries.hpp"
 #include "Svc/Subtopologies/ComCcsds/PingEntries.hpp"
 #include "Svc/Subtopologies/DataProducts/PingEntries.hpp"
+#include "Svc/Subtopologies/FileHandlingCfdp/PingEntries.hpp"
 
 #include "Svc/Subtopologies/CdhCore/SubtopologyTopologyDefs.hpp"
 #include "Svc/Subtopologies/ComCcsds/SubtopologyTopologyDefs.hpp"
 #include "Svc/Subtopologies/DataProducts/SubtopologyTopologyDefs.hpp"
+#include "Svc/Subtopologies/FileHandlingCfdp/SubtopologyTopologyDefs.hpp"
 
 #include "fprime-sensors/Bmp280/Subtopology/SubtopologyTopologyDefs.hpp"
 #include "fprime-sensors/MpuImu/Subtopology/SubtopologyTopologyDefs.hpp"
@@ -26,15 +28,6 @@ enum { WARN = 3, FATAL = 5 };
 namespace PiSensor_rateGroup1Hz {
 enum { WARN = 3, FATAL = 5 };
 }
-namespace PiSensor_cfdpManager {
-enum { WARN = 3, FATAL = 5 };
-}
-namespace PiSensor_fileManager {
-enum { WARN = 3, FATAL = 5 };
-}
-namespace PiSensor_prmDb {
-enum { WARN = 3, FATAL = 5 };
-}
 }  // namespace PingEntries
 
 namespace PiSensor {
@@ -46,6 +39,7 @@ struct TopologyState {
     CdhCore::SubtopologyState cdhCore;
     ComCcsds::SubtopologyState comCcsds;
     DataProducts::SubtopologyState dataProducts;
+    FileHandlingCfdp::SubtopologyState fileHandlingCfdp;
     Bmp280::SubtopologyState bmp;          //!< BMP280 SPI bus and chip select
     MpuImu::SubtopologyState mpu;          //!< MPU6050 I2C device
     NmeaGps::SubtopologyState gps;         //!< GPS UART device and baud rate
