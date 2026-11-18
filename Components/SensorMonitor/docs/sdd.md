@@ -88,7 +88,7 @@ Table 2 — sensors.
 | `imuIdentityOut` | output | `Drv.I2cWriteRead` | MPU6050 identity register read |
 | `gpsSentenceOut` | output | `Svc.ComDataWithContext` | GPS sentence passed on |
 
-The component is a cyclic passive component with a pass-through tap: four inputs are guarded because the 10 Hz rate group, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. `run` is `sync`: it reads the identity register before it takes the same guard for the evaluation, so a slow bus delays only the 1 Hz rate group. A guarded call waits for at most one evaluation or one GPS sentence pass-through. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `NmeaGps.bufferManager` guard, `tlmSend` guard; no component called from a handler may call a `sensorMonitor` input.
+The component is a cyclic passive component with a pass-through tap: four inputs are guarded because the 10 Hz rate group, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. `run` is `sync`: it reads the identity register before it takes the same guard for the evaluation, so the component guard is never held across a bus transaction; `run` has one caller, `rateGroup1Hz`. The identity read holds the IMU bus driver guard, so `imuManager` in the 10 Hz rate group can wait for one identity read. A guarded call waits for at most one evaluation or one GPS sentence pass-through. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `NmeaGps.bufferManager` guard, `tlmSend` guard; no component called from a handler may call a `sensorMonitor` input.
 
 ### State
 
@@ -100,7 +100,7 @@ The component is a cyclic passive component with a pass-through tap: four inputs
 | `m_missedCalls[3]` | 0 to `SENSOR_LOSS_CALLS` | schedule calls in a row without a new reading (BMP280, MPU6050) or sentence (GPS); saturates |
 | `m_identityFails` | 0 to `MPU6050_IDENTITY_FAIL_CALLS` | identity reads in a row that failed; saturates |
 | `m_identityStatus`, `m_identityValue` | `Drv.I2cStatus`, `U8` | result of the latest identity read |
-| `m_lost[3]` | false, true | sensor is lost |
+| `m_lost[3]` | false, true | sensor is lost; every member above and below is written only under the guard, the `configure` members only before any thread starts |
 | `m_sentenceSeen` | false, true | a GPS sentence arrived since the schedule call before |
 | `m_fixQuality` | 0 to 8, 0xFF | quality indicator of the newest GGA sentence; 0xFF before any and when the field is not one digit 0 to 8 |
 
@@ -117,18 +117,18 @@ constant MPU6050_IDENTITY_VALUE = 0x68
 ```cpp
 // once, before the rate groups start: the GPS manager's Reading channel id and the
 // address also given to imuManager.configure
-sensorMonitor.configure(NmeaGps::gpsManager.getIdBase() + NmeaGps::GpsManager::CHANNELID_READING, mpuAddress);
+sensorMonitor.configure(NmeaGps::gpsManager.getIdBase() + GPS_READING_CHANNEL_OFFSET, mpuAddress);
 ```
 
 ```fpp
 instance sensorMonitor: PiSensor.SensorMonitor base id 0x10009000
 ```
 
-The Table 1 limits are constants in `SensorMonitor.hpp`. `bmpManager` and `imuManager` run in `rateGroup10Hz` and push a reading on every good read, `sensorMonitor` runs in `rateGroup1Hz`, and the GPS manager publishes on the GPS receive thread, so a GPS reading is up to one GGA period old at a schedule call.
+The Table 1 limits are constants in `SensorMonitor.hpp`; `GPS_READING_CHANNEL_OFFSET` (0 at the pinned catalog commit) is a constant of the topology definitions, because the generated channel id of the inherited manager is not public. `bmpManager` and `imuManager` run in `rateGroup10Hz` and push a reading on every good read, `sensorMonitor` runs in `rateGroup1Hz`, and the GPS manager publishes on the GPS receive thread, so a GPS reading is up to one GGA period old at a schedule call.
 
 ### Port Handlers
 
-- **`run`**: admitted once configured. It reads the identity register once, then under the guard takes one time for the call, fetches the GPS reading, updates each sensor's loss state with its events, and writes every channel with that time.
+- **`run`**: admitted once configured. It reads the identity register once into local variables, then takes the guard, releases it on every exit path, and under it stores the identity result, takes one time for the call, fetches the GPS reading, updates each sensor's loss state with its events, and writes every channel with that time.
 - **`bmpDataIn`, `imuDataIn`**: admitted on every call. Each stores the reading with the current time and sets its new flag.
 - **`gpsSentenceIn`**: admitted for every buffer. It sets `m_sentenceSeen`, stores the quality indicator when the sentence is a GGA sentence (bounded scan, buffer not written), and sends the same buffer and context on `gpsSentenceOut`.
 - **`samplesGetIn`**: admitted once configured. It fetches the GPS reading and fills `SensorSamples` with the latest values, reading times and validity taken at the request time, with `m_fixQuality` and the latest identity result as they stand.
@@ -178,10 +178,11 @@ sequenceDiagram
     participant EV as events
     participant PM as productManager
     RG->>SM: run
-    SM->>TC: tlmGetOut (GPS Reading)
-    TC-->>SM: value, reading time
     SM->>I2C: imuIdentityOut (register 0x75)
     I2C-->>SM: status, 0x68
+    Note over SM: guard held from here to the end of run
+    SM->>TC: tlmGetOut (GPS Reading)
+    TC-->>SM: value, reading time
     SM->>TC: channels
     SM->>EV: loss or return events
     PM->>SM: samplesGetIn
@@ -198,4 +199,4 @@ sequenceDiagram
 | Telemetry downlink rate | `CdhCore`, `ComCcsds` |
 | Product stale check against the capture time | `productManager` |
 | GPS `Reading` channel absent from the telemetry store: reported as location invalid, `NO_READING` | `CdhCore.tlmSend` configuration |
-| Layout of `NmeaGps.GpsData`, `Bmp280.Bmp280Data`, `MpuImu.ImuData` | catalog types at the pinned commit |
+| Layout of `NmeaGps.GpsData`, `Bmp280.Bmp280Data`, `MpuImu.ImuData` and the channel offset of the GPS `Reading` | catalog types at the pinned commit |
