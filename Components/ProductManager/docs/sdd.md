@@ -17,7 +17,7 @@ the CFDP file transfer, removes a named product, and lists the stored products.
 | ID | Requirement | Verification |
 |---|---|---|
 | REQ-ProductManager-001 | On a `CAPTURE` command, the component shall request one picture from the camera. | Unit Test |
-| REQ-ProductManager-002 | On the picture of the capture in progress, the component shall request the latest metric samples. | Unit Test |
+| REQ-ProductManager-002 | On the picture of the capture in progress, the component shall request the latest samples. | Unit Test |
 | REQ-ProductManager-003 | Each product shall hold one picture, capture time, location, attitude and temperature record. | Unit Test |
 | REQ-ProductManager-004 | The picture record of each product shall equal the delivered picture, byte for byte. | Unit Test |
 | REQ-ProductManager-005 | Each metric record shall hold the Table 2 fields as delivered by its source. | Unit Test |
@@ -34,11 +34,11 @@ the CFDP file transfer, removes a named product, and lists the stored products.
 | REQ-ProductManager-016 | The component shall fail `CAPTURE` with `WARNING_HI` event `CaptureFailed` when the camera reports failure. | Unit Test |
 | REQ-ProductManager-017 | The component shall fail `CAPTURE` with `CaptureFailed` when the delivered picture is empty. | Unit Test |
 | REQ-ProductManager-018 | The component shall fail `CAPTURE` with `CaptureFailed` when no picture arrives within 20 `run` ticks. | Unit Test |
-| REQ-ProductManager-019 | The component shall write no product for a picture not of the capture in progress. | Unit Test |
+| REQ-ProductManager-019 | The component shall write no product for a picture not of the current capture. | Unit Test |
 | REQ-ProductManager-020 | The component shall fail `CAPTURE` with `WARNING_HI` event `StorageFailed` when no product buffer fits. | Unit Test |
 | REQ-ProductManager-021 | `CAPTURE` shall fail with `StorageFailed` when no written notification arrives in 5 `run` ticks. | Unit Test |
 | REQ-ProductManager-022 | After a failed capture, the component shall remove every partial product. | Unit Test |
-| REQ-ProductManager-023 | The component shall remove a product whose written notification is not of the capture in progress. | Unit Test |
+| REQ-ProductManager-023 | The component shall remove a product whose written notification is not of the current capture. | Unit Test |
 | REQ-ProductManager-024 | At start-up, the component shall remove every partial product. | Unit Test |
 | REQ-ProductManager-025 | A `CAPTURE` during a capture shall fail with `WARNING_LO` event `CommandRejected` and not disturb it. | Unit Test |
 | REQ-ProductManager-026 | On `DOWNLINK`, the component shall request file transfer of the named product under its name. | Unit Test |
@@ -56,7 +56,7 @@ the CFDP file transfer, removes a named product, and lists the stored products.
 | REQ-ProductManager-038 | The component shall complete `LIST_PRODUCTS` with `ACTIVITY_HI` event `ProductsListed` giving the product count. | Unit Test |
 | REQ-ProductManager-039 | A `LIST_PRODUCTS` command during a listing shall fail with `CommandRejected`. | Unit Test |
 | REQ-ProductManager-040 | `DOWNLINK`, `DELETE` and `LIST_PRODUCTS` shall act on every product stored before a restart. | Unit Test |
-| REQ-ProductManager-041 | The component shall accept every command during a capture, downlink or listing, except those Table 4 rejects. | Unit Test |
+| REQ-ProductManager-041 | The component shall accept every command Table 4 does not reject, during any activity. | Unit Test |
 | REQ-ProductManager-042 | The component shall fail a command with `WARNING_HI` event `FileSystemError` on a file system error. | Unit Test |
 | REQ-ProductManager-043 | At start-up, the component shall emit `FileSystemError` when the product directory cannot be read. | Unit Test |
 | REQ-ProductManager-044 | The component shall return to the camera each picture it cannot queue. | Unit Test |
@@ -71,6 +71,8 @@ Table 1: commands.
 | `DOWNLINK` | product name |
 | `DELETE` | product name |
 | `LIST_PRODUCTS` | none |
+
+An activity is a capture, a downlink or a listing; the current capture is the one in progress.
 
 Table 2: metric records.
 
