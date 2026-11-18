@@ -29,9 +29,12 @@ tool output, `[I]` inference.
 | P10 | requirements, round 1 | An empty picture fails the capture with `CaptureFailed`; a picture too large for a product buffer fails it with `StorageFailed` (no separate size constant). REQ-ProductManager-017, -020 | proposed |
 | P11 | requirements, round 1 | A file system error on `DELETE`, `LIST_PRODUCTS` or the start-up scan gives `WARNING_HI` `FileSystemError`. REQ-ProductManager-042, -043 | proposed |
 | P12 | requirements, round 1 | A late picture is returned and writes no product; a product whose written notification arrives outside a capture is removed. REQ-ProductManager-019, -023 | proposed |
-| P13 | requirements, round 1 | Queue overflow: the picture buffer is returned to the camera and a command gets a busy response. REQ-ProductManager-044 | proposed |
+| P13 | requirements, round 1 | Queue overflow: the picture buffer is returned to the camera and a command gets a busy response. REQ-ProductManager-044, -045 | proposed |
 | N1 | note to parent | A stored product is judged by the length its header declares; `sysTester.CORRUPT_PRODUCT` must not overwrite the header length field, or the product stops being a stored product | open |
+| N2 | note to parent | Samples are requested when the picture is delivered and judged within 2 s of capture time in both directions (P8); `piCamera` must deliver the picture within 1 s of the acquisition time it reports, or every metric is marked invalid | open |
+| P14 | requirements, round 2 | A capture whose product name is that of a stored product fails with `StorageFailed`, so no stored product is overwritten. REQ-ProductManager-015, -046 | proposed |
 
 ## Reviews
 
 - Requirements round 1 [V record `review-requirements-requirements-review-round-1.md`, separate session 86f3b137]: must fix 23, could fix 12, disagreements 0. Close: all must-fix edited (rows renumbered 001 to 044; every row `Unit Test`); could-fix fixed except `req-unclear:REQ-ProductManager-020` declined (the system plan names `DownlinkStalled`; P4).
+- Requirements round 2 [V record `review-requirements-requirements-review-round-2.md`]: must fix 4, could fix 4, disagreements 0 (the round-1 decline accepted by the reviewer). Close: all 8 edited (rows 002, 009, 015, 019, 021, 023, 034, 041, 044, new 045, 046, Table 4).
