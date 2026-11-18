@@ -65,6 +65,9 @@ module PiSensor {
   instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10003000 queue size 10 stack size 65536 priority 39
   instance posixTime: Svc.PosixTime base id 0x10004000
   instance tcpLink: Drv.TcpClient base id 0x10005000
+  instance cfdpManager: Svc.Ccsds.Cfdp.CfdpManager base id 0x10010000 queue size 30 stack size 131072 priority 24
+  instance fileManager: Svc.FileManager base id 0x10011000 queue size 10 stack size 65536 priority 22
+  instance prmDb: Svc.PrmDb base id 0x10012000 queue size 10 stack size 65536 priority 21
   instance piCamera: PiCamera base id 0x10008000 queue size 5 stack size 65536 priority 30
   instance sensorMonitor: SensorMonitor base id 0x10009000
   instance productManager: ProductManager base id 0x1000A000 queue size 10 stack size 65536 priority 31
@@ -89,13 +92,23 @@ module PiSensor {
       NmeaGps.frameAccumulator.dataReturnOut -> NmeaGps.driverInterface.commLikeIn
       NmeaGps.driver.$recv -> NmeaGps.driverInterface.byteStreamLikeIn
       NmeaGps.driverInterface.bufferLikeOut -> NmeaGps.driver.recvReturnIn
+      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
+      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
     }
+  }
+
+  @ File handling subtopology: the three member components of the catalog
+  @ FileHandlingCfdp.Subtopology, instantiated by this project
+  topology PiFileHandling {
+    instance cfdpManager
+    instance fileManager
+    instance prmDb
   }
 
   topology PiSensor {
     instance CdhCore.Subtopology
     instance ComCcsds.Subtopology
-    instance FileHandlingCfdp.Subtopology
+    instance PiFileHandling
     instance DataProducts.Subtopology
     instance Bmp280.Subtopology
     instance MpuImu.Subtopology
@@ -117,7 +130,7 @@ module PiSensor {
     telemetry connections instance CdhCore.tlmSend
     text event connections instance CdhCore.textLogger
     health connections instance CdhCore.$health
-    param connections instance FileHandlingCfdp.prmDb
+    param connections instance prmDb
     time connections instance posixTime
 
     connections RateGroups {
@@ -145,8 +158,8 @@ module PiSensor {
       productManager.productGetOut -> DataProducts.Subtopology.productGetIn
       productManager.productSendOut -> DataProducts.Subtopology.productSendIn
       DataProducts.dpWriter.dpWrittenOut -> productManager.dpWrittenIn
-      productManager.sendFileOut -> FileHandlingCfdp.cfdpManager.fileIn
-      FileHandlingCfdp.cfdpManager.fileDoneOut -> productManager.fileDoneIn
+      productManager.sendFileOut -> cfdpManager.fileIn
+      cfdpManager.fileDoneOut -> productManager.fileDoneIn
     }
 
     connections Communications {
@@ -168,10 +181,10 @@ module PiSensor {
       CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
       ComCcsds.Subtopology.commandOut -> CdhCore.Subtopology.seqCmdBuff
       CdhCore.Subtopology.seqCmdStatus -> ComCcsds.Subtopology.cmdResponseIn
-      FileHandlingCfdp.cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
-      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> FileHandlingCfdp.cfdpManager.dataReturnIn[0]
-      ComCcsds.Subtopology.fileUplinkOut -> FileHandlingCfdp.cfdpManager.dataIn[0]
-      FileHandlingCfdp.cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
+      cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
+      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> cfdpManager.dataReturnIn[0]
+      ComCcsds.Subtopology.fileUplinkOut -> cfdpManager.dataIn[0]
+      cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
     }
   }
 }
