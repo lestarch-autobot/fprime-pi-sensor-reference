@@ -24,7 +24,7 @@ the CFDP file transfer, removes a named product, and lists the stored products.
 | REQ-ProductManager-006 | Each product file shall comply with the F Prime data product file format. | Unit Test |
 | REQ-ProductManager-007 | The capture time record shall equal the acquisition time delivered with the picture. | Unit Test |
 | REQ-ProductManager-008 | Each metric record shall carry its sample time and a validity mark. | Unit Test |
-| REQ-ProductManager-009 | The component shall mark valid each metric reported valid and sampled within 2 s of capture. | Unit Test |
+| REQ-ProductManager-009 | The component shall mark valid each metric reported valid and sampled within 2 s. | Unit Test |
 | REQ-ProductManager-010 | The component shall mark invalid each metric sampled more than 2 s from capture time. | Unit Test |
 | REQ-ProductManager-011 | The component shall mark invalid each metric its source reports invalid. | Unit Test |
 | REQ-ProductManager-012 | The component shall return each delivered picture buffer to the camera exactly once. | Unit Test |
@@ -35,12 +35,12 @@ the CFDP file transfer, removes a named product, and lists the stored products.
 | REQ-ProductManager-017 | The component shall fail `CAPTURE` with `CaptureFailed` when the delivered picture is empty. | Unit Test |
 | REQ-ProductManager-018 | The component shall fail `CAPTURE` with `CaptureFailed` when no picture arrives within 20 `run` ticks. | Unit Test |
 | REQ-ProductManager-019 | The component shall write no product for a picture delivered outside a capture. | Unit Test |
-| REQ-ProductManager-020 | The component shall fail `CAPTURE` with `WARNING_HI` event `StorageFailed` when no product buffer fits the product. | Unit Test |
-| REQ-ProductManager-021 | The component shall fail `CAPTURE` with `StorageFailed` when no written notification arrives within 5 `run` ticks. | Unit Test |
+| REQ-ProductManager-020 | The component shall fail `CAPTURE` with `WARNING_HI` event `StorageFailed` when no product buffer fits. | Unit Test |
+| REQ-ProductManager-021 | The component shall fail `CAPTURE` with `StorageFailed` when no written notification arrives in 5 `run` ticks. | Unit Test |
 | REQ-ProductManager-022 | After a failed capture, the component shall remove every partial product. | Unit Test |
 | REQ-ProductManager-023 | The component shall remove a product whose written notification arrives outside a capture. | Unit Test |
 | REQ-ProductManager-024 | At start-up, the component shall remove every partial product. | Unit Test |
-| REQ-ProductManager-025 | A `CAPTURE` during a capture shall fail with `WARNING_LO` event `CommandRejected` and not disturb that capture. | Unit Test |
+| REQ-ProductManager-025 | A `CAPTURE` during a capture shall fail with `WARNING_LO` event `CommandRejected` and not disturb it. | Unit Test |
 | REQ-ProductManager-026 | On `DOWNLINK`, the component shall request file transfer of the named product under its name. | Unit Test |
 | REQ-ProductManager-027 | The component shall complete `DOWNLINK` successfully when the file transfer reports success. | Unit Test |
 | REQ-ProductManager-028 | The component shall fail `DOWNLINK` with `WARNING_HI` event `DownlinkStalled` when the transfer reports failure. | Unit Test |
