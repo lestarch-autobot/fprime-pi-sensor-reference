@@ -27,11 +27,11 @@
 | REQ-SensorMonitor-017 | The component shall pass each received GPS sentence on once, in order, unchanged. | Unit Test |
 | REQ-SensorMonitor-018 | A request shall return each latest Table 1 value with validity and reading time. | Unit Test |
 | REQ-SensorMonitor-019 | Returned validity shall follow REQ-SensorMonitor-005 to -012 with reading age taken at the request time. | Unit Test |
-| REQ-SensorMonitor-020 | Schedule calls, GPS sentences and sample requests shall be handled one at a time. | Inspection |
+| REQ-SensorMonitor-020 | Schedule calls, readings, GPS sentences and sample requests shall be handled one at a time. | Inspection |
 | REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. | Unit Test |
 | REQ-SensorMonitor-022 | The GGA quality indicator read shall be compliant with NMEA 0183 Version 4.11. | Unit Test |
 
-Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). Age is the current time minus the reading time.
+Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). A reading time of another time base than the current time counts as after it. Age is the current time minus the reading time.
 
 | Metric | Validity and reason channel | Source reading | Value channel | Unit | Value | Limits (a value that is not a finite number is outside) |
 |---|---|---|---|---|---|---|
@@ -79,7 +79,7 @@ Table 2 — sensors.
 
 | Name | Kind | Type | Purpose |
 |---|---|---|---|
-| `run` | guarded input | `Svc.Sched` | 1 Hz evaluation and telemetry |
+| `run` | sync input | `Svc.Sched` | 1 Hz evaluation and telemetry |
 | `bmpDataIn` | guarded input | `Bmp280.Bmp280DataOut` | BMP280 reading from `bmpManager.bmpDataPush` |
 | `imuDataIn` | guarded input | `MpuImu.ImuDataOut` | MPU6050 reading from `imuManager.imuDataPush` |
 | `gpsSentenceIn` | guarded input | `Svc.ComDataWithContext` | GPS sentence from the frame accumulator |
@@ -88,7 +88,7 @@ Table 2 — sensors.
 | `imuIdentityOut` | output | `Drv.I2cWriteRead` | MPU6050 identity register read |
 | `gpsSentenceOut` | output | `Svc.ComDataWithContext` | GPS sentence passed on |
 
-The component is a cyclic passive component with a pass-through tap: the inputs are guarded because the 1 Hz and 10 Hz rate groups, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `tlmSend` guard or the IMU bus driver guard; no component called from a handler may call a `sensorMonitor` input.
+The component is a cyclic passive component with a pass-through tap: four inputs are guarded because the 10 Hz rate group, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. `run` is `sync`: it reads the identity register before it takes the same guard for the evaluation, so a slow bus delays only the 1 Hz rate group. A guarded call waits for at most one evaluation or one GPS sentence pass-through. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `NmeaGps.bufferManager` guard, `tlmSend` guard; no component called from a handler may call a `sensorMonitor` input.
 
 ### State
 
@@ -117,7 +117,7 @@ constant MPU6050_IDENTITY_VALUE = 0x68
 ```cpp
 // once, before the rate groups start: the GPS manager's Reading channel id and the
 // address also given to imuManager.configure
-sensorMonitor.configure(gpsManagerReadingId, mpuAddress);
+sensorMonitor.configure(NmeaGps::gpsManager.getIdBase() + NmeaGps::GpsManager::CHANNELID_READING, mpuAddress);
 ```
 
 ```fpp
@@ -128,12 +128,12 @@ The Table 1 limits are constants in `SensorMonitor.hpp`. `bmpManager` and `imuMa
 
 ### Port Handlers
 
-- **`run`**: admitted once configured. It takes one time for the call, fetches the GPS reading, reads the identity register once, updates each sensor's loss state with its events, and writes every channel with that time.
+- **`run`**: admitted once configured. It reads the identity register once, then under the guard takes one time for the call, fetches the GPS reading, updates each sensor's loss state with its events, and writes every channel with that time.
 - **`bmpDataIn`, `imuDataIn`**: admitted on every call. Each stores the reading with the current time and sets its new flag.
 - **`gpsSentenceIn`**: admitted for every buffer. It sets `m_sentenceSeen`, stores the quality indicator when the sentence is a GGA sentence (bounded scan, buffer not written), and sends the same buffer and context on `gpsSentenceOut`.
 - **`samplesGetIn`**: admitted once configured. It fetches the GPS reading and fills `SensorSamples` with the latest values, reading times and validity taken at the request time, with `m_fixQuality` and the latest identity result as they stand.
 
-Validity is tested in the order of `InvalidReason` and the first condition that holds is the reason; age is computed only after the reading time is found comparable and not later than the current time. A GPS reading that `tlmGetOut` returns empty, or that does not deserialize into `NmeaGps.GpsData`, is no reading. `Mpu6050Lost` carries the latest identity result for either reason, `reason` is `IDENTITY` when both conditions hold, and a change of cause while lost emits no event. The identity read blocks the guard for at most the bus driver's transaction time-out, which is a failed read.
+Validity is tested in the order of `InvalidReason` and the first condition that holds is the reason; age is computed only after the reading time is found comparable and not later than the current time. A GPS reading that `tlmGetOut` returns empty, or that does not deserialize into `NmeaGps.GpsData`, is no reading. `Mpu6050Lost` carries the latest identity result for either reason, `reason` is `IDENTITY` when both conditions hold, and a change of cause while lost emits no event. The identity read lasts at most the kernel I2C adapter time-out (`Drv.LinuxI2cDriver` sets none), which is a failed read; its value is measured in development against a limit of 500 ms, half the 1 Hz period.
 
 ## 4. Data Product Format
 
@@ -175,13 +175,15 @@ sequenceDiagram
     participant SM as sensorMonitor
     participant TC as tlmSend
     participant I2C as imuDriver
+    participant EV as events
     participant PM as productManager
     RG->>SM: run
     SM->>TC: tlmGetOut (GPS Reading)
     TC-->>SM: value, reading time
     SM->>I2C: imuIdentityOut (register 0x75)
     I2C-->>SM: status, 0x68
-    SM->>TC: channels, loss or return events
+    SM->>TC: channels
+    SM->>EV: loss or return events
     PM->>SM: samplesGetIn
     SM->>TC: tlmGetOut (GPS Reading)
     SM-->>PM: SensorSamples

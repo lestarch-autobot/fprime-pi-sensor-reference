@@ -37,12 +37,11 @@ module PiSensor {
   enum InvalidReason : U8 {
     NONE = 0 @< The metric is valid
     NO_READING = 1 @< No reading since start-up
-    TIME_NOT_COMPARABLE = 2 @< Reading time and current time have different time bases
-    FUTURE_TIME = 3 @< Reading time is after the current time
-    STALE = 4 @< Reading is older than SENSOR_STALE_SECONDS
-    OUT_OF_LIMITS = 5 @< A value is not finite or outside its limits
-    IDENTITY = 6 @< Latest MPU6050 identity read failed or returned another value
-    NO_FIX = 7 @< Newest GGA sentence carries no quality indicator 1 to 8
+    FUTURE_TIME = 2 @< Reading time is after the current time or of another time base
+    STALE = 3 @< Reading is older than SENSOR_STALE_SECONDS
+    OUT_OF_LIMITS = 4 @< A value is not finite or outside its limits
+    IDENTITY = 5 @< Latest MPU6050 identity read failed or returned another value
+    NO_FIX = 6 @< Newest GGA sentence carries no quality indicator 1 to 8
   }
 
   @ One sample of every metric, with validity and sample time
@@ -75,8 +74,9 @@ module PiSensor {
     # General ports
     # ----------------------------------------------------------------------
 
-    @ Schedule call: evaluates validity and loss, publishes telemetry
-    guarded input port run: Svc.Sched
+    @ Schedule call: reads the identity register outside the guard, then
+    @ evaluates validity and loss and publishes telemetry inside it
+    sync input port run: Svc.Sched
 
     @ GPS sentence from the frame accumulator
     guarded input port gpsSentenceIn: Svc.ComDataWithContext
