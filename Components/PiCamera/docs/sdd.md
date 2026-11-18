@@ -9,34 +9,39 @@ the requester, or reports why it could not. It uses the camera library packaged
 with Raspberry Pi OS and no OpenCV. The camera module is not yet attached to the
 bench: its model, datasheet and identification reply are recorded on arrival.
 
+Open: camera model, datasheet (title, revision) and identification reply. A camera
+that libcamera does not support reopens REQ-PiCamera-001, 002 and 017.
+
 ## 2. Requirements
 
-| ID | Requirement | Verification |
-|---|---|---|
-| REQ-PiCamera-001 | A success reply shall carry one picture acquired from the Pi Camera after its request. | Integration Test |
-| REQ-PiCamera-002 | Each delivered picture shall be one JFIF file, SOI to EOI, `PICTURE_WIDTH` x `PICTURE_HEIGHT` pixels. | Integration Test |
-| REQ-PiCamera-003 | Each delivered picture shall carry the system time read when its frame arrived. | Unit Test |
-| REQ-PiCamera-004 | The component shall answer each capture request with exactly one reply. | Unit Test |
-| REQ-PiCamera-005 | Each reply shall state success, or the Table 1 reason whose condition occurred. | Unit Test |
-| REQ-PiCamera-006 | Each reply shall carry the context value of its request. | Unit Test |
-| REQ-PiCamera-007 | The component shall emit `CaptureStarted` (`ACTIVITY_LO`) once per acquisition, before requesting the camera frame. | Unit Test |
-| REQ-PiCamera-008 | The component shall reply within `CAPTURE_TIMEOUT_TICKS` ticks of receiving a request. | Unit Test |
-| REQ-PiCamera-009 | A failure reply shall carry no picture. | Unit Test |
-| REQ-PiCamera-010 | After a failure reply the component shall hold no picture buffer of that request. | Unit Test |
-| REQ-PiCamera-011 | Each failure reply shall emit one `CaptureFailed` (`WARNING_LO`) naming its Table 1 reason. | Unit Test |
-| REQ-PiCamera-012 | A request received before the reply to an earlier request shall get a `BUSY` reply. | Unit Test |
-| REQ-PiCamera-013 | A capture shall end with the same reply whether or not requests arrive during it. | Unit Test |
-| REQ-PiCamera-014 | A request made after a failure's cause has cleared shall succeed without a restart. | Integration Test |
-| REQ-PiCamera-015 | The component shall publish each Table 2 channel whenever its value changes. | Unit Test |
-| REQ-PiCamera-016 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | Inspection, Integration Test |
-| REQ-PiCamera-017 | Camera use shall be compliant with the libcamera API of `libcamera-dev` 0.8.0. | Integration Test |
-| REQ-PiCamera-018 | The component shall release each picture buffer when the requester returns it. | Unit Test |
-| REQ-PiCamera-019 | After a restart during a capture, the first request shall succeed. | Integration Test |
-| REQ-PiCamera-020 | The component shall release only picture buffers it delivered and has not yet released. | Unit Test |
-| REQ-PiCamera-021 | A returned buffer the component does not release shall emit `ReturnRejected` (`WARNING_LO`). | Unit Test |
-| REQ-PiCamera-022 | By its first `run` tick the component shall emit once `CameraFound` (`ACTIVITY_LO`) carrying the libcamera camera id, or `CameraNotFound` (`WARNING_LO`). | Unit Test |
-| REQ-PiCamera-023 | Each `CaptureFailed` shall carry the Table 4 step of its failure and the failing library call's return code, 0 when none failed. | Unit Test |
-| REQ-PiCamera-024 | The component shall publish every Table 2 channel once by its first `run` tick. | Unit Test |
+| ID | Requirement | Traces to | Verification |
+|---|---|---|---|
+| REQ-PiCamera-001 | A success reply shall carry one picture acquired from the Pi Camera after its request. | REQ-PiSensor-004, REQ-PiSensor-005 | Integration Test |
+| REQ-PiCamera-002 | Each delivered picture shall be one JFIF file, SOI to EOI, `PICTURE_WIDTH` x `PICTURE_HEIGHT` pixels. | REQ-PiSensor-004 | Integration Test |
+| REQ-PiCamera-003 | Each delivered picture shall carry the system time read when its frame arrived. | REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008 | Unit Test |
+| REQ-PiCamera-004 | The component shall answer each capture request with exactly one reply. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-005 | Each reply shall state success, or the Table 1 reason whose condition occurred. | REQ-PiSensor-005, REQ-PiSensor-028 | Unit Test |
+| REQ-PiCamera-006 | Each reply shall carry the context value of its request. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-007 | The component shall emit `CaptureStarted` (`ACTIVITY_LO`) once per acquisition, before requesting the camera frame. | REQ-PiSensor-029 | Unit Test |
+| REQ-PiCamera-008 | The component shall reply within `CAPTURE_TIMEOUT_TICKS` ticks of receiving a request. | REQ-PiSensor-010 | Unit Test |
+| REQ-PiCamera-009 | A failure reply shall carry no picture. | REQ-PiSensor-028, REQ-PiSensor-029 | Unit Test |
+| REQ-PiCamera-010 | After a failure reply the component shall hold no picture buffer of that request. | REQ-PiSensor-029 | Unit Test |
+| REQ-PiCamera-011 | Each failure reply shall emit one `CaptureFailed` (`WARNING_LO`) naming its Table 1 reason. | REQ-PiSensor-028 | Unit Test |
+| REQ-PiCamera-012 | A request received before the reply to an earlier request shall get a `BUSY` reply. | Proposal | Unit Test |
+| REQ-PiCamera-013 | A capture shall end with the same reply whether or not requests arrive during it. | Proposal | Unit Test |
+| REQ-PiCamera-014 | A request made after a failure's cause has cleared shall succeed without a restart. | REQ-PiSensor-028 | Integration Test |
+| REQ-PiCamera-015 | The component shall publish each Table 2 channel whenever its value changes. | Proposal | Unit Test |
+| REQ-PiCamera-016 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | REQ-PiSensor-040 | Inspection, Integration Test |
+| REQ-PiCamera-017 | Camera use shall be compliant with the libcamera API of `libcamera-dev` 0.8.0. | REQ-PiSensor-040 | Integration Test |
+| REQ-PiCamera-018 | The component shall release each picture buffer when the requester returns it. | Proposal | Unit Test |
+| REQ-PiCamera-019 | After a restart during a capture, the first request shall succeed. | REQ-PiSensor-029 | Integration Test |
+| REQ-PiCamera-020 | The component shall release only picture buffers it delivered and has not yet released. | Proposal | Unit Test |
+| REQ-PiCamera-021 | A returned buffer the component does not release shall emit `ReturnRejected` (`WARNING_LO`). | Proposal | Unit Test |
+| REQ-PiCamera-022 | By its first `run` tick the component shall emit once `CameraFound` (`ACTIVITY_LO`) carrying the libcamera camera id, or `CameraNotFound` (`WARNING_LO`). | Proposal | Unit Test |
+| REQ-PiCamera-023 | Each `CaptureFailed` shall carry the Table 4 step of its failure and the failing library call's return code, 0 when none failed. | Proposal | Unit Test |
+| REQ-PiCamera-024 | The component shall publish every Table 2 channel once by its first `run` tick. | Proposal | Unit Test |
+
+Every system requirement allocated to this component (REQ-PiSensor-004, 005, 006, 007, 008, 010, 028, 029, 040) is reached by a row. A `Proposal` row derives from no allocated system requirement; it is proposed by the writer and decided at the Approve SDD gate.
 
 Table 1: failure reasons.
 
