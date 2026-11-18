@@ -1,0 +1,3014 @@
+{
+  "event": [{
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:25.484Z",
+    "receptionTime": "2026-11-18T00:44:24.576Z",
+    "seqNumber": 59,
+    "type": "PiSensor.cfdpManager.TxFileTransferCompleted",
+    "message": "[TxFileTransferCompleted] TX CLASS_2 transaction 2 completed, 42:cfdp-test.bin -\u003e 100:cfdp-test3.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "2",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test3.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501045",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:24.984Z",
+    "receptionTime": "2026-11-18T00:44:24.077Z",
+    "seqNumber": 58,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 7 | Expected on board: 51",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "7",
+      "expected": "51",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:24.975Z",
+    "receptionTime": "2026-11-18T00:44:24.975Z",
+    "seqNumber": 7,
+    "type": "TRANSFER_COMPLETED",
+    "message": "TXID[42_2]  transfer completed (ack received from remote) successfully",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:44:24.974Z",
+    "receptionTime": "2026-11-18T00:44:24.974Z",
+    "seqNumber": 7,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 50 newseq: 9",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:23.994Z",
+    "receptionTime": "2026-11-18T00:44:23.994Z",
+    "seqNumber": 6,
+    "type": "TRANSFER_FINISHED",
+    "message": "TXID[42_2]  downlink finished and saved in cfdpDown/cfdp-test3.bin",
+    "severity": "INFO"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:23.872Z",
+    "receptionTime": "2026-11-18T00:44:22.888Z",
+    "seqNumber": 57,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 2 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test3.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "2",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test3.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:22.879Z",
+    "receptionTime": "2026-11-18T00:44:22.879Z",
+    "seqNumber": 5,
+    "type": "TRANSFER_METADATA",
+    "message": "TXID[42_2] Received metadata:  {\n    header:  {\n        fileDirective\u003dtrue,\n        towardsSender\u003dfalse,\n        acknowledged\u003dtrue,\n        withCrc\u003dfalse,\n        entityIdLength\u003d1,\n        sequenceNumberLength\u003d1,\n        sourceId\u003d42,\n        destinationId\u003d100,\n        sequenceNr\u003d2,\n    }, \n    closureRequested:false,\n    fileSize\u003d20000,\n    checksumType\u003dMODULAR,\n    sourceFileName\u003dcfdp-test.bin,\n    destinationFileName\u003dcfdp-test3.bin,\n    options\u003d[],\n}",
+    "severity": "INFO"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:22.876Z",
+    "receptionTime": "2026-11-18T00:44:22.876Z",
+    "seqNumber": 4,
+    "type": "TRANSFER_STARTED",
+    "message": "Starting new CFDP downlink TXID[42_2] pisensor [id\u003d42] -\u003e ground [id\u003d100]",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:44:22.876Z",
+    "receptionTime": "2026-11-18T00:44:22.876Z",
+    "seqNumber": 6,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 43 newseq: 7",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.992Z",
+    "seqNumber": 56,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.985Z",
+    "seqNumber": 55,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 2)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.979Z",
+    "seqNumber": 54,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:46.988Z",
+    "receptionTime": "2026-11-18T00:43:46.076Z",
+    "seqNumber": 53,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 6 | Expected on board: 44",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "6",
+      "expected": "44",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.872Z",
+    "receptionTime": "2026-11-18T00:43:44.909Z",
+    "seqNumber": 52,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 1 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test2.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "1",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test2.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.901Z",
+    "seqNumber": 51,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.891Z",
+    "seqNumber": 50,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 1)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.879Z",
+    "seqNumber": 49,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:44.875Z",
+    "receptionTime": "2026-11-18T00:43:44.875Z",
+    "seqNumber": 5,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.887Z",
+    "seqNumber": 48,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1001000b completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268501003",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.882Z",
+    "seqNumber": 47,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1001000b dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268501003",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.877Z",
+    "seqNumber": 46,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 2 | Expected on board: 0",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "2",
+      "expected": "0",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:35.772Z",
+    "receptionTime": "2026-11-18T00:43:34.876Z",
+    "seqNumber": 45,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:35.372Z",
+    "receptionTime": "2026-11-18T00:43:34.476Z",
+    "seqNumber": 44,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.972Z",
+    "receptionTime": "2026-11-18T00:43:34.076Z",
+    "seqNumber": 43,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.572Z",
+    "receptionTime": "2026-11-18T00:43:33.676Z",
+    "seqNumber": 42,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.172Z",
+    "receptionTime": "2026-11-18T00:43:33.276Z",
+    "seqNumber": 41,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.872Z",
+    "receptionTime": "2026-11-18T00:43:32.979Z",
+    "seqNumber": 40,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.966Z",
+    "seqNumber": 39,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.961Z",
+    "seqNumber": 38,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.956Z",
+    "seqNumber": 37,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.951Z",
+    "seqNumber": 36,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.945Z",
+    "seqNumber": 35,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.938Z",
+    "seqNumber": 34,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.931Z",
+    "seqNumber": 33,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.924Z",
+    "seqNumber": 32,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.918Z",
+    "seqNumber": 31,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.911Z",
+    "seqNumber": 30,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.904Z",
+    "seqNumber": 29,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.896Z",
+    "seqNumber": 28,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.888Z",
+    "seqNumber": 27,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.770Z",
+    "receptionTime": "2026-11-18T00:43:32.879Z",
+    "seqNumber": 26,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:32.973Z",
+    "receptionTime": "2026-11-18T00:43:32.973Z",
+    "seqNumber": 4,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 76 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:32.873Z",
+    "receptionTime": "2026-11-18T00:43:32.873Z",
+    "seqNumber": 3,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 25 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:43:22.979Z",
+    "receptionTime": "2026-11-18T00:43:22.979Z",
+    "seqNumber": 3,
+    "type": "TRANSFER_COMPLETED",
+    "message": "TXID[42_1]  transfer completed unsuccessfully: The Finished PDU has not been acknowledged",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:43:22.978Z",
+    "receptionTime": "2026-11-18T00:43:22.978Z",
+    "seqNumber": 2,
+    "type": "FIN_LIMIT_REACHED",
+    "message": "TXID[42_1] resend attempts (5) of Finished PDU reached",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.839Z",
+    "receptionTime": "2026-11-18T00:42:42.987Z",
+    "seqNumber": 25,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 1 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "1",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.555Z",
+    "seqNumber": 24,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.550Z",
+    "seqNumber": 23,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 1)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.545Z",
+    "seqNumber": 22,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:42:42.976Z",
+    "receptionTime": "2026-11-18T00:42:42.976Z",
+    "seqNumber": 1,
+    "type": "TRANSFER_METADATA",
+    "message": "TXID[42_1] Received metadata:  {\n    header:  {\n        fileDirective\u003dtrue,\n        towardsSender\u003dfalse,\n        acknowledged\u003dtrue,\n        withCrc\u003dfalse,\n        entityIdLength\u003d1,\n        sequenceNumberLength\u003d1,\n        sourceId\u003d42,\n        destinationId\u003d100,\n        sequenceNr\u003d1,\n    }, \n    closureRequested:false,\n    fileSize\u003d20000,\n    checksumType\u003dMODULAR,\n    sourceFileName\u003dcfdp-test.bin,\n    destinationFileName\u003dcfdp-test.bin,\n    options\u003d[],\n}",
+    "severity": "INFO"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:42:42.956Z",
+    "receptionTime": "2026-11-18T00:42:42.956Z",
+    "seqNumber": 0,
+    "type": "TRANSFER_STARTED",
+    "message": "Starting new CFDP downlink TXID[42_1] pisensor [id\u003d42] -\u003e ground [id\u003d100]",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:42:42.941Z",
+    "receptionTime": "2026-11-18T00:42:42.941Z",
+    "seqNumber": 2,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:39.831Z",
+    "receptionTime": "2026-11-18T00:41:38.859Z",
+    "seqNumber": 21,
+    "type": "CdhCore.cmdDisp.OpCodeError",
+    "message": "[OpCodeError] Opcode 0x10010000 completed with error FORMAT_ERROR",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "error": "FORMAT_ERROR",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777219",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:39.831Z",
+    "receptionTime": "2026-11-18T00:41:38.849Z",
+    "seqNumber": 20,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:31.739Z",
+    "receptionTime": "2026-11-18T00:41:30.844Z",
+    "seqNumber": 19,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:31.339Z",
+    "receptionTime": "2026-11-18T00:41:30.444Z",
+    "seqNumber": 18,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.939Z",
+    "receptionTime": "2026-11-18T00:41:30.044Z",
+    "seqNumber": 17,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.539Z",
+    "receptionTime": "2026-11-18T00:41:29.645Z",
+    "seqNumber": 16,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.139Z",
+    "receptionTime": "2026-11-18T00:41:29.244Z",
+    "seqNumber": 15,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.839Z",
+    "receptionTime": "2026-11-18T00:41:29.015Z",
+    "seqNumber": 14,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:29.006Z",
+    "seqNumber": 13,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.996Z",
+    "seqNumber": 12,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.989Z",
+    "seqNumber": 11,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.982Z",
+    "seqNumber": 10,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.973Z",
+    "seqNumber": 9,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.964Z",
+    "seqNumber": 8,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.954Z",
+    "seqNumber": 7,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.944Z",
+    "seqNumber": 6,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.935Z",
+    "seqNumber": 5,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.926Z",
+    "seqNumber": 4,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.919Z",
+    "seqNumber": 3,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.909Z",
+    "seqNumber": 2,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.900Z",
+    "seqNumber": 1,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.737Z",
+    "receptionTime": "2026-11-18T00:41:28.882Z",
+    "seqNumber": 0,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:41:28.917Z",
+    "receptionTime": "2026-11-18T00:41:28.917Z",
+    "seqNumber": 1,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:41:28.846Z",
+    "receptionTime": "2026-11-18T00:41:28.846Z",
+    "seqNumber": 0,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.310Z",
+    "seqNumber": 28,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1003001 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "16789505",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.303Z",
+    "seqNumber": 27,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1003001 dispatched to port 4",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "16789505",
+      "port": "4",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.297Z",
+    "seqNumber": 26,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.291Z",
+    "seqNumber": 25,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.285Z",
+    "seqNumber": 24,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.279Z",
+    "seqNumber": 23,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.271Z",
+    "seqNumber": 22,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1000f000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268496896",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.261Z",
+    "seqNumber": 21,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1000f000 dispatched to port 14",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268496896",
+      "port": "14",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.248Z",
+    "seqNumber": 20,
+    "type": "PiSensor.sysTester.Marker",
+    "message": "[Marker] Marker 3735928559",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "id": "3735928559",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496896",
+      "fprime_event_name": "PiSensor.sysTester.Marker"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:29.040Z",
+    "receptionTime": "2026-11-18T00:28:28.145Z",
+    "seqNumber": 19,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:28.640Z",
+    "receptionTime": "2026-11-18T00:28:27.745Z",
+    "seqNumber": 18,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:28.240Z",
+    "receptionTime": "2026-11-18T00:28:27.346Z",
+    "seqNumber": 17,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.840Z",
+    "receptionTime": "2026-11-18T00:28:26.945Z",
+    "seqNumber": 16,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.440Z",
+    "receptionTime": "2026-11-18T00:28:26.546Z",
+    "seqNumber": 15,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.140Z",
+    "receptionTime": "2026-11-18T00:28:26.316Z",
+    "seqNumber": 14,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.309Z",
+    "seqNumber": 13,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.300Z",
+    "seqNumber": 12,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.290Z",
+    "seqNumber": 11,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.281Z",
+    "seqNumber": 10,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.273Z",
+    "seqNumber": 9,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.266Z",
+    "seqNumber": 8,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.258Z",
+    "seqNumber": 7,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.251Z",
+    "seqNumber": 6,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.240Z",
+    "seqNumber": 5,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.232Z",
+    "seqNumber": 4,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.224Z",
+    "seqNumber": 3,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.217Z",
+    "seqNumber": 2,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.209Z",
+    "seqNumber": 1,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.038Z",
+    "receptionTime": "2026-11-18T00:28:26.196Z",
+    "seqNumber": 0,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:28:26.241Z",
+    "receptionTime": "2026-11-18T00:28:26.241Z",
+    "seqNumber": 1,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:28:26.146Z",
+    "receptionTime": "2026-11-18T00:28:26.146Z",
+    "seqNumber": 0,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }],
+  "events": [{
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:25.484Z",
+    "receptionTime": "2026-11-18T00:44:24.576Z",
+    "seqNumber": 59,
+    "type": "PiSensor.cfdpManager.TxFileTransferCompleted",
+    "message": "[TxFileTransferCompleted] TX CLASS_2 transaction 2 completed, 42:cfdp-test.bin -\u003e 100:cfdp-test3.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "2",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test3.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501045",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:24.984Z",
+    "receptionTime": "2026-11-18T00:44:24.077Z",
+    "seqNumber": 58,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 7 | Expected on board: 51",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "7",
+      "expected": "51",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:24.975Z",
+    "receptionTime": "2026-11-18T00:44:24.975Z",
+    "seqNumber": 7,
+    "type": "TRANSFER_COMPLETED",
+    "message": "TXID[42_2]  transfer completed (ack received from remote) successfully",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:44:24.974Z",
+    "receptionTime": "2026-11-18T00:44:24.974Z",
+    "seqNumber": 7,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 50 newseq: 9",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:23.994Z",
+    "receptionTime": "2026-11-18T00:44:23.994Z",
+    "seqNumber": 6,
+    "type": "TRANSFER_FINISHED",
+    "message": "TXID[42_2]  downlink finished and saved in cfdpDown/cfdp-test3.bin",
+    "severity": "INFO"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:23.872Z",
+    "receptionTime": "2026-11-18T00:44:22.888Z",
+    "seqNumber": 57,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 2 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test3.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "2",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test3.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:22.879Z",
+    "receptionTime": "2026-11-18T00:44:22.879Z",
+    "seqNumber": 5,
+    "type": "TRANSFER_METADATA",
+    "message": "TXID[42_2] Received metadata:  {\n    header:  {\n        fileDirective\u003dtrue,\n        towardsSender\u003dfalse,\n        acknowledged\u003dtrue,\n        withCrc\u003dfalse,\n        entityIdLength\u003d1,\n        sequenceNumberLength\u003d1,\n        sourceId\u003d42,\n        destinationId\u003d100,\n        sequenceNr\u003d2,\n    }, \n    closureRequested:false,\n    fileSize\u003d20000,\n    checksumType\u003dMODULAR,\n    sourceFileName\u003dcfdp-test.bin,\n    destinationFileName\u003dcfdp-test3.bin,\n    options\u003d[],\n}",
+    "severity": "INFO"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:44:22.876Z",
+    "receptionTime": "2026-11-18T00:44:22.876Z",
+    "seqNumber": 4,
+    "type": "TRANSFER_STARTED",
+    "message": "Starting new CFDP downlink TXID[42_2] pisensor [id\u003d42] -\u003e ground [id\u003d100]",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:44:22.876Z",
+    "receptionTime": "2026-11-18T00:44:22.876Z",
+    "seqNumber": 6,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 43 newseq: 7",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.992Z",
+    "seqNumber": 56,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.985Z",
+    "seqNumber": 55,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 2)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:44:22.874Z",
+    "receptionTime": "2026-11-18T00:44:21.979Z",
+    "seqNumber": 54,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:46.988Z",
+    "receptionTime": "2026-11-18T00:43:46.076Z",
+    "seqNumber": 53,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 6 | Expected on board: 44",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "6",
+      "expected": "44",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.872Z",
+    "receptionTime": "2026-11-18T00:43:44.909Z",
+    "seqNumber": 52,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 1 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test2.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "1",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test2.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.901Z",
+    "seqNumber": 51,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.891Z",
+    "seqNumber": 50,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 1)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:45.812Z",
+    "receptionTime": "2026-11-18T00:43:44.879Z",
+    "seqNumber": 49,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:44.875Z",
+    "receptionTime": "2026-11-18T00:43:44.875Z",
+    "seqNumber": 5,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.887Z",
+    "seqNumber": 48,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1001000b completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268501003",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.882Z",
+    "seqNumber": 47,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1001000b dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268501003",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:43.795Z",
+    "receptionTime": "2026-11-18T00:43:42.877Z",
+    "seqNumber": 46,
+    "type": "ComCcsds.apidManager.UnexpectedSequenceCount",
+    "message": "[UnexpectedSequenceCount] Unexpected sequence count received. Packets may have been dropped. Transmitted: 2 | Expected on board: 0",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "transmitted": "2",
+      "expected": "0",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "33591296",
+      "fprime_event_name": "ComCcsds.apidManager.UnexpectedSequenceCount"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:35.772Z",
+    "receptionTime": "2026-11-18T00:43:34.876Z",
+    "seqNumber": 45,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:35.372Z",
+    "receptionTime": "2026-11-18T00:43:34.476Z",
+    "seqNumber": 44,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.972Z",
+    "receptionTime": "2026-11-18T00:43:34.076Z",
+    "seqNumber": 43,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.572Z",
+    "receptionTime": "2026-11-18T00:43:33.676Z",
+    "seqNumber": 42,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:34.172Z",
+    "receptionTime": "2026-11-18T00:43:33.276Z",
+    "seqNumber": 41,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.872Z",
+    "receptionTime": "2026-11-18T00:43:32.979Z",
+    "seqNumber": 40,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.966Z",
+    "seqNumber": 39,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.961Z",
+    "seqNumber": 38,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.956Z",
+    "seqNumber": 37,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.951Z",
+    "seqNumber": 36,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.945Z",
+    "seqNumber": 35,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.938Z",
+    "seqNumber": 34,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.931Z",
+    "seqNumber": 33,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.924Z",
+    "seqNumber": 32,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.918Z",
+    "seqNumber": 31,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.911Z",
+    "seqNumber": 30,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.904Z",
+    "seqNumber": 29,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.896Z",
+    "seqNumber": 28,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.771Z",
+    "receptionTime": "2026-11-18T00:43:32.888Z",
+    "seqNumber": 27,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:43:33.770Z",
+    "receptionTime": "2026-11-18T00:43:32.879Z",
+    "seqNumber": 26,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:32.973Z",
+    "receptionTime": "2026-11-18T00:43:32.973Z",
+    "seqNumber": 4,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 76 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:43:32.873Z",
+    "receptionTime": "2026-11-18T00:43:32.873Z",
+    "seqNumber": 3,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 25 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:43:22.979Z",
+    "receptionTime": "2026-11-18T00:43:22.979Z",
+    "seqNumber": 3,
+    "type": "TRANSFER_COMPLETED",
+    "message": "TXID[42_1]  transfer completed unsuccessfully: The Finished PDU has not been acknowledged",
+    "severity": "WARNING"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:43:22.978Z",
+    "receptionTime": "2026-11-18T00:43:22.978Z",
+    "seqNumber": 2,
+    "type": "FIN_LIMIT_REACHED",
+    "message": "TXID[42_1] resend attempts (5) of Finished PDU reached",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.839Z",
+    "receptionTime": "2026-11-18T00:42:42.987Z",
+    "seqNumber": 25,
+    "type": "PiSensor.cfdpManager.TxFileTransferStarted",
+    "message": "[TxFileTransferStarted] TX CLASS_2 transaction 1 transfer started, 42:cfdp-test.bin -\u003e 100:cfdp-test.bin, 20000 bytes",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "cfdpClass": "CLASS_2",
+      "seqNum": "1",
+      "srcEid": "42",
+      "srcFile": "cfdp-test.bin",
+      "destEid": "100",
+      "destFile": "cfdp-test.bin",
+      "fileSize": "20000",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268501044",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileTransferStarted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.555Z",
+    "seqNumber": 24,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x10010000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.550Z",
+    "seqNumber": 23,
+    "type": "PiSensor.cfdpManager.TxFileQueued",
+    "message": "[TxFileQueued] TX file queued for cfdp-test.bin (transaction 1)",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "sourceFileName": "cfdp-test.bin",
+      "transactionSeq": "1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "268500994",
+      "fprime_event_name": "PiSensor.cfdpManager.TxFileQueued"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:42:43.504Z",
+    "receptionTime": "2026-11-18T00:42:42.545Z",
+    "seqNumber": 22,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:42:42.976Z",
+    "receptionTime": "2026-11-18T00:42:42.976Z",
+    "seqNumber": 1,
+    "type": "TRANSFER_METADATA",
+    "message": "TXID[42_1] Received metadata:  {\n    header:  {\n        fileDirective\u003dtrue,\n        towardsSender\u003dfalse,\n        acknowledged\u003dtrue,\n        withCrc\u003dfalse,\n        entityIdLength\u003d1,\n        sequenceNumberLength\u003d1,\n        sourceId\u003d42,\n        destinationId\u003d100,\n        sequenceNr\u003d1,\n    }, \n    closureRequested:false,\n    fileSize\u003d20000,\n    checksumType\u003dMODULAR,\n    sourceFileName\u003dcfdp-test.bin,\n    destinationFileName\u003dcfdp-test.bin,\n    options\u003d[],\n}",
+    "severity": "INFO"
+  }, {
+    "source": "CfdpService",
+    "generationTime": "2026-11-18T00:42:42.956Z",
+    "receptionTime": "2026-11-18T00:42:42.956Z",
+    "seqNumber": 0,
+    "type": "TRANSFER_STARTED",
+    "message": "Starting new CFDP downlink TXID[42_1] pisensor [id\u003d42] -\u003e ground [id\u003d100]",
+    "severity": "INFO"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:42:42.941Z",
+    "receptionTime": "2026-11-18T00:42:42.941Z",
+    "seqNumber": 2,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 3 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:39.831Z",
+    "receptionTime": "2026-11-18T00:41:38.859Z",
+    "seqNumber": 21,
+    "type": "CdhCore.cmdDisp.OpCodeError",
+    "message": "[OpCodeError] Opcode 0x10010000 completed with error FORMAT_ERROR",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "error": "FORMAT_ERROR",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777219",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:39.831Z",
+    "receptionTime": "2026-11-18T00:41:38.849Z",
+    "seqNumber": 20,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x10010000 dispatched to port 11",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268500992",
+      "port": "11",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:31.739Z",
+    "receptionTime": "2026-11-18T00:41:30.844Z",
+    "seqNumber": 19,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:31.339Z",
+    "receptionTime": "2026-11-18T00:41:30.444Z",
+    "seqNumber": 18,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.939Z",
+    "receptionTime": "2026-11-18T00:41:30.044Z",
+    "seqNumber": 17,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.539Z",
+    "receptionTime": "2026-11-18T00:41:29.645Z",
+    "seqNumber": 16,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:30.139Z",
+    "receptionTime": "2026-11-18T00:41:29.244Z",
+    "seqNumber": 15,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.839Z",
+    "receptionTime": "2026-11-18T00:41:29.015Z",
+    "seqNumber": 14,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:29.006Z",
+    "seqNumber": 13,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.996Z",
+    "seqNumber": 12,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.989Z",
+    "seqNumber": 11,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.982Z",
+    "seqNumber": 10,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.973Z",
+    "seqNumber": 9,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.964Z",
+    "seqNumber": 8,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.954Z",
+    "seqNumber": 7,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.944Z",
+    "seqNumber": 6,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.935Z",
+    "seqNumber": 5,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.926Z",
+    "seqNumber": 4,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.919Z",
+    "seqNumber": 3,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.909Z",
+    "seqNumber": 2,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.738Z",
+    "receptionTime": "2026-11-18T00:41:28.900Z",
+    "seqNumber": 1,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:41:29.737Z",
+    "receptionTime": "2026-11-18T00:41:28.882Z",
+    "seqNumber": 0,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:41:28.917Z",
+    "receptionTime": "2026-11-18T00:41:28.917Z",
+    "seqNumber": 1,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:41:28.846Z",
+    "receptionTime": "2026-11-18T00:41:28.846Z",
+    "seqNumber": 0,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.310Z",
+    "seqNumber": 28,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1003001 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "16789505",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.303Z",
+    "seqNumber": 27,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1003001 dispatched to port 4",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "16789505",
+      "port": "4",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.297Z",
+    "seqNumber": 26,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.291Z",
+    "seqNumber": 25,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.285Z",
+    "seqNumber": 24,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.176Z",
+    "receptionTime": "2026-11-18T00:28:38.279Z",
+    "seqNumber": 23,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.271Z",
+    "seqNumber": 22,
+    "type": "CdhCore.cmdDisp.OpCodeCompleted",
+    "message": "[OpCodeCompleted] Opcode 0x1000f000 completed",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268496896",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777218",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeCompleted"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.261Z",
+    "seqNumber": 21,
+    "type": "CdhCore.cmdDisp.OpCodeDispatched",
+    "message": "[OpCodeDispatched] Opcode 0x1000f000 dispatched to port 14",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "Opcode": "268496896",
+      "port": "14",
+      "fprime_severity": "COMMAND",
+      "fprime_event_id": "16777217",
+      "fprime_event_name": "CdhCore.cmdDisp.OpCodeDispatched"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:39.141Z",
+    "receptionTime": "2026-11-18T00:28:38.248Z",
+    "seqNumber": 20,
+    "type": "PiSensor.sysTester.Marker",
+    "message": "[Marker] Marker 3735928559",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "id": "3735928559",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496896",
+      "fprime_event_name": "PiSensor.sysTester.Marker"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:29.040Z",
+    "receptionTime": "2026-11-18T00:28:28.145Z",
+    "seqNumber": 19,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:28.640Z",
+    "receptionTime": "2026-11-18T00:28:27.745Z",
+    "seqNumber": 18,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:28.240Z",
+    "receptionTime": "2026-11-18T00:28:27.346Z",
+    "seqNumber": 17,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.840Z",
+    "receptionTime": "2026-11-18T00:28:26.945Z",
+    "seqNumber": 16,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.440Z",
+    "receptionTime": "2026-11-18T00:28:26.546Z",
+    "seqNumber": 15,
+    "type": "Bmp280.bmpManager.ChipIdCheckFailure",
+    "message": "[ChipIdCheckFailure] BMP280 Chip ID check failure",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "3489665027",
+      "fprime_event_name": "Bmp280.bmpManager.ChipIdCheckFailure"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.140Z",
+    "receptionTime": "2026-11-18T00:28:26.316Z",
+    "seqNumber": 14,
+    "type": "PiSensor.sysTester.Started",
+    "message": "[Started] Deployment started",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "268496897",
+      "fprime_event_name": "PiSensor.sysTester.Started"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.309Z",
+    "seqNumber": 13,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-devices@0a372b2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-devices@0a372b2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.300Z",
+    "seqNumber": 12,
+    "type": "CdhCore.version.LibraryVersions",
+    "message": "[LibraryVersions] Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "fprime-sensors@v4.4.0-3-ge5d83d1",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789506",
+      "fprime_event_name": "CdhCore.version.LibraryVersions"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.290Z",
+    "seqNumber": 11,
+    "type": "CdhCore.version.ProjectVersion",
+    "message": "[ProjectVersion] Project Version: [02c724d]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "02c724d",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789505",
+      "fprime_event_name": "CdhCore.version.ProjectVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.281Z",
+    "seqNumber": 10,
+    "type": "CdhCore.version.FrameworkVersion",
+    "message": "[FrameworkVersion] Framework Version: [v4.4.2]",
+    "severity": "INFO",
+    "createdBy": "guest",
+    "extra": {
+      "version": "v4.4.2",
+      "fprime_severity": "ACTIVITY_LO",
+      "fprime_event_id": "16789504",
+      "fprime_event_name": "CdhCore.version.FrameworkVersion"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.273Z",
+    "seqNumber": 9,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100481",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.266Z",
+    "seqNumber": 8,
+    "type": "MpuImu.imuManager.AccelerometerRangeUpdated",
+    "message": "[AccelerometerRangeUpdated] Accelerometer range updated to RANGE_2G",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newRange": "RANGE_2G",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3758100480",
+      "fprime_event_name": "MpuImu.imuManager.AccelerometerRangeUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.258Z",
+    "seqNumber": 7,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xe0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3758100480",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.251Z",
+    "seqNumber": 6,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001002 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665026",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.240Z",
+    "seqNumber": 5,
+    "type": "Bmp280.bmpManager.TemperatureOversamplingUpdated",
+    "message": "[TemperatureOversamplingUpdated] Temperature oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665025",
+      "fprime_event_name": "Bmp280.bmpManager.TemperatureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.232Z",
+    "seqNumber": 4,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001001 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665025",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.224Z",
+    "seqNumber": 3,
+    "type": "Bmp280.bmpManager.PressureOversamplingUpdated",
+    "message": "[PressureOversamplingUpdated] Pressure oversampling updated to OVERSAMPLE_1X",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "newOversampling": "OVERSAMPLE_1X",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "3489665024",
+      "fprime_event_name": "Bmp280.bmpManager.PressureOversamplingUpdated"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.217Z",
+    "seqNumber": 2,
+    "type": "PiSensor.prmDb.PrmIdNotFound",
+    "message": "[PrmIdNotFound] Parameter ID 0xd0001000 not found",
+    "severity": "WARNING",
+    "createdBy": "guest",
+    "extra": {
+      "Id": "3489665024",
+      "fprime_severity": "WARNING_LO",
+      "fprime_event_id": "268509184",
+      "fprime_event_name": "PiSensor.prmDb.PrmIdNotFound"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.039Z",
+    "receptionTime": "2026-11-18T00:28:26.209Z",
+    "seqNumber": 1,
+    "type": "PiSensor.prmDb.PrmFileReadError",
+    "message": "[PrmFileReadError] Parameter file read failed in stage OPEN with record 0 and error 1",
+    "severity": "DISTRESS",
+    "createdBy": "guest",
+    "extra": {
+      "stage": "OPEN",
+      "record": "0",
+      "error": "1",
+      "fprime_severity": "WARNING_HI",
+      "fprime_event_id": "268509190",
+      "fprime_event_name": "PiSensor.prmDb.PrmFileReadError"
+    }
+  }, {
+    "source": "FPrimeEventProcessor",
+    "generationTime": "2026-11-18T00:28:27.038Z",
+    "receptionTime": "2026-11-18T00:28:26.196Z",
+    "seqNumber": 0,
+    "type": "NmeaGps.driver.PortOpened",
+    "message": "[PortOpened] UART Device /dev/ttyAMA0 configured",
+    "severity": "WATCH",
+    "createdBy": "guest",
+    "extra": {
+      "device": "/dev/ttyAMA0",
+      "fprime_severity": "ACTIVITY_HI",
+      "fprime_event_id": "4027650052",
+      "fprime_event_name": "NmeaGps.driver.PortOpened"
+    }
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:28:26.241Z",
+    "receptionTime": "2026-11-18T00:28:26.241Z",
+    "seqNumber": 1,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 1 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }, {
+    "source": "FprimePacketPreprocessor",
+    "generationTime": "2026-11-18T00:28:26.146Z",
+    "receptionTime": "2026-11-18T00:28:26.146Z",
+    "seqNumber": 0,
+    "type": "SEQ_COUNT_JUMP",
+    "message": "Sequence count jump for APID: 2 old seq: 0 newseq: 0",
+    "severity": "WARNING"
+  }]
+}

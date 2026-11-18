@@ -14,3 +14,17 @@ fprime-yamcs -n --dictionary <PiSensorTopologyDictionary.json> \
 ```
 
 The deployment connects to it with `PiSensor -a <ground host> -p 51050`.
+
+## CFDP
+
+`yamcs/etc/cfdp.sql` and the `CfdpService` entry give the ground a CFDP class 2 entity
+(ground 100, flight 42). `sQLFile` is read relative to the directory YAMCS starts in; give
+its absolute path if the server is started elsewhere. Downlinked files land in the bucket
+`cfdpDown`.
+
+Before the first downlink set the flight chunk size (the default asserts in the framer):
+
+```sh
+PiSensor.cfdpManager.OutgoingFileChunkSize_PRM_SET 480
+PiSensor.cfdpManager.SendFile 0 100 CLASS_2 KEEP 0 <source, 40 characters at most> <name>
+```
