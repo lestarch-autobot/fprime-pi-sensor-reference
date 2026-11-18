@@ -1,0 +1,61 @@
+{
+  "links": [{
+    "instance": "fprime-project",
+    "name": "UDP_TM_IN",
+    "type": "org.yamcs.tctm.ccsds.UdpTmFrameLink",
+    "disabled": false,
+    "status": "OK",
+    "detailedStatus": "OK, receiving on 51000",
+    "dataInCount": "38",
+    "dataOutCount": "0",
+    "extra": {
+      "Valid frames": "38",
+      "Invalid frames": "0"
+    },
+    "parameters": ["/yamcs/devin/links/UDP_TM_IN/dataInCount", "/yamcs/devin/links/UDP_TM_IN/dataInRate", "/yamcs/devin/links/UDP_TM_IN/dataOutCount", "/yamcs/devin/links/UDP_TM_IN/dataOutRate", "/yamcs/devin/links/UDP_TM_IN/linkStatus"]
+  }, {
+    "instance": "fprime-project",
+    "name": "UDP_TC_OUT.vc1",
+    "type": "org.yamcs.tctm.ccsds.UplinkPacketHandler",
+    "disabled": false,
+    "status": "OK",
+    "detailedStatus": "",
+    "dataInCount": "0",
+    "dataOutCount": "2",
+    "parentName": "UDP_TC_OUT",
+    "parameters": ["/yamcs/devin/links/UDP_TC_OUT.vc1/dataInCount", "/yamcs/devin/links/UDP_TC_OUT.vc1/dataInRate", "/yamcs/devin/links/UDP_TC_OUT.vc1/dataOutCount", "/yamcs/devin/links/UDP_TC_OUT.vc1/dataOutRate", "/yamcs/devin/links/UDP_TC_OUT.vc1/linkStatus"]
+  }, {
+    "instance": "fprime-project",
+    "name": "UDP_TM_SPLIT_IN",
+    "type": "org.yamcs.tctm.UdpTmDataLink",
+    "disabled": false,
+    "status": "OK",
+    "detailedStatus": "OK, receiving on 51002",
+    "dataInCount": "210",
+    "dataOutCount": "0",
+    "extra": {
+      "Valid datagrams": "210",
+      "Invalid datagrams": "0"
+    },
+    "parameters": ["/yamcs/devin/links/UDP_TM_SPLIT_IN/dataInCount", "/yamcs/devin/links/UDP_TM_SPLIT_IN/dataInRate", "/yamcs/devin/links/UDP_TM_SPLIT_IN/dataOutCount", "/yamcs/devin/links/UDP_TM_SPLIT_IN/dataOutRate", "/yamcs/devin/links/UDP_TM_SPLIT_IN/linkStatus", "/yamcs/devin/links/UDP_TM_SPLIT_IN/packetRate"]
+  }, {
+    "instance": "fprime-project",
+    "name": "UDP_TC_OUT",
+    "type": "org.yamcs.tctm.ccsds.UdpTcFrameLink",
+    "disabled": false,
+    "status": "OK",
+    "detailedStatus": "OK, sending to localhost:51001",
+    "dataInCount": "0",
+    "dataOutCount": "2",
+    "parameters": ["/yamcs/devin/links/UDP_TC_OUT/dataInCount", "/yamcs/devin/links/UDP_TC_OUT/dataInRate", "/yamcs/devin/links/UDP_TC_OUT/dataOutCount", "/yamcs/devin/links/UDP_TC_OUT/dataOutRate", "/yamcs/devin/links/UDP_TC_OUT/linkStatus"]
+  }, {
+    "instance": "fprime-project",
+    "name": "UDP_TM_IN.vc1",
+    "type": "org.yamcs.tctm.ccsds.VcTmPacketHandler",
+    "disabled": false,
+    "status": "OK",
+    "dataInCount": "64",
+    "dataOutCount": "0",
+    "parentName": "UDP_TM_IN"
+  }]
+}

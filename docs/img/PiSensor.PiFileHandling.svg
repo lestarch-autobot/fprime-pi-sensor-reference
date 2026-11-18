@@ -25,7 +25,7 @@
 <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" class="sprotty-edge-arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>
 </defs>
 <rect x="-8" y="-8" width="198" height="194" fill="#ffffff"/>
-<g id="FileHandlingCfdp.cfdpManager" transform="translate(12,128)"><rect class="sprotty-node task component-active" width="158" height="38" rx="10"/><text class="sprotty-label node-label" x="46.50" y="15">cfdpManager</text><text class="sprotty-label node-label" x="5" y="29">Svc.Ccsds.Cfdp.CfdpManager</text></g>
-<g id="FileHandlingCfdp.fileManager" transform="translate(12,70)"><rect class="sprotty-node task component-active" width="93" height="38" rx="10"/><text class="sprotty-label node-label" x="17.50" y="15">fileManager</text><text class="sprotty-label node-label" x="5" y="29">Svc.FileManager</text></g>
-<g id="FileHandlingCfdp.prmDb" transform="translate(12,12)"><rect class="sprotty-node task component-active" width="66" height="38" rx="10"/><text class="sprotty-label node-label" x="16.50" y="15">prmDb</text><text class="sprotty-label node-label" x="5" y="29">Svc.PrmDb</text></g>
+<g id="PiSensor.cfdpManager" transform="translate(12,128)"><rect class="sprotty-node task component-active" width="158" height="38" rx="10"/><text class="sprotty-label node-label" x="46.50" y="15">cfdpManager</text><text class="sprotty-label node-label" x="5" y="29">Svc.Ccsds.Cfdp.CfdpManager</text></g>
+<g id="PiSensor.fileManager" transform="translate(12,70)"><rect class="sprotty-node task component-active" width="93" height="38" rx="10"/><text class="sprotty-label node-label" x="17.50" y="15">fileManager</text><text class="sprotty-label node-label" x="5" y="29">Svc.FileManager</text></g>
+<g id="PiSensor.prmDb" transform="translate(12,12)"><rect class="sprotty-node task component-active" width="66" height="38" rx="10"/><text class="sprotty-label node-label" x="16.50" y="15">prmDb</text><text class="sprotty-label node-label" x="5" y="29">Svc.PrmDb</text></g>
 </svg>

@@ -50,16 +50,16 @@
 </details>
 
 <details>
-<summary>Subtopology <code>FileHandlingCfdp.Subtopology</code></summary>
+<summary>Subtopology <code>MpuImu.Subtopology</code></summary>
 
-> ![Topology FileHandlingCfdp.Subtopology](FileHandlingCfdp.Subtopology.svg)
+> ![Topology MpuImu.Subtopology](MpuImu.Subtopology.svg)
 >
 </details>
 
 <details>
-<summary>Subtopology <code>MpuImu.Subtopology</code></summary>
+<summary>Subtopology <code>PiSensor.PiFileHandling</code></summary>
 
-> ![Topology MpuImu.Subtopology](MpuImu.Subtopology.svg)
+> ![Topology PiSensor.PiFileHandling](PiSensor.PiFileHandling.svg)
 >
 </details>
 

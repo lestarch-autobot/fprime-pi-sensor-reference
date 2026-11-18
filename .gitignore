@@ -1,1 +1,5 @@
 docs/review/
+build-fprime-*/
+build-artifacts/
+__pycache__/
+*.pyc
