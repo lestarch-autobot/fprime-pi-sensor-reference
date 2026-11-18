@@ -32,7 +32,7 @@ for _name, _doc in [
 
 
 @planted_fault("capture_before_xmit", applies_to=["L2-3", "L2-4", "L2-7"], cls="uut-state", kind="insert",
-               mechanism="piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged",
+               mechanism="piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged; the downlink outlasts one capture (about a minute per product over the radio), so its dpWriter.FileWritten falls inside the window",
                fails={"L2-3": ["event dpWriter.FileWritten count == 1"],
                       "L2-4": ["event dpWriter.FileWritten count == 2 with different names"],
                       "L2-7": ["event dpWriter.FileWritten count == 1 over the whole test (Q and D)"]})

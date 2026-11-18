@@ -20,7 +20,7 @@
           "event dpWriter.FileWritten count == 1 over the whole test (Q and D)"
         ]
       },
-      "mechanism": "piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged",
+      "mechanism": "piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged; the downlink outlasts one capture (about a minute per product over the radio), so its dpWriter.FileWritten falls inside the window",
       "kind": "insert",
       "ripples_to": {}
     },
