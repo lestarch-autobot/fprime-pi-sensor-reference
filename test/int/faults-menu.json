@@ -11,19 +11,16 @@
       ],
       "fails": {
         "L2-3": [
-          "event dpWriter.FileWritten count == 1",
-          "exactly one file arrived"
+          "event dpWriter.FileWritten count == 1"
         ],
         "L2-4": [
-          "event dpWriter.FileWritten count == 2 with different names",
-          "exactly two files arrived"
+          "event dpWriter.FileWritten count == 2 with different names"
         ],
         "L2-7": [
-          "event dpWriter.FileWritten count == 1",
-          "exactly one file arrived"
+          "event dpWriter.FileWritten count == 1 over the whole test (Q and D)"
         ]
       },
-      "mechanism": "piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored and sent than the test made",
+      "mechanism": "piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged",
       "kind": "insert",
       "ripples_to": {}
     },

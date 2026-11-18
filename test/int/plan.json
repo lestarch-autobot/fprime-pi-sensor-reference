@@ -122,9 +122,10 @@
    "tests": [
     "L2-3",
     "L2-4",
+    "L2-5",
     "L2-7"
    ],
-   "verification": "L2-3, L2-4, L2-7",
+   "verification": "L2-3, L2-4, L2-5, L2-7",
    "note": ""
   },
   "REQ-PiSensor-009": {
@@ -189,11 +190,13 @@
   "L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(arg1)` -> event `cmdDisp.NoOpStringReceived`, the id sent as a decimal string. Link budget [I]: RFM69 at the catalog default data rate 19200 bit/s carries about 2400 byte/s; sensor telemetry at 1 Hz leaves the rest to CFDP, so a 100 kB product takes on the order of a minute.",
   "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS.",
   "- Test deployment: the deployment itself. No component is added for testing. Markers use `cmdDisp`, the on-board file check uses `fileManager.CalculateCrc`, the directory listing uses `fileManager.ListDirectory`, product names come from `dpWriter.FileWritten`, platform identity is a bench action over ssh.",
-  "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service), joined to the radio by the RFM69 Feather ground station on USB serial.",
+  "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service), joined to the radio by `alpha-iii-yamcs` 0.1.0 (wheel pinned by sha-256 in the SSDD) and the RFM69 Feather ground station on USB serial.",
   "- Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time; every CFDP file received is copied to `record/raw/files/` before it is checked; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json`.",
   "- Completeness: every window requires STD; an overflowed queue makes the window UNVERIFIED, never a pass of an absence check.",
   "- Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 and must be under 0.5 s; tolerances that compare the two clocks use 2 s.",
   "- Heartbeat: `imuManager.Reading`, written to the telemetry packet every 1 Hz cycle; `cmdDisp.CommandsDispatched` updates on change only.",
+  "- Minimum sample counts come from the requirement: one sample per 2 s of window outside a downlink (30 in 60 s, 15 in 30 s).",
+  "- `dpCat.START_XMIT_CATALOG` is always sent with `remainActive` false: a product stored after the catalog is built is not sent in that downlink.",
   "- Telemetry gaps are judged on ground reception time: the requirement is stated at the ground. Telemetry is sent at 1 Hz, so the 2 s bound leaves one period of margin for radio delay.",
   "- A CAPTURE that fails makes its window UNVERIFIED through STD (`OpCodeError`), not FAIL: the run is then repeated after the cause is found.",
   "- CFDP as shipped deletes a file after sending it (`cfdpManager.FileInDefaultKeep`, default DELETE): the on-board CRC is taken before the downlink, and L7-1 sets KEEP.",
@@ -363,11 +366,11 @@
    "metrics": [
     {
      "helper": "max_ground_gap",
-     "text": "for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
+     "text": "for every sensor channel in the window: samples >= 15, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
      "args": {
       "channels": "Sensors",
       "bound_s": 2,
-      "min_samples": 30
+      "min_samples": 15
      }
     }
    ],
@@ -398,7 +401,7 @@
     "wait event dpWriter.FileWritten (names P)",
     "fileManager.CalculateCrc(P)",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(41)"
    ],
@@ -465,7 +468,7 @@
     "fileManager.CalculateCrc(P1)",
     "fileManager.CalculateCrc(P2)",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(43)"
    ],
@@ -515,7 +518,8 @@
    "covers": [
     "REQ-PiSensor-005",
     "REQ-PiSensor-006",
-    "REQ-PiSensor-014"
+    "REQ-PiSensor-014",
+    "REQ-PiSensor-008"
    ],
    "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.",
    "procedure": [
@@ -525,7 +529,7 @@
     "wait event dpWriter.FileWritten (names P)",
     "wait 10 s",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(45)"
    ],
@@ -555,7 +559,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window; the latitude and longitude records equal a gpsManager.Reading sample of the window; roll and pitch equal, within 0.1 deg, the bench computation from the acceleration of an imuManager.Reading sample of the window."
+   "evidence": "check: every CFDP transaction in the window is class 2 and finished complete at the ground; check: exactly one file arrived; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window; the latitude and longitude records equal a gpsManager.Reading sample of the window; roll and pitch equal, within 0.1 deg, the bench computation from the acceleration of an imuManager.Reading sample of the window."
   },
   {
    "id": "L2-6",
@@ -618,7 +622,7 @@
     "fileManager.CalculateCrc(P)",
     "MARK(51)",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(52)"
    ],
@@ -663,7 +667,7 @@
    "knobs": [
     "capture_before_xmit"
    ],
-   "evidence": "check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event dpWriter.FileWritten count == 1 over the whole test (Q and D); check: exactly one file arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
   },
   {
    "id": "L2-8",
@@ -682,7 +686,7 @@
     "wait event dpWriter.FileWritten",
     "MARK(54)",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait 15 s",
     "cmdDisp.CMD_NO_OP()",
     "wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground",
@@ -747,7 +751,7 @@
     "wait event dpWriter.FileWritten (names P)",
     "fileManager.CalculateCrc(P)",
     "dpCat.BUILD_CATALOG()",
-    "dpCat.START_XMIT_CATALOG(NO_WAIT)",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
     "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "fileManager.ListDirectory(product directory)",
     "MARK(61)"

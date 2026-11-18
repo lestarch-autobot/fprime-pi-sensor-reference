@@ -25,6 +25,7 @@ module PiSensor {
   instance rateGroup10Hz: Svc.ActiveRateGroup base id 0x10003000 queue size 10 stack size 65536 priority 40
   instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10004000 queue size 10 stack size 65536 priority 39
   instance posixTime: Svc.PosixTime base id 0x10005000
+  instance comRetry: Svc.ComRetry base id 0x10006000
   instance piCamera: PiCamera base id 0x10008000 queue size 5 stack size 65536 priority 30
 
   topology PiSensor {
@@ -43,6 +44,7 @@ module PiSensor {
     instance rateGroup10Hz
     instance rateGroup1Hz
     instance posixTime
+    instance comRetry
     instance piCamera
 
     command connections instance CdhCore.cmdDisp
@@ -95,9 +97,12 @@ module PiSensor {
     connections Communications {
       Rfm69.rfm69Manager.allocate -> ComCcsds.commsBufferManager.bufferGetCallee
       Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
-      ComCcsds.FramingSubtopology.dataOut -> Rfm69.rfm69Manager.dataIn
-      Rfm69.rfm69Manager.dataReturnOut -> ComCcsds.FramingSubtopology.dataReturnIn
-      Rfm69.rfm69Manager.comStatusOut -> ComCcsds.FramingSubtopology.comStatusIn
+      ComCcsds.FramingSubtopology.dataOut -> comRetry.dataIn
+      comRetry.dataReturnOut -> ComCcsds.FramingSubtopology.dataReturnIn
+      comRetry.comStatusOut -> ComCcsds.FramingSubtopology.comStatusIn
+      comRetry.dataOut -> Rfm69.rfm69Manager.dataIn
+      Rfm69.rfm69Manager.dataReturnOut -> comRetry.dataReturnIn
+      Rfm69.rfm69Manager.comStatusOut -> comRetry.comStatusIn
       Rfm69.rfm69Manager.dataOut -> ComCcsds.FramingSubtopology.dataIn
       ComCcsds.FramingSubtopology.dataReturnOut -> Rfm69.rfm69Manager.dataReturnIn
     }
