@@ -1,0 +1,16 @@
+26051
+EVENT: (16789504) (2:1794963226,552068) ACTIVITY_LO: (CdhCore.version) FrameworkVersion : Framework Version: [v4.4.2]
+EVENT: (16789505) (2:1794963226,552083) ACTIVITY_LO: (CdhCore.version) ProjectVersion : Project Version: [9a77e59]
+EVENT: (16789506) (2:1794963226,552092) ACTIVITY_LO: (CdhCore.version) LibraryVersions : Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]
+EVENT: (16789506) (2:1794963226,552100) ACTIVITY_LO: (CdhCore.version) LibraryVersions : Library Versions: [fprime-devices@0a372b2]
+EVENT: (268500994) (2:1794963234,640852) ACTIVITY_LO: (PiSensor.cfdpManager) TxFileQueued : TX file queued for cfdp-test.bin (transaction 1)
+EVENT: (268501044) (2:1794963234,652972) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferStarted : TX CLASS_2 (0) transaction 1 transfer started, 42:cfdp-test.bin -> 100:cfdp-span4.bin, 20000 bytes
+EVENT: (268501045) (2:1794963236,313461) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferCompleted : TX CLASS_2 (0) transaction 1 completed, 42:cfdp-test.bin -> 100:cfdp-span4.bin, 20000 bytes
+EVENT: (268500994) (2:1794963259,685785) ACTIVITY_LO: (PiSensor.cfdpManager) TxFileQueued : TX file queued for cfdp-test.bin (transaction 2)
+EVENT: (268501044) (2:1794963260,652917) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferStarted : TX CLASS_2 (0) transaction 2 transfer started, 42:cfdp-test.bin -> 100:cfdp-span5.bin, 20000 bytes
+EVENT: (268501045) (2:1794963262,265826) ACTIVITY_HI: (PiSensor.cfdpManager) TxFileTransferCompleted : TX CLASS_2 (0) transaction 2 completed, 42:cfdp-test.bin -> 100:cfdp-span5.bin, 20000 bytes
+EVENT: (268496896) (2:1794963302,659387) ACTIVITY_HI: (PiSensor.sysTester) Marker : Marker 3735928559
+EVENT: (16789505) (2:1794963302,679482) ACTIVITY_LO: (CdhCore.version) ProjectVersion : Project Version: [9a77e59]
+EVENT: (16789504) (2:1794963302,679501) ACTIVITY_LO: (CdhCore.version) FrameworkVersion : Framework Version: [v4.4.2]
+EVENT: (16789506) (2:1794963302,679510) ACTIVITY_LO: (CdhCore.version) LibraryVersions : Library Versions: [fprime-sensors@v4.4.0-3-ge5d83d1]
+EVENT: (16789506) (2:1794963302,679519) ACTIVITY_LO: (CdhCore.version) LibraryVersions : Library Versions: [fprime-devices@0a372b2]

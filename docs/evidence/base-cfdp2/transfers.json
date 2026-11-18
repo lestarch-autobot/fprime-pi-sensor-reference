@@ -1,0 +1,107 @@
+{
+  "transfers": [{
+    "id": "3",
+    "startTime": "2026-11-18T00:54:20.655Z",
+    "state": "COMPLETED",
+    "bucket": "cfdpDown",
+    "objectName": "cfdp-span5.bin",
+    "remotePath": "cfdp-test.bin",
+    "direction": "DOWNLOAD",
+    "totalSize": "20000",
+    "sizeTransferred": "20000",
+    "reliable": true,
+    "failureReason": "",
+    "transactionId": {
+      "sequenceNumber": 2,
+      "initiatorEntity": "42"
+    },
+    "creationTime": "2026-11-18T00:54:20.655Z",
+    "transferType": "FILE TRANSFER",
+    "localEntity": {
+      "name": "ground",
+      "id": "100"
+    },
+    "remoteEntity": {
+      "name": "pisensor",
+      "id": "42"
+    }
+  }, {
+    "id": "2",
+    "startTime": "2026-11-18T00:53:54.693Z",
+    "state": "COMPLETED",
+    "bucket": "cfdpDown",
+    "objectName": "cfdp-span4.bin",
+    "remotePath": "cfdp-test.bin",
+    "direction": "DOWNLOAD",
+    "totalSize": "20000",
+    "sizeTransferred": "20000",
+    "reliable": true,
+    "failureReason": "",
+    "transactionId": {
+      "sequenceNumber": 1,
+      "initiatorEntity": "42"
+    },
+    "creationTime": "2026-11-18T00:53:54.689Z",
+    "transferType": "FILE TRANSFER",
+    "localEntity": {
+      "name": "ground",
+      "id": "100"
+    },
+    "remoteEntity": {
+      "name": "pisensor",
+      "id": "42"
+    }
+  }, {
+    "id": "1",
+    "startTime": "2026-11-18T00:44:22.877Z",
+    "state": "COMPLETED",
+    "bucket": "cfdpDown",
+    "objectName": "cfdp-test3.bin",
+    "remotePath": "cfdp-test.bin",
+    "direction": "DOWNLOAD",
+    "totalSize": "20000",
+    "sizeTransferred": "20000",
+    "reliable": true,
+    "failureReason": "",
+    "transactionId": {
+      "sequenceNumber": 2,
+      "initiatorEntity": "42"
+    },
+    "creationTime": "2026-11-18T00:44:22.877Z",
+    "transferType": "FILE TRANSFER",
+    "localEntity": {
+      "name": "ground",
+      "id": "100"
+    },
+    "remoteEntity": {
+      "name": "pisensor",
+      "id": "42"
+    }
+  }, {
+    "id": "0",
+    "startTime": "2026-11-18T00:42:42.960Z",
+    "state": "FAILED",
+    "bucket": "cfdpDown",
+    "objectName": "cfdp-test.bin",
+    "remotePath": "cfdp-test.bin",
+    "direction": "DOWNLOAD",
+    "totalSize": "20000",
+    "sizeTransferred": "0",
+    "reliable": true,
+    "failureReason": "The Finished PDU has not been acknowledged",
+    "transactionId": {
+      "sequenceNumber": 1,
+      "initiatorEntity": "42"
+    },
+    "creationTime": "2026-11-18T00:42:42.957Z",
+    "transferType": "FILE TRANSFER",
+    "localEntity": {
+      "name": "ground",
+      "id": "100"
+    },
+    "remoteEntity": {
+      "name": "pisensor",
+      "id": "42"
+    }
+  }]
+}
