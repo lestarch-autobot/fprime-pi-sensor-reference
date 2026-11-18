@@ -8,7 +8,7 @@
 
 | ID | Requirement | Verification |
 |---|---|---|
-| REQ-SensorMonitor-001 | On each schedule call, the component shall publish every Table 1 channel. | Unit Test |
+| REQ-SensorMonitor-001 | On each schedule call, the component shall publish every Table 1 and Table 2 channel. | Unit Test |
 | REQ-SensorMonitor-002 | Each value channel shall carry its Table 1 value, computed from the latest source reading. | Unit Test |
 | REQ-SensorMonitor-003 | Valid roll and pitch shall be within 0.1 degrees of their Table 1 formulas. | Unit Test |
 | REQ-SensorMonitor-004 | A value shall be zero, with reading time zero, until its source's first reading. | Unit Test |
@@ -31,26 +31,26 @@
 | REQ-SensorMonitor-021 | The MPU6050 identity read shall be compliant with RM-MPU-6000A-00 Rev. 4.2. | Unit Test |
 | REQ-SensorMonitor-022 | The GGA quality indicator read shall be compliant with NMEA 0183 Version 4.11. | Unit Test |
 
-Table 1 — metrics. A reading is the value set a sensor's manager component last published, with the time it published it (the reading time); age is the current time minus the reading time.
+Table 1 — metrics. A reading is the value set a sensor's manager component last delivered, with its reading time: the time the component received it (BMP280, MPU6050) or the manager published it (GPS). Age is the current time minus the reading time.
 
-| Metric | Validity channel | Source reading | Value channel | Unit | Value | Limits (a value that is not a finite number is outside) |
+| Metric | Validity and reason channel | Source reading | Value channel | Unit | Value | Limits (a value that is not a finite number is outside) |
 |---|---|---|---|---|---|---|
-| Temperature | `TemperatureValid` | BMP280 (degC) | `Temperature` | degC | temperature | -40 to 85 |
-| Attitude | `AttitudeValid` | MPU6050 (acceleration a_x, a_y, a_z in g; rotation rate in deg/s) | `Roll` | deg | atan2(a_y, a_z), in degrees | acceleration not (0, 0, 0), each axis -16 to 16 |
+| Temperature | `TemperatureValid`, `TemperatureInvalidReason` | BMP280 (degC) | `Temperature` | degC | temperature | -40 to 85 |
+| Attitude | `AttitudeValid`, `AttitudeInvalidReason` | MPU6050 (acceleration a_x, a_y, a_z in g; rotation rate in deg/s) | `Roll` | deg | atan2(a_y, a_z), in degrees | acceleration not (0, 0, 0), each axis -16 to 16 |
 | | | | `Pitch` | deg | atan2(-a_x, sqrt(a_y^2 + a_z^2)), in degrees | as `Roll` |
 | | | | `GyroX`, `GyroY`, `GyroZ` | deg/s | rotation rate x, y, z, unchanged | -2000 to 2000 |
-| Location | `FixValid` | GPS (deg, m) | `Latitude` | deg | latitude | -90 to 90 |
+| Location | `FixValid`, `FixInvalidReason` | GPS (deg, m) | `Latitude` | deg | latitude | -90 to 90 |
 | | | | `Longitude` | deg | longitude | -180 to 180 |
 | | | | `Altitude` | m | altitude | -1000 to 100000 |
 
 Table 2 — sensors.
 
-| Sensor | Loss condition | Loss event (`WARNING_HI`) | Return event (`ACTIVITY_HI`) |
-|---|---|---|---|
-| BMP280 | the last N schedule calls saw no new BMP280 reading | `Bmp280Lost` | `Bmp280Returned` |
-| MPU6050 | the last N schedule calls saw no new MPU6050 reading; or the latest identity read failed or returned another value than the identity value | `Mpu6050Lost` | `Mpu6050Returned` |
-| GPS | the last N schedule calls saw no GPS sentence | `GpsSilent` | `GpsReturned` |
-| Constants | N = 5, counted from start-up; identity value 0x68; a new reading has another reading time than at the schedule call before, and any reading is new on the first schedule call | | |
+| Sensor | Loss condition | Loss event (`WARNING_HI`) | Return event (`ACTIVITY_HI`) | Channels |
+|---|---|---|---|---|
+| BMP280 | the last N schedule calls saw no new BMP280 reading | `Bmp280Lost` | `Bmp280Returned` | `Bmp280State` (present, lost) |
+| MPU6050 | the last N schedule calls saw no new MPU6050 reading; or the last M identity reads each failed or returned another value than the identity value | `Mpu6050Lost` | `Mpu6050Returned` | `Mpu6050State` |
+| GPS | the last N schedule calls saw no GPS sentence | `GpsSilent` | `GpsReturned` | `GpsState`, `GpsQuality` (newest GGA quality indicator, 0xFF when none) |
+| Constants | N = 5 and M = 3, counted from start-up; identity value 0x68; a new reading is one delivered since the schedule call before | | | |
 
 | Document | Identifier / Revision | Type | Governs |
 |---|---|---|---|
@@ -64,8 +64,12 @@ Table 2 — sensors.
 ```text
                           +--------------------------------+
         run : Svc.Sched  [] PiSensor.SensorMonitor         [] tlmGetOut : Fw.TlmGet
- gpsSentenceIn :         []                                [] imuIdentityOut : Drv.I2cWriteRead
-  Svc.ComDataWithContext  |                                [] gpsSentenceOut : Svc.ComDataWithContext
+ bmpDataIn :             []                                [] imuIdentityOut : Drv.I2cWriteRead
+  Bmp280.Bmp280DataOut    |                                [] gpsSentenceOut : Svc.ComDataWithContext
+ imuDataIn :             []                                 |
+  MpuImu.ImuDataOut       |                                 |
+ gpsSentenceIn :         []                                 |
+  Svc.ComDataWithContext  |                                 |
  samplesGetIn :          []                                 |
   PiSensor.SamplesGet     +--------------------------------+
         special ports: eventOut, textEventOut, tlmOut, timeGetOut
@@ -76,54 +80,60 @@ Table 2 — sensors.
 | Name | Kind | Type | Purpose |
 |---|---|---|---|
 | `run` | guarded input | `Svc.Sched` | 1 Hz evaluation and telemetry |
+| `bmpDataIn` | guarded input | `Bmp280.Bmp280DataOut` | BMP280 reading from `bmpManager.bmpDataPush` |
+| `imuDataIn` | guarded input | `MpuImu.ImuDataOut` | MPU6050 reading from `imuManager.imuDataPush` |
 | `gpsSentenceIn` | guarded input | `Svc.ComDataWithContext` | GPS sentence from the frame accumulator |
 | `samplesGetIn` | guarded input | `PiSensor.SamplesGet` | sample request from the product manager |
-| `tlmGetOut` | output | `Fw.TlmGet` | latest manager readings with reading time |
+| `tlmGetOut` | output | `Fw.TlmGet` | latest GPS manager reading with reading time |
 | `imuIdentityOut` | output | `Drv.I2cWriteRead` | MPU6050 identity register read |
 | `gpsSentenceOut` | output | `Svc.ComDataWithContext` | GPS sentence passed on |
 
-The three inputs are guarded because the rate group, the GPS receive thread and the product manager call them from three threads (REQ-SensorMonitor-020).
+The component is a cyclic passive component with a pass-through tap: the inputs are guarded because the 1 Hz and 10 Hz rate groups, the GPS receive thread and the product manager call them (REQ-SensorMonitor-020), the tap state is read by `run` and `samplesGetIn`, and the request returns by reference. Lock order: `sensorMonitor` guard, then `gpsManager` guard, then `tlmSend` guard or the IMU bus driver guard; no component called from a handler may call a `sensorMonitor` input.
 
 ### State
 
 | Member | Values | Meaning |
 |---|---|---|
-| `m_readingIds[3]` | channel ids | `Reading` channel of the BMP280, MPU6050 and GPS manager, set by `configure` |
-| `m_lastReadingTime[2]` | `Fw::Time` | reading time of the BMP280 and MPU6050 reading at the schedule call before |
+| `m_configured` | false, true | `configure` was called; `run` and `samplesGetIn` assert before it, the other inputs work |
+| `m_gpsReadingId`, `m_mpuAddress` | channel id, I2C address | set by `configure` |
+| `m_bmp`, `m_imu` | reading, reading time, new flag | latest pushed reading; zero value and zero time before the first |
 | `m_missedCalls[3]` | 0 to `SENSOR_LOSS_CALLS` | schedule calls in a row without a new reading (BMP280, MPU6050) or sentence (GPS); saturates |
+| `m_identityFails` | 0 to `MPU6050_IDENTITY_FAIL_CALLS` | identity reads in a row that failed; saturates |
+| `m_identityStatus`, `m_identityValue` | `Drv.I2cStatus`, `U8` | result of the latest identity read |
 | `m_lost[3]` | false, true | sensor is lost |
 | `m_sentenceSeen` | false, true | a GPS sentence arrived since the schedule call before |
-| `m_fixQuality` | 0 to 8, `NO_QUALITY` | quality indicator of the newest GGA sentence; `NO_QUALITY` before any and when the field is not one digit 0 to 8 |
-| `m_identityOk` | false, true | latest identity read returned `MPU6050_IDENTITY_VALUE` |
+| `m_fixQuality` | 0 to 8, 0xFF | quality indicator of the newest GGA sentence; 0xFF before any and when the field is not one digit 0 to 8 |
 
 ### Configuration and Setup
 
 ```fpp
-constant SENSOR_LOSS_CALLS = 5          # Table 2 N
-constant SENSOR_STALE_SECONDS = 2       # REQ-SensorMonitor-005
-constant MPU6050_ADDRESS = 0x68
+constant SENSOR_LOSS_CALLS = 5             # Table 2 N
+constant MPU6050_IDENTITY_FAIL_CALLS = 3   # Table 2 M
+constant SENSOR_STALE_SECONDS = 2          # REQ-SensorMonitor-005
 constant MPU6050_IDENTITY_REGISTER = 0x75
 constant MPU6050_IDENTITY_VALUE = 0x68
 ```
 
 ```cpp
-// after the instances are initialised: the Reading channel of each manager
-sensorMonitor.configure(bmpManagerReadingId, imuManagerReadingId, gpsManagerReadingId);
+// once, before the rate groups start: the GPS manager's Reading channel id and the
+// address also given to imuManager.configure
+sensorMonitor.configure(gpsManagerReadingId, mpuAddress);
 ```
 
 ```fpp
 instance sensorMonitor: PiSensor.SensorMonitor base id 0x10009000
 ```
 
-The Table 1 limits are constants in `SensorMonitor.hpp`. The component is called by the 1 Hz rate group after the three managers.
+The Table 1 limits are constants in `SensorMonitor.hpp`. `bmpManager` and `imuManager` run in `rateGroup10Hz` and push a reading on every good read, `sensorMonitor` runs in `rateGroup1Hz`, and the GPS manager publishes on the GPS receive thread, so a GPS reading is up to one GGA period old at a schedule call.
 
 ### Port Handlers
 
-- **`run`**: admitted on every call. It fetches the three readings, reads the identity register, updates the loss state of each sensor with its events, and writes the twelve channels.
-- **`gpsSentenceIn`**: admitted for every buffer. It sets `m_sentenceSeen`, stores the quality indicator when the sentence is a GGA sentence, and sends the same buffer and context on `gpsSentenceOut`.
-- **`samplesGetIn`**: admitted on every call. It fetches the three readings and fills `SensorSamples` with values, reading times and validity taken at the request time, with `m_fixQuality` and `m_identityOk` as they stand.
+- **`run`**: admitted once configured. It takes one time for the call, fetches the GPS reading, reads the identity register once, updates each sensor's loss state with its events, and writes every channel with that time.
+- **`bmpDataIn`, `imuDataIn`**: admitted on every call. Each stores the reading with the current time and sets its new flag.
+- **`gpsSentenceIn`**: admitted for every buffer. It sets `m_sentenceSeen`, stores the quality indicator when the sentence is a GGA sentence (bounded scan, buffer not written), and sends the same buffer and context on `gpsSentenceOut`.
+- **`samplesGetIn`**: admitted once configured. It fetches the GPS reading and fills `SensorSamples` with the latest values, reading times and validity taken at the request time, with `m_fixQuality` and the latest identity result as they stand.
 
-A reading that `tlmGetOut` returns with an empty value, or that does not deserialize into its manager's type, is no reading; a reading time that cannot be compared with the current time makes the metric invalid.
+Validity is tested in the order of `InvalidReason` and the first condition that holds is the reason; age is computed only after the reading time is found comparable and not later than the current time. A GPS reading that `tlmGetOut` returns empty, or that does not deserialize into `NmeaGps.GpsData`, is no reading. `Mpu6050Lost` carries the latest identity result for either reason, `reason` is `IDENTITY` when both conditions hold, and a change of cause while lost emits no event. The identity read blocks the guard for at most the bus driver's transaction time-out, which is a failed read.
 
 ## 4. Data Product Format
 
@@ -141,6 +151,9 @@ The component has no commands and no parameters.
 
 | Telemetry | Type | Meaning |
 |---|---|---|
+| `TemperatureInvalidReason`, `AttitudeInvalidReason`, `FixInvalidReason` | `InvalidReason` | first invalidity condition that holds, `NONE` when valid |
+| `Bmp280State`, `Mpu6050State`, `GpsState` | `SensorState` | present or lost |
+| `GpsQuality` | `U8` | newest GGA quality indicator, 0xFF when none |
 | `Temperature` | `F32` | BMP280 temperature, degC |
 | `TemperatureValid`, `AttitudeValid`, `FixValid` | `Validity` | validity of temperature, attitude, location |
 | `Roll`, `Pitch` | `F32` | deg |
@@ -164,13 +177,13 @@ sequenceDiagram
     participant I2C as imuDriver
     participant PM as productManager
     RG->>SM: run
-    SM->>TC: tlmGetOut x3 (BMP280, MPU6050, GPS Reading)
+    SM->>TC: tlmGetOut (GPS Reading)
     TC-->>SM: value, reading time
     SM->>I2C: imuIdentityOut (register 0x75)
     I2C-->>SM: status, 0x68
-    SM->>TC: 12 channels, loss or return events
+    SM->>TC: channels, loss or return events
     PM->>SM: samplesGetIn
-    SM->>TC: tlmGetOut x3
+    SM->>TC: tlmGetOut (GPS Reading)
     SM-->>PM: SensorSamples
 ```
 
@@ -182,3 +195,5 @@ sequenceDiagram
 | NMEA checksum failure | `NmeaGps.frameAccumulator` |
 | Telemetry downlink rate | `CdhCore`, `ComCcsds` |
 | Product stale check against the capture time | `productManager` |
+| GPS `Reading` channel absent from the telemetry store: reported as location invalid, `NO_READING` | `CdhCore.tlmSend` configuration |
+| Layout of `NmeaGps.GpsData`, `Bmp280.Bmp280Data`, `MpuImu.ImuData` | catalog types at the pinned commit |

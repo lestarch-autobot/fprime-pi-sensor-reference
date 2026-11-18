@@ -6,8 +6,8 @@ module PiSensor {
   @ Reading age in seconds above which a metric is invalid
   constant SENSOR_STALE_SECONDS = 2
 
-  @ I2C address of the MPU6050
-  constant MPU6050_ADDRESS = 0x68
+  @ Identity reads in a row that must fail before the MPU6050 is lost
+  constant MPU6050_IDENTITY_FAIL_CALLS = 3
 
   @ MPU6050 identity register
   constant MPU6050_IDENTITY_REGISTER = 0x75
@@ -27,19 +27,37 @@ module PiSensor {
     IDENTITY = 1 @< The identity read failed or returned a wrong value
   }
 
+  @ Presence of a sensor
+  enum SensorState : U8 {
+    PRESENT = 0 @< No loss condition holds
+    LOST = 1 @< A loss condition holds
+  }
+
+  @ Why a metric is invalid, in the order the conditions are tested
+  enum InvalidReason : U8 {
+    NONE = 0 @< The metric is valid
+    NO_READING = 1 @< No reading since start-up
+    TIME_NOT_COMPARABLE = 2 @< Reading time and current time have different time bases
+    FUTURE_TIME = 3 @< Reading time is after the current time
+    STALE = 4 @< Reading is older than SENSOR_STALE_SECONDS
+    OUT_OF_LIMITS = 5 @< A value is not finite or outside its limits
+    IDENTITY = 6 @< Latest MPU6050 identity read failed or returned another value
+    NO_FIX = 7 @< Newest GGA sentence carries no quality indicator 1 to 8
+  }
+
   @ One sample of every metric, with validity and sample time
   struct SensorSamples {
     temperature: F32 @< BMP280 temperature, degrees Celsius
     temperatureValid: Validity
-    temperatureTime: Fw.TimeValue @< Reading time of the BMP280 reading
-    roll: F32 @< Roll, degrees
-    pitch: F32 @< Pitch, degrees
-    gyro: FprimeSensors.GeometricVector3 @< Gyro rates, degrees per second
+    temperatureTime: Fw.TimeValue @< Reading time, system time source; zero before a first reading
+    roll: F32 @< Roll, degrees, -180 to 180, atan2(a_y, a_z) in the MPU6050 body frame
+    pitch: F32 @< Pitch, degrees, -90 to 90, in the MPU6050 body frame
+    gyro: FprimeSensors.GeometricVector3 @< Rates about the MPU6050 body axes, degrees per second
     attitudeValid: Validity
     attitudeTime: Fw.TimeValue @< Reading time of the MPU6050 reading
     latitude: F64 @< Latitude, degrees
     longitude: F64 @< Longitude, degrees
-    altitude: F64 @< Altitude, metres
+    altitude: F64 @< Altitude above mean sea level, metres
     fixValid: Validity
     locationTime: Fw.TimeValue @< Reading time of the GPS reading
   }
@@ -69,7 +87,13 @@ module PiSensor {
     @ Sample request from the product manager
     guarded input port samplesGetIn: SamplesGet
 
-    @ Latest BMP280, MPU6050 and GPS readings with their times
+    @ BMP280 reading pushed by the BMP280 manager
+    guarded input port bmpDataIn: Bmp280.Bmp280DataOut
+
+    @ MPU6050 reading pushed by the MPU6050 manager
+    guarded input port imuDataIn: MpuImu.ImuDataOut
+
+    @ Latest GPS reading of the GPS manager with its time
     output port tlmGetOut: Fw.TlmGet
 
     @ MPU6050 identity register read through the IMU bus driver
@@ -127,6 +151,27 @@ module PiSensor {
     @ Location fix validity
     telemetry FixValid: Validity
 
+    @ Why temperature is invalid
+    telemetry TemperatureInvalidReason: InvalidReason
+
+    @ Why attitude is invalid
+    telemetry AttitudeInvalidReason: InvalidReason
+
+    @ Why location is invalid
+    telemetry FixInvalidReason: InvalidReason
+
+    @ BMP280 presence
+    telemetry Bmp280State: SensorState
+
+    @ MPU6050 presence
+    telemetry Mpu6050State: SensorState
+
+    @ GPS presence
+    telemetry GpsState: SensorState
+
+    @ Quality indicator of the newest GGA sentence, 0xFF when none
+    telemetry GpsQuality: U8
+
     # ----------------------------------------------------------------------
     # Events
     # ----------------------------------------------------------------------
@@ -137,8 +182,8 @@ module PiSensor {
     @ The MPU6050 gives no reading or fails its identity read
     event Mpu6050Lost(
       reason: Mpu6050LossReason @< What was detected
-      status: Drv.I2cStatus @< Status of the identity read
-      identity: U8 @< Identity value read, 0 when the read failed
+      status: Drv.I2cStatus @< Status of the latest identity read, for either reason
+      identity: U8 @< Value of the latest identity read, 0 when it failed
     ) severity warning high format "MPU6050 lost: {}, identity read {} value 0x{x}"
 
     @ No GPS sentence for the loss age
