@@ -137,7 +137,8 @@ module PiSensor {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
       rateGroupDriver.CycleOut[0] -> rateGroup10Hz.CycleIn
       rateGroupDriver.CycleOut[1] -> rateGroup1Hz.CycleIn
-      # Members: see the instance table in docs/ssdd.md.
+      # Members of the new components (sensorMonitor, productManager, piCamera) and of the
+      # radio (Rfm69.rfm69Manager): see the instance table in docs/ssdd.md.
       rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.Subtopology.comQueueRun
       rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.Subtopology.aggregatorTimeout
       rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun

@@ -257,12 +257,12 @@ wiring is fixed in the base-deployment lane.
 
 | Instance | Element | Rate group / queue | Notes |
 |---|---|---|---|
-| `CdhCore.Subtopology` | `CdhCore.Subtopology` | 1 Hz: telemetry send, health | Command, event and telemetry spine |
-| `ComCcsds.Subtopology` | `ComCcsds.Subtopology` | 10 Hz: queue, aggregator timeout | Prototype; flight uses `ComCcsds.FramingSubtopology`. File traffic queued behind telemetry and events |
+| `CdhCore.Subtopology` | `CdhCore.Subtopology` | 10 Hz: command dispatcher; 1 Hz: telemetry send, health, events | Command, event and telemetry spine |
+| `ComCcsds.Subtopology` | `ComCcsds.Subtopology` | 10 Hz: queue, aggregator timeout; 1 Hz: buffer manager | Prototype; flight uses `ComCcsds.FramingSubtopology`. File traffic queued behind telemetry and events |
 | `PiFileHandling` | `PiSensor.PiFileHandling` | 1 Hz: CFDP timers, file manager | One CFDP channel. The three member components of `FileHandlingCfdp.Subtopology`, instantiated by this project |
-| `DataProducts.Subtopology` | `DataProducts.Subtopology` | 1 Hz: writer, buffers | Product files on the Pi 5 file system |
-| `Bmp280.Subtopology` | `Bmp280.Subtopology` | 1 Hz: read | — |
-| `MpuImu.Subtopology` | `MpuImu.Subtopology` | 1 Hz: read | — |
+| `DataProducts.Subtopology` | `DataProducts.Subtopology` | 1 Hz: writer, manager, buffer manager | Product files on the Pi 5 file system |
+| `Bmp280.Subtopology` | `Bmp280.Subtopology` | 10 Hz: read | — |
+| `MpuImu.Subtopology` | `MpuImu.Subtopology` | 10 Hz: read | — |
 | `PiGps` | `PiSensor.PiGps` | Driven by the UART receive thread | The members of `NmeaGps.Subtopology`, with the sentence path opened for `sensorMonitor` |
 | `Rfm69.Subtopology` | `Rfm69.Subtopology` | 10 Hz: radio service | Flight configuration only |
 | `tcpLink` | `tcpLink` | Own receive thread | Prototype configuration only |
