@@ -25,6 +25,8 @@ module PiSensor {
       NmeaGps.frameAccumulator.dataReturnOut -> NmeaGps.driverInterface.commLikeIn
       NmeaGps.driver.$recv -> NmeaGps.driverInterface.byteStreamLikeIn
       NmeaGps.driverInterface.bufferLikeOut -> NmeaGps.driver.recvReturnIn
+      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
+      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
     }
   }
 
