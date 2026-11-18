@@ -43,7 +43,7 @@ Covers:    REQ-PiCamera-016, REQ-PiCamera-017
 Setup:     Prototype image running; link up.
 Procedure: MARK(12); action: log `ldd` of the deployment binary and `dpkg -S` plus `dpkg-query -W` of the package owning each resolved libcamera and libjpeg library, over ssh, into bench-actions.log; bracket (2 Heartbeat samples); MARK(13).
 Window:    Marker(id=12) … Marker(id=13)
-Pass rule: named checks declared in the integration test (test_L0_2). metrics: package owning the resolved libcamera.so has version 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library.
+Pass rule: named checks declared in the integration test (test_L0_2). metrics: upstream version (before `+`) of the package owning the resolved libcamera.so equals 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library.
 Evidence:  The bench log lines; evidence outside the UUT's reporting path. REQ-PiCamera-016 is also inspected (build inputs).
 Planted faults:none
 
@@ -63,9 +63,9 @@ Title:     Capture duration against trigger latency
 Purpose:   Proves a capture lasts long enough for the bench to act between CaptureStarted and the reply.
 Covers:    —
 Setup:     Prototype image running, link up, camera attached and free, product directory empty.
-Procedure: MARK(16); bracket (2 Heartbeat samples); CAPTURE(); action: log the bench time CaptureStarted was received and a no-op action triggered on it, into bench-actions.log; bracket (2 Heartbeat samples); MARK(17).
+Procedure: MARK(16); bracket (2 Heartbeat samples); CAPTURE(); action: on receipt of CaptureStarted run `date +%s.%N` on the Pi over ssh (the triggered no-op action) and log it into bench-actions.log; bracket (2 Heartbeat samples); MARK(17).
 Window:    Marker(id=16) … Marker(id=17)
-Pass rule: named checks declared in the integration test (test_L0_4). metrics: t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (bench time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2).
+Pass rule: named checks declared in the integration test (test_L0_4). metrics: t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (Pi time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2).
 Evidence:  Feasibility entry: covers no requirement, takes no planted fault; a `require` that does not hold makes the tests named UNVERIFIED. The measured capture duration and trigger latency are recorded in the ledger.
 Planted faults:none
 
@@ -111,7 +111,7 @@ Procedure: MARK(30); CAPTURE() without waiting for completion; wait event piCame
 Window:    Marker(id=30) … Marker(id=31)
 Pass rule: named checks declared in the integration test (test_L3_1). metrics: picture record of P1 is JFIF, SOI to EOI, 640 x 480.
 Evidence:  The window is split at its single sysTester.Started row: part A is the rows before it, part B the rows after it. require (else UNVERIFIED, the race was lost): A: event piCamera.CaptureStarted count == 1; A: event productManager.ProductWritten count == 0. check: event sysTester.Started count == 1; check: B: event piCamera.CameraFound count == 1, its camera argument equal to the identification of the SDD Introduction; check: B: event piCamera.CaptureStarted count == 1; check: B: event piCamera.CaptureFailed count == 0; check: B: event productManager.ProductWritten count == 1; require: B: event cmdDisp.OpCodeError count == 0; require: B: commands sent after the restart == count(event cmdDisp.OpCodeDispatched).
-Planted faults:capture_after_restart_dropped
+Planted faults:capture_twice_after_restart
 
 ID:        L3-2
 Title:     Capture after a service restart during a capture
@@ -175,7 +175,7 @@ Planted faults:none
 | REQ-PiCamera-013 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
 | REQ-PiCamera-014 | Integration Test |  |
 | REQ-PiCamera-015 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
-| REQ-PiCamera-016 | Inspection and Integration Test | inspection of the build inputs; L0-2 records the linked libraries |
+| REQ-PiCamera-016 | Inspection and Integration Test | inspection of the build inputs; L0-2 judges the linked libraries. Redundancy waived: the second verification is the inspection, recorded in the ledger; no second bench test exists for a link-time fact |
 | REQ-PiCamera-017 | Integration Test |  |
 | REQ-PiCamera-018 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
 | REQ-PiCamera-019 | Integration Test |  |
@@ -186,8 +186,8 @@ Planted faults:none
 | REQ-PiCamera-024 | waived: Unit Test (unit-test list, SDD section 8) | needs the camera substitute and the port tester of the unit-test build |
 
 ## 5 Metrics
-- L0-2: package owning the resolved libcamera.so has version 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library
-- L0-4: t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (bench time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)
+- L0-2: upstream version (before `+`) of the package owning the resolved libcamera.so equals 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library
+- L0-4: t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (Pi time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)
 - L0-5: first frame line of the holder - its start <= 5 s (require, L5-2)
 - L2-1: picture record of P1 is JFIF, SOI to EOI, 640 x 480; bench time of CAPTURE sent - 2 s <= capture time record of P1 <= its completion + 2 s
 - L2-2: picture record of P1 is JFIF, SOI to EOI, 640 x 480; picture record of P2 is JFIF, SOI to EOI, 640 x 480; sha256 of the picture records of P1 and P2 differ; bench time of the second CAPTURE sent - 2 s <= capture time record of P2 <= its completion + 2 s; capture time record of P2 > capture time record of P1
@@ -198,7 +198,7 @@ Planted faults:none
 - L7-1: picture record of P1 is JFIF, SOI to EOI, 640 x 480; bench sha256 of the product file on board == sha256 of the ground file
 
 ## 6 Fault menu
-Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): camera_kept_absent (stimulus; L5-1); capture_after_restart_dropped (stimulus; L3-1); capture_twice (stimulus; L2-1); corrupt_picture (uut-state; L2-2).
+Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): camera_kept_absent (stimulus; L5-1); capture_twice (stimulus; L2-1); capture_twice_after_restart (stimulus; L3-1); corrupt_picture (uut-state; L2-2).
 
 ## 7 Not covered
 - REQ-PiCamera-003 to -013, -015, -018, -020 to -024: unit tests; the requester (`productManager`) sends one request at a time and returns every picture, so `BUSY`, `TIMEOUT`, `NO_BUFFER`, `PICTURE_OUTSTANDING`, `TOO_LARGE` and a rejected return cannot be forced on the bench.
@@ -211,5 +211,6 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 2. 2026-11-17 designer — REQ-PiCamera-001 'acquired after its request' is judged by two captures giving different picture bytes and by the capture time record against bench time (tolerance 2 s, project decision D12).
 3. 2026-11-17 designer — max planted faults per draw 2; menu covers L2-1, L2-2, L3-1, L5-1.
 5. 2026-11-17 designer — `picture_is_jfif` decodes the picture record on the bench with Pillow 11 (`Image.load()`), an independent decoder: bytes 0-1 FFD8, APP0 `JFIF`, last two bytes FFD9 with nothing after, full decode without error or warning, 640 x 480.
+7. 2026-11-17 designer — each test runs once per harness process; planted faults that select a command by occurrence count from the start of that process.
 6. 2026-11-17 designer — a restart window is split at its `sysTester.Started` row; the Pi clock is wall time, so a restart gives no clock backstep to split on.
 4. 2026-11-17 designer — `BENCH_LINE(CAMERA, state)` is a bench line this plan needs from `sysTester`; reported to the parent campaign.

@@ -167,7 +167,7 @@
     "L0-2"
    ],
    "verification": "Inspection and Integration Test",
-   "note": "inspection of the build inputs; L0-2 records the linked libraries"
+   "note": "inspection of the build inputs; L0-2 judges the linked libraries. Redundancy waived: the second verification is the inspection, recorded in the ledger; no second bench test exists for a link-time fact"
   },
   "REQ-PiCamera-017": {
    "tests": [
@@ -244,6 +244,7 @@
   "2. 2026-11-17 designer — REQ-PiCamera-001 'acquired after its request' is judged by two captures giving different picture bytes and by the capture time record against bench time (tolerance 2 s, project decision D12).",
   "3. 2026-11-17 designer — max planted faults per draw 2; menu covers L2-1, L2-2, L3-1, L5-1.",
   "5. 2026-11-17 designer — `picture_is_jfif` decodes the picture record on the bench with Pillow 11 (`Image.load()`), an independent decoder: bytes 0-1 FFD8, APP0 `JFIF`, last two bytes FFD9 with nothing after, full decode without error or warning, 640 x 480.",
+  "7. 2026-11-17 designer — each test runs once per harness process; planted faults that select a command by occurrence count from the start of that process.",
   "6. 2026-11-17 designer — a restart window is split at its `sysTester.Started` row; the Pi clock is wall time, so a restart gives no clock backstep to split on.",
   "4. 2026-11-17 designer — `BENCH_LINE(CAMERA, state)` is a bench line this plan needs from `sysTester`; reported to the parent campaign."
  ],
@@ -299,7 +300,7 @@
    "metrics": [
     {
      "helper": "library_identity",
-     "text": "package owning the resolved libcamera.so has version 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library",
+     "text": "upstream version (before `+`) of the package owning the resolved libcamera.so equals 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library",
      "args": {
       "version": "0.8.0"
      }
@@ -348,7 +349,7 @@
     "MARK(16)",
     "bracket (2 Heartbeat samples)",
     "CAPTURE()",
-    "action: log the bench time CaptureStarted was received and a no-op action triggered on it, into bench-actions.log",
+    "action: on receipt of CaptureStarted run `date +%s.%N` on the Pi over ssh (the triggered no-op action) and log it into bench-actions.log",
     "bracket (2 Heartbeat samples)",
     "MARK(17)"
    ],
@@ -363,7 +364,7 @@
    "metrics": [
     {
      "helper": "trigger_margin",
-     "text": "t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (bench time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)",
+     "text": "t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (Pi time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)",
      "args": {
       "factor": 2
      }
@@ -595,7 +596,7 @@
     }
    ],
    "knobs": [
-    "capture_after_restart_dropped"
+    "capture_twice_after_restart"
    ],
    "evidence": "The window is split at its single sysTester.Started row: part A is the rows before it, part B the rows after it. require (else UNVERIFIED, the race was lost): A: event piCamera.CaptureStarted count == 1; A: event productManager.ProductWritten count == 0. check: event sysTester.Started count == 1; check: B: event piCamera.CameraFound count == 1, its camera argument equal to the identification of the SDD Introduction; check: B: event piCamera.CaptureStarted count == 1; check: B: event piCamera.CaptureFailed count == 0; check: B: event productManager.ProductWritten count == 1; require: B: event cmdDisp.OpCodeError count == 0; require: B: commands sent after the restart == count(event cmdDisp.OpCodeDispatched)."
   },

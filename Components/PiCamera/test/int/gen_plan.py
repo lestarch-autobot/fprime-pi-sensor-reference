@@ -21,14 +21,14 @@ t("L0-1", "Image identity", "Proves the running image is the manifest's image.",
 t("L0-2", "Camera library identity", "Proves the image runs the packaged libcamera of the pinned version and links no OpenCV.", R(16, 17),
   "Prototype image running; link up.",
   ["MARK(12)", "action: log `ldd` of the deployment binary and `dpkg -S` plus `dpkg-query -W` of the package owning each resolved libcamera and libjpeg library, over ssh, into bench-actions.log", "bracket (2 Heartbeat samples)", "MARK(13)"], W(12, 13),
-  metrics=[H("library_identity", "package owning the resolved libcamera.so has version 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library", version="0.8.0")],
+  metrics=[H("library_identity", "upstream version (before `+`) of the package owning the resolved libcamera.so equals 0.8.0; every resolved library belongs to a Raspberry Pi OS package; ldd lists no opencv library", version="0.8.0")],
   evidence="The bench log lines; evidence outside the UUT's reporting path. REQ-PiCamera-016 is also inspected (build inputs).")
 t("L0-3", "Camera line off and on", "Proves the bench can make the camera unavailable and available without a process restart.", [], NOM,
   ["MARK(14)", "bracket (2 Heartbeat samples)", "BENCH_LINE(CAMERA, OFF)", "action: log `rpicam-still --list-cameras` into bench-actions.log", "BENCH_LINE(CAMERA, ON)", "action: log `rpicam-still --list-cameras` into bench-actions.log", "bracket (2 Heartbeat samples)", "MARK(15)"], W(14, 15),
   evidence=L0 + "require (L5-1): first listing names no camera, second names the camera of the SDD Introduction; check: event sysTester.Started count == 0.")
 t("L0-4", "Capture duration against trigger latency", "Proves a capture lasts long enough for the bench to act between CaptureStarted and the reply.", [], NOM,
-  ["MARK(16)", "bracket (2 Heartbeat samples)", "CAPTURE()", "action: log the bench time CaptureStarted was received and a no-op action triggered on it, into bench-actions.log", "bracket (2 Heartbeat samples)", "MARK(17)"], W(16, 17),
-  metrics=[H("trigger_margin", "t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (bench time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)", factor=2)],
+  ["MARK(16)", "bracket (2 Heartbeat samples)", "CAPTURE()", "action: on receipt of CaptureStarted run `date +%s.%N` on the Pi over ssh (the triggered no-op action) and log it into bench-actions.log", "bracket (2 Heartbeat samples)", "MARK(17)"], W(16, 17),
+  metrics=[H("trigger_margin", "t(event productManager.ProductWritten) - t(event piCamera.CaptureStarted) >= 2 x (Pi time of the triggered action - t(event piCamera.CaptureStarted)) (require, L3-1 and L3-2)", factor=2)],
   evidence=L0 + "The measured capture duration and trigger latency are recorded in the ledger.")
 t("L0-5", "Camera holder acquisition", "Proves the bench holder process owns the camera within the settle time the fault test uses.", [], NOM,
   ["MARK(18)", "bracket (2 Heartbeat samples)", "action: start `rpicam-hello -t 0 --nopreview` on the Pi; log its pid and the time of its first frame line into bench-actions.log", "action: stop rpicam-hello; log its exit into bench-actions.log", "bracket (2 Heartbeat samples)", "MARK(19)"], W(18, 19),
@@ -55,7 +55,7 @@ for i, (tid, how, a) in enumerate([("L3-1", "a process kill", "kill the deployme
     t(tid, f"Capture after {how} during a capture", f"Proves the first capture after {how} during a capture succeeds.", R(19), NOM,
       [f"MARK({30+2*i})", "CAPTURE() without waiting for completion", "wait event piCamera.CaptureStarted", f"action: {a}", "wait first Heartbeat samples at the ground",
        "CAPTURE()", "DOWNLINK(P1)", "wait CFDP transaction finished at the ground", f"MARK({31+2*i})"], W(30+2*i, 31+2*i),
-      metrics=[jfif("P1")], knobs=["capture_after_restart_dropped"] if i == 0 else [], evidence=RST,
+      metrics=[jfif("P1")], knobs=["capture_twice_after_restart"] if i == 0 else [], evidence=RST,
       rationale=[("commands_sent == count(event cmdDisp.OpCodeDispatched)", "the first CAPTURE has no completion; the window requires STD-RST and the part B command predicates of the evidence line")])
 FLT = ("The window requires STD-NOERR; the command error count is a check. check: event cmdDisp.OpCodeError count == 1; check: first CAPTURE completes with error; "
        "check: event piCamera.CaptureFailed(reason={r}, step={st}) count == 1; check: event piCamera.CaptureFailed count == 1; check: event piCamera.CaptureStarted count == 2; "
@@ -82,7 +82,7 @@ for x in T:
     for r in x["covers"]: req.setdefault(r, {"tests": [], "verification": "Integration Test", "note": ""})["tests"].append(x["id"])
 UT = "Unit Test (unit-test list, SDD section 8)"
 for n in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 20, 21, 22, 23, 24): req[R(n)[0]] = {"tests": [], "verification": UT, "note": "needs the camera substitute and the port tester of the unit-test build"}
-req[R(16)[0]].update(verification="Inspection and Integration Test", note="inspection of the build inputs; L0-2 records the linked libraries")
+req[R(16)[0]].update(verification="Inspection and Integration Test", note="inspection of the build inputs; L0-2 judges the linked libraries. Redundancy waived: the second verification is the inspection, recorded in the ledger; no second bench test exists for a link-time fact")
 STD = ["both markers present", "commands_sent == count(event cmdDisp.OpCodeDispatched)", "event cmdDisp.OpCodeError count == 0", "event cmdDisp.TooManyCommands count == 0", "event comQueue.QueueOverflow count == 0", "Heartbeat samples >= 2"]
 plan = {
  "name": "PiCamera component test plan",
@@ -124,6 +124,7 @@ plan = {
                   "2. 2026-11-17 designer — REQ-PiCamera-001 'acquired after its request' is judged by two captures giving different picture bytes and by the capture time record against bench time (tolerance 2 s, project decision D12).",
                   "3. 2026-11-17 designer — max planted faults per draw 2; menu covers L2-1, L2-2, L3-1, L5-1.",
                   "5. 2026-11-17 designer — `picture_is_jfif` decodes the picture record on the bench with Pillow 11 (`Image.load()`), an independent decoder: bytes 0-1 FFD8, APP0 `JFIF`, last two bytes FFD9 with nothing after, full decode without error or warning, 640 x 480.",
+                  "7. 2026-11-17 designer — each test runs once per harness process; planted faults that select a command by occurrence count from the start of that process.",
                   "6. 2026-11-17 designer — a restart window is split at its `sysTester.Started` row; the Pi clock is wall time, so a restart gives no clock backstep to split on.",
                   "4. 2026-11-17 designer — `BENCH_LINE(CAMERA, state)` is a bench line this plan needs from `sysTester`; reported to the parent campaign."],
  "tests": T}

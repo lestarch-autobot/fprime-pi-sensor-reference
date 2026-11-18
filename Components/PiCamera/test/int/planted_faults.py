@@ -23,15 +23,16 @@ for _name, _doc in [
     ("picture_is_jfif", "Picture record of the ground file: bytes 0-1 FFD8, APP0 'JFIF', last two bytes FFD9 with nothing after, and a full decode by Pillow 11 (Image.load) without error or warning giving width x height."),
     ("pictures_differ", "sha256 of the picture records of the two ground files of the window differ."),
     ("picture_time_between", "Capture time record of the ground file lies between the bench time of CAPTURE sent - tol_s and the completion time + tol_s."),
-    ("library_identity", "bench-actions.log: the package owning the libcamera.so that ldd resolves has the given version; every resolved library belongs to a package; no opencv library."),
+    ("library_identity", "bench-actions.log: the upstream version (the part before `+`) of the package owning the libcamera.so that ldd resolves equals the argument; the full package version is logged; every resolved library belongs to a package; no opencv library."),
     ("picture_time_after", "Capture time record of product b is later than that of product a."),
-    ("trigger_margin", "Capture duration (CaptureStarted to ProductWritten, FSW clock) is at least factor times the bench trigger latency logged in bench-actions.log."),
+    ("trigger_margin", "t(ProductWritten) - t(CaptureStarted) >= factor x (Pi time of the triggered action - t(CaptureStarted)); the action logs `date +%s.%N` taken on the Pi, so all terms are on the Pi clock."),
     ("holder_acquired_within", "bench-actions.log: first frame line of the camera holder - its start <= bound_s."),
     ("final_sha256_matches", "sha256 in record/raw/final-state.txt equals the sha256 of the ground file of the window."),
 ]:
     _declare(_name, _doc)
 
 
+# Occurrence counts per test; each test runs once per harness process (plan decision 7).
 _count = {}
 
 
@@ -52,7 +53,7 @@ def capture_twice(test_id, command_name, args):
 
 @planted_fault("corrupt_picture", applies_to=["L2-2"], cls="uut-state", kind="insert",
                mechanism="sysTester.CORRUPT_PRODUCT(name) is inserted before the second productManager.DOWNLINK of the test (selected by occurrence): the first two bytes of the picture record of the stored product are overwritten on board; the test removes its products at teardown",
-               fails={"L2-2": ["picture record of P2 is JFIF, SOI to EOI, 640 x 480", "sha256 of the picture records of P1 and P2 differ"]})
+               fails={"L2-2": ["picture record of P2 is JFIF, SOI to EOI, 640 x 480"]})
 def corrupt_picture(test_id, command_name, args):
     if _is(command_name, "DOWNLINK") and _nth(test_id, "DOWNLINK") == 2:
         return [("sysTester.CORRUPT_PRODUCT", [args[0]]), (command_name, args)]
@@ -71,11 +72,10 @@ def camera_kept_absent(test_id, command_name, args):
     return None
 
 
-@planted_fault("capture_after_restart_dropped", applies_to=["L3-1"], cls="stimulus",
-               mechanism="the second productManager.CAPTURE of the test (the one after the restart, selected by occurrence) is rewritten to cmdDisp.CMD_NO_OP: no picture is acquired after the restart",
-               fails={"L3-1": ["B: event piCamera.CaptureStarted count == 1", "B: event productManager.ProductWritten count == 1",
-                               "picture record of P1 is JFIF, SOI to EOI, 640 x 480"]})
-def capture_after_restart_dropped(test_id, command_name, args):
+@planted_fault("capture_twice_after_restart", applies_to=["L3-1"], cls="stimulus", kind="insert",
+               mechanism="the second productManager.CAPTURE of the test (the one after the restart, selected by occurrence) is sent twice in a row: two pictures are acquired after the restart where the test expects one; the window stays complete and P1 is still downlinked",
+               fails={"L3-1": ["B: event piCamera.CaptureStarted count == 1", "B: event productManager.ProductWritten count == 1"]})
+def capture_twice_after_restart(test_id, command_name, args):
     if _is(command_name, "CAPTURE") and _nth(test_id, "CAPTURE") == 2:
-        return ("cmdDisp.CMD_NO_OP", [])
+        return [(command_name, args), (command_name, args)]
     return None
