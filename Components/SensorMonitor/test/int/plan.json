@@ -69,7 +69,6 @@
   ],
   "ABS-MGR": [
    "event bmpManager.DeviceFailure count == 0",
-   "event bmpManager.DeviceReadFailure count == 0",
    "event imuManager.I2cError count == 0",
    "event gpsManager.MalformedMessage count == 0",
    "event gpsManager.InvalidData count == 0"
@@ -269,15 +268,16 @@
   "- UUT: component `PiSensor.SensorMonitor`, instance `sensorMonitor`, in the PiSensor deployment on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS 13.",
   "- Test deployment: the project's full deployment plus `sysTester` (SSDD decision D13, pending the human's ruling at Approve SSDD), prototype image over TCP; ground system fprime-yamcs at the project pin. Fallback if D13 is refused: the base deployment (`deploy/base`, which already carries `sysTester`) plus `sensorMonitor`.",
   "- Stimuli: `sysTester.MARK(id)`; `sysTester.BENCH_LINE(line, state)` with `line` in {BMP280, MPU6050} and `state` in {OFF, ON} (signature of the project plan; the command is not in `SystemTester.fpp` at the base deployment yet). The GPS sentence source is on the workstation and is driven by bench actions only (stop, resume, sentence content from `bench/gps-script.nmea`), each logged with bench time in bench-actions.log. The tilt of L2-2 is a bench action.",
-  "- Pairing rule for the Reading comparisons: each component sample is paired with the manager `Reading` sample nearest in FSW time; the managers run at 10 Hz and the telemetry flush at 1 Hz, so the pair can be two different 10 Hz samples and the bounds are noise allowances.",
+  "- Pairing rule for the Reading comparisons: each component sample is paired with the manager `Reading` sample nearest in FSW time; the managers run at 10 Hz and the telemetry flush at 1 Hz, so the pair can be two different 10 Hz samples and the bounds are noise allowances; a component sample with no `Reading` sample within 1.5 s is unpaired and does not count towards the minimum pair count.",
   "- Out of scope: data product content (campaign `prodmgr` and the project plan), downlink period at the ground (project L2-1), RFM69 link (project flight block)."
  ],
  "entry_gates": [
   "- Unit tests of `SensorMonitor` pass with the plan's coverage; the project's deployment with `sensorMonitor` wired builds from the manifest SHAs.",
-  "- L0-1 passes on the bench; marker round-trip, event rate and the noise allowances of L2-1 and L2-2 confirmed (replaces the desk check).",
+  "- L0-1 passes on the bench; marker round-trip, event rate and the noise allowances of L2-1 and L2-2 confirmed (replaces the desk check): the rate of mismatched 10 Hz pairs is recorded and each allowance is set for a false-failure probability of at most 1e-3 per window; the ground rendering of the enum arguments of `Mpu6050Lost` (bare or qualified name) is confirmed against the event pattern.",
   "- `sysTester.BENCH_LINE(line, state)` exists in the harness model with the argument names and enum values above; the planted-fault functions are re-verified against it (`fth verify-plan --tests`).",
   "- Bench recipe of the project plan: bench lines BMP280 and MPU6050 (supply switches, I2C isolated), GPS sentence source on the GPS UART in place of the receiver, with `bench/gps-script.nmea` pinned in the manifest.",
-  "- Between tests the harness waits until the three sensor states are PRESENT (bound 20 s); each test's `sensors_present_at_start` precondition judges it.",
+  "- Between tests the harness waits 20 s after the last bench line or source action; each test's `bench_ready_at_start` precondition judges the bench from the managers' channels and bench-actions.log, never from the component's own channels.",
+  "- Command times: `t(X sent)` is the FSW time of the `cmdDisp.OpCodeDispatched` event of that command.",
   "- Today's bench cannot run L2-1 to L7-1: the BMP280 and the GPS source do not answer and the bench lines are absent (project ledger)."
  ],
  "levels": [
@@ -294,7 +294,8 @@
   "2. 2026-11-17 designer — coverage thresholds at the skill baselines (UT 95 % lines, on-target 75 % lines).",
   "3. 2026-11-17 designer — markers, bench lines and helpers follow the project plan so one harness serves both plans; marker ids 10 to 231 are local to this plan's record.",
   "4. 2026-11-17 designer — REQ-SensorMonitor-003 and -017 are verified by unit test of record; the bench judges their system effect within stated allowances.",
-  "5. 2026-11-17 designer — review round 1 (system-test-review Mode A, 11 must fix / 12 could fix): all accepted; dispositions in the campaign's review record."
+  "5. 2026-11-17 designer — review round 1 (system-test-review Mode A, 11 must fix / 12 could fix): all accepted; dispositions in the campaign's review record.",
+  "6. 2026-11-17 designer — review round 2 (4 must fix / 3 could fix): all accepted."
  ],
  "tests": [
   {
@@ -351,9 +352,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "max_fsw_gap",
@@ -370,7 +373,7 @@
     },
     {
      "helper": "values_match_reading",
-     "text": "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time; at least 30 pairs each",
+     "text": "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time and within 1.5 s (else unpaired); at least 30 pairs each",
      "args": {
       "temperature_degc": 0.5,
       "rate_dps": 1.0,
@@ -379,7 +382,7 @@
     },
     {
      "helper": "angles_match_reading",
-     "text": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, Pi at rest; at least 30 pairs",
+     "text": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time and within 1.5 s (else unpaired), Pi at rest; at least 30 pairs",
      "args": {
       "bound_deg": 1.0,
       "min_pairs": 30
@@ -387,7 +390,7 @@
     },
     {
      "helper": "location_equals_script",
-     "text": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples",
+     "text": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm, within 1e-7 deg and 0.01 m; the script holds one constant position; at least 5 samples",
      "args": {
       "min_samples": 5
      }
@@ -399,22 +402,22 @@
      "text": "1 Hz schedule call plus half a period, a test allowance for rate-group jitter confirmed at L0; FSW time tags, so the downlink does not enter; 55 = 60 s at 1 Hz less the flush phase at both markers"
     },
     {
-     "pred": "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time; at least 30 pairs each",
+     "pred": "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time and within 1.5 s (else unpaired); at least 30 pairs each",
      "text": "0.5 degC and 1.0 deg/s are noise allowances for the 10 Hz pairing race, measured at L0 and replaced at the stage-2 refresh; exact equality is unit test UT-02"
     },
     {
-     "pred": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, Pi at rest; at least 30 pairs",
+     "pred": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time and within 1.5 s (else unpaired), Pi at rest; at least 30 pairs",
      "text": "the reading the component used and the Reading sample the ground holds can be different 10 Hz samples (managers in rateGroup10Hz, tlmSend flush at 1 Hz), so the bound is a noise allowance, not REQ-SensorMonitor-003: MPU6050 accelerometer noise 400 ug/sqrt(Hz) (PS-MPU-6000A-00 Rev. 3.4, section 6.2) gives about 0.3 deg rms [I]; the allowance is measured at L0 and replaced at the stage-2 refresh; the 0.1 deg requirement is unit test UT-03"
     },
     {
-     "pred": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples",
-     "text": "the script is bench-owned evidence outside the component's reporting path"
+     "pred": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm, within 1e-7 deg and 0.01 m; the script holds one constant position; at least 5 samples",
+     "text": "the script is bench-owned evidence outside the component's reporting path; 1e-7 deg and 0.01 m absorb the last-digit difference between the ground conversion and the manager's degrees + minutes / 60.0 (GpsManager.cpp lines 22 to 27)"
     }
    ],
    "knobs": [
     "bmp_line_dropped"
    ],
-   "evidence": "check: last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; event sensorMonitor.Bmp280Lost count == 0; event sensorMonitor.Mpu6050Lost count == 0; event sensorMonitor.GpsSilent count == 0; ABS; ABS-MGR. The BENCH_LINE(BMP280, ON) after the END marker and its 10 s settle wait are outside the window."
+   "evidence": "check: first(sensorMonitor.Bmp280State) == PRESENT; first(sensorMonitor.Mpu6050State) == PRESENT; first(sensorMonitor.GpsState) == PRESENT; first(sensorMonitor.TemperatureValid) == VALID; first(sensorMonitor.AttitudeValid) == VALID; first(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; event sensorMonitor.Bmp280Lost count == 0; event sensorMonitor.Mpu6050Lost count == 0; event sensorMonitor.GpsSilent count == 0; ABS; ABS-MGR. The BENCH_LINE(BMP280, ON) after the END marker and its 10 s settle wait are outside the window."
   },
   {
    "id": "L2-2",
@@ -445,9 +448,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "angle_step_after_action",
@@ -458,7 +463,7 @@
     },
     {
      "helper": "angles_match_reading",
-     "text": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, samples within 3 s of the logged tilt action excluded; at least 25 pairs",
+     "text": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time and within 1.5 s (else unpaired), samples within 3 s of the logged tilt action excluded; at least 25 pairs",
      "args": {
       "bound_deg": 1.0,
       "min_pairs": 25,
@@ -479,7 +484,7 @@
    ],
    "rationale": [
     {
-     "pred": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time, samples within 3 s of the logged tilt action excluded; at least 25 pairs",
+     "pred": "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time and within 1.5 s (else unpaired), samples within 3 s of the logged tilt action excluded; at least 25 pairs",
      "text": "the reading the component used and the Reading sample the ground holds can be different 10 Hz samples (managers in rateGroup10Hz, tlmSend flush at 1 Hz), so the bound is a noise allowance, not REQ-SensorMonitor-003: MPU6050 accelerometer noise 400 ug/sqrt(Hz) (PS-MPU-6000A-00 Rev. 3.4, section 6.2) gives about 0.3 deg rms [I]; the allowance is measured at L0 and replaced at the stage-2 refresh; the 0.1 deg requirement is unit test UT-03"
     }
    ],
@@ -526,9 +531,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "event_after_command_within",
@@ -612,9 +619,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "event_after_command_within",
@@ -652,14 +661,14 @@
      "text": "lower bound 1.5 s: the third failed identity read falls 2 s to 3 s after the supply is cut (M = 3, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-020"
     },
     {
-     "pred": "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1",
-     "text": "an unpowered MPU6050 does not acknowledge its address, which Drv.LinuxI2cDriver.writeRead reports as Drv.I2cStatus.I2C_WRITE_ERR [I, from LinuxI2cDriver.cpp; confirmed on the bench at the stage-2 refresh]; the identity condition (M = 3) precedes the no-reading condition (N = 5), so reason IDENTITY proves the identity read exists"
+     "pred": "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1",
+     "text": "an unpowered MPU6050 fails the I2C_RDWR transaction, for which Drv.LinuxI2cDriver writeRead_handler returns Drv.I2cStatus.I2C_OTHER_ERR (LinuxI2cDriver.cpp lines 132 to 136 at v4.4.2; confirmed on the bench at the stage-2 refresh); the identity condition (M = 3) precedes the no-reading condition (N = 5), so reason IDENTITY proves the identity read exists"
     }
    ],
    "knobs": [
     "sensor_line_kept_on"
    ],
-   "evidence": "check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS."
+   "evidence": "check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS."
   },
   {
    "id": "L5-3",
@@ -699,9 +708,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "event_after_action_within",
@@ -793,9 +804,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "event_after_command_within",
@@ -866,12 +879,12 @@
      "text": "lower bound 1.5 s: the third failed identity read falls 2 s to 3 s after the supply is cut (M = 3, SDD Table 2), less 0.5 s command latency allowance; upper bound 10 s is REQ-PiSensor-020"
     },
     {
-     "pred": "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1",
-     "text": "an unpowered MPU6050 does not acknowledge its address, which Drv.LinuxI2cDriver.writeRead reports as Drv.I2cStatus.I2C_WRITE_ERR [I, from LinuxI2cDriver.cpp; confirmed on the bench at the stage-2 refresh]; the identity condition (M = 3) precedes the no-reading condition (N = 5), so reason IDENTITY proves the identity read exists"
+     "pred": "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1",
+     "text": "an unpowered MPU6050 fails the I2C_RDWR transaction, for which Drv.LinuxI2cDriver writeRead_handler returns Drv.I2cStatus.I2C_OTHER_ERR (LinuxI2cDriver.cpp lines 132 to 136 at v4.4.2; confirmed on the bench at the stage-2 refresh); the identity condition (M = 3) precedes the no-reading condition (N = 5), so reason IDENTITY proves the identity read exists"
     }
    ],
    "knobs": [],
-   "evidence": "check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; F2: event sensorMonitor.Mpu6050Lost count == 1; F2: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1; F2: event sensorMonitor.Mpu6050Returned count == 0; F2: last(sensorMonitor.Mpu6050State) == LOST; F2: last(sensorMonitor.AttitudeValid) == INVALID; F2: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F2: last(sensorMonitor.Bmp280State) == PRESENT; F2: last(sensorMonitor.GpsState) == PRESENT; F2: last(sensorMonitor.TemperatureValid) == VALID; F2: last(sensorMonitor.FixValid) == VALID; B2: event sensorMonitor.Mpu6050Returned count == 1; B2: event sensorMonitor.Mpu6050Lost count == 0; B2: last(sensorMonitor.Mpu6050State) == PRESENT; B2: last(sensorMonitor.AttitudeValid) == VALID; B2: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS."
+   "evidence": "check: F: event sensorMonitor.Mpu6050Lost count == 1; F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1; F: event sensorMonitor.Mpu6050Returned count == 0; F: last(sensorMonitor.Mpu6050State) == LOST; F: last(sensorMonitor.AttitudeValid) == INVALID; F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F: last(sensorMonitor.Bmp280State) == PRESENT; F: last(sensorMonitor.GpsState) == PRESENT; F: last(sensorMonitor.TemperatureValid) == VALID; F: last(sensorMonitor.FixValid) == VALID; B: event sensorMonitor.Mpu6050Returned count == 1; B: event sensorMonitor.Mpu6050Lost count == 0; B: last(sensorMonitor.Mpu6050State) == PRESENT; B: last(sensorMonitor.AttitudeValid) == VALID; B: last(sensorMonitor.AttitudeInvalidReason) == NONE; F2: event sensorMonitor.Mpu6050Lost count == 1; F2: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1; F2: event sensorMonitor.Mpu6050Returned count == 0; F2: last(sensorMonitor.Mpu6050State) == LOST; F2: last(sensorMonitor.AttitudeValid) == INVALID; F2: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY; F2: last(sensorMonitor.Bmp280State) == PRESENT; F2: last(sensorMonitor.GpsState) == PRESENT; F2: last(sensorMonitor.TemperatureValid) == VALID; F2: last(sensorMonitor.FixValid) == VALID; B2: event sensorMonitor.Mpu6050Returned count == 1; B2: event sensorMonitor.Mpu6050Lost count == 0; B2: last(sensorMonitor.Mpu6050State) == PRESENT; B2: last(sensorMonitor.AttitudeValid) == VALID; B2: last(sensorMonitor.AttitudeInvalidReason) == NONE; every window: ABS."
   },
   {
    "id": "L5-5",
@@ -908,9 +921,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "invalid_after_action_within",
@@ -980,9 +995,11 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     }
    ],
    "rationale": [
@@ -1022,13 +1039,15 @@
    ],
    "metrics": [
     {
-     "helper": "sensors_present_at_start",
-     "text": "precondition: at the START marker the three sensor states are PRESENT and the three validities VALID (require; UNVERIFIED when not met)",
-     "args": {}
+     "helper": "bench_ready_at_start",
+     "text": "precondition: in the 3 s before the START marker bmpManager.Reading and imuManager.Reading each have a new sample and bench-actions.log shows the GPS source sending fix sentences (require; UNVERIFIED when not met; no sensorMonitor channel is read)",
+     "args": {
+      "lookback_s": 3
+     }
     },
     {
      "helper": "location_equals_script",
-     "text": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples",
+     "text": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm, within 1e-7 deg and 0.01 m; the script holds one constant position; at least 5 samples",
      "args": {
       "min_samples": 5
      }
@@ -1036,12 +1055,12 @@
    ],
    "rationale": [
     {
-     "pred": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm; at least 5 samples",
+     "pred": "every Latitude, Longitude, Altitude sample of the window equals the value of the bench sentence script (bench/gps-script.nmea, sha256 in the manifest) converted as NMEA 0183 ddmm.mmmm, within 1e-7 deg and 0.01 m; the script holds one constant position; at least 5 samples",
      "text": "the script is bench-owned evidence outside the component's reporting path; the same comparison is repeated by the auditor for the final state"
     }
    ],
    "knobs": [],
-   "evidence": "check: last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; ABS; ABS-LOSS; ABS-MGR. After the run the bench copies the last sentence the source sent (bench-actions.log) and reads MPU6050 register 0x75 (`i2cget -y 1 0x68 0x75`, a bench health fact) into record/raw/final-state.txt."
+   "evidence": "check: first(sensorMonitor.Bmp280State) == PRESENT; first(sensorMonitor.Mpu6050State) == PRESENT; first(sensorMonitor.GpsState) == PRESENT; first(sensorMonitor.TemperatureValid) == VALID; first(sensorMonitor.AttitudeValid) == VALID; first(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureValid) == VALID; last(sensorMonitor.AttitudeValid) == VALID; last(sensorMonitor.FixValid) == VALID; last(sensorMonitor.TemperatureInvalidReason) == NONE; last(sensorMonitor.AttitudeInvalidReason) == NONE; last(sensorMonitor.FixInvalidReason) == NONE; last(sensorMonitor.Bmp280State) == PRESENT; last(sensorMonitor.Mpu6050State) == PRESENT; last(sensorMonitor.GpsState) == PRESENT; last(sensorMonitor.GpsQuality) == 1; ABS; ABS-LOSS; ABS-MGR. After the run the bench copies the last sentence the source sent (bench-actions.log) and reads MPU6050 register 0x75 (`i2cget -y 1 0x68 0x75`, a bench health fact) into record/raw/final-state.txt."
   }
  ]
 }

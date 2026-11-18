@@ -29,7 +29,7 @@ def _declare(name, doc):
 
 
 for _name, _doc in [
-    ("sensors_present_at_start", "Precondition: the three state channels read PRESENT and the three validity channels VALID at the START marker; UNVERIFIED when not met."),
+    ("bench_ready_at_start", "Precondition: bmpManager.Reading and imuManager.Reading advance in the lookback before the START marker and the bench log shows the GPS source sending; UNVERIFIED when not met; reads no sensorMonitor channel."),
     ("max_fsw_gap", "Largest gap between FSW time tags of each listed channel, window edges included, <= bound_s, with at least min_samples samples."),
     ("same_time_tag", "The listed channels carry one FSW time tag per schedule call, every call of the window."),
     ("angles_match_reading", "Roll and pitch against atan2 of the acceleration in the imuManager.Reading sample nearest in FSW time, bound_deg, at least min_pairs pairs."),
@@ -65,7 +65,7 @@ _SM = "sensorMonitor."
                                "F: last(sensorMonitor.TemperatureValid) == INVALID", "F: last(sensorMonitor.TemperatureInvalidReason) == STALE",
                                "B: event sensorMonitor.Bmp280Returned count == 1", _metric("L5-1", "event_after_command_within", "F")],
                       "L5-2": ["F: event sensorMonitor.Mpu6050Lost count == 1",
-                               "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_WRITE_ERR) count == 1",
+                               "F: event sensorMonitor.Mpu6050Lost(reason=IDENTITY, status=I2C_OTHER_ERR) count == 1",
                                "F: last(sensorMonitor.Mpu6050State) == LOST", "F: last(sensorMonitor.AttitudeValid) == INVALID",
                                "F: last(sensorMonitor.AttitudeInvalidReason) == IDENTITY",
                                "B: event sensorMonitor.Mpu6050Returned count == 1", _metric("L5-2", "event_after_command_within", "F")]})
@@ -76,10 +76,10 @@ def sensor_line_kept_on(test_id, command_name, args):
 
 
 @planted_fault("bmp_line_dropped", applies_to=["L2-1"], cls="uut-state", kind="insert",
-               mechanism="sysTester.BENCH_LINE(BMP280, OFF) is inserted before the START marker: the BMP280 is unpowered for the whole window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. Which bmpManager warning the unpowered sensor raises is confirmed by the single-fault vector at stage 2",
+               mechanism="sysTester.BENCH_LINE(BMP280, OFF) is inserted before the START marker: the BMP280 is unpowered for the whole window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. The unpowered sensor fails the manager's reset write (DeviceFailure, BmpManager.cpp lines 57 to 63) and leaves no Reading sample to pair within 1.5 s",
                fails={"L2-1": ["last(sensorMonitor.TemperatureValid) == VALID", "last(sensorMonitor.TemperatureInvalidReason) == NONE",
                                "last(sensorMonitor.Bmp280State) == PRESENT", "event sensorMonitor.Bmp280Lost count == 0",
-                               "event bmpManager.DeviceReadFailure count == 0", _metric("L2-1", "values_match_reading")]})
+                               "event bmpManager.DeviceFailure count == 0", _metric("L2-1", "values_match_reading")]})
 def bmp_line_dropped(test_id, command_name, args):
     if _is(command_name, "MARK") and len(args) == 1 and int(args[0]) == 30:
         return [("sysTester.BENCH_LINE", ["BMP280", "OFF"]), (command_name, args)]
