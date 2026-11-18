@@ -16,3 +16,20 @@
   - P5 Telemetry Table 2 and picture size 1280x960 (REQ-PiCamera-015, Table 3).
   - P6 Failure reasons of Table 1 (REQ-PiCamera-005).
 - Device identity: camera model unknown until attached (after SSDD approval); a mismatch with the libcamera-supported sensors reopens requirements.
+- Requirements review loop started, bound 3 (source: default). Round 1 reviewer: child session 1a2514060578497289718f98b131436e (requirements-review.agent.md), artifact commit a84dc87. Records land in `Components/PiCamera/docs/review/`.
+- Design draft in progress (not yet under review) [V]: `PiCamera.fpp` passes `fpp-check` and builds (`Components_PiCamera`, model only) against nasa/fprime v4.4.2 with fprime-fpp 3.4.0 in a scratch project outside the repository (`~/picam/build-model.sh`).
+- Design decisions pending in the requirements (to apply at round-1 close):
+  - No `run` port: the SSDD threading table gives piCamera its own thread and no rate group; the capture limit is a bounded wait `CAPTURE_TIMEOUT_MS` = 10000 in the component thread (replaces P3 ticks).
+  - `BUSY` = request queue full (overflow `hook` replies), requests served one at a time in arrival order (replaces "during a capture").
+  - Port change to report to the parent: `imageOut` type `Fw.BufferSend` -> `PiSensor.CaptureReply(context, status, acquired: Fw.Time, picture: Fw.Buffer)`; reason: `Fw.BufferSend` carries neither the acquisition time (REQ-PiSensor-006; SSDD element line "one JPEG and its acquisition time") nor a failure status (REQ-PiSensor-028). Port names unchanged. `CaptureRequest` and `CaptureReply` are defined with the component.
+  - Picture 640x480 (D5 minimum; smallest file for the RFM69 link), buffer 262144 bytes; libraries `libcamera` + `libjpeg-turbo` (both Raspberry Pi OS packages).
+- 2026-11-17 requirements review round 1 [V]: must fix 15, could fix 7, disagreements 0 (local record `~/picam/review-local/review-requirements-round-1.md`, not in the repository). Closed in the artifact: all 22 except `req-unclear:Introduction/device-identity` (cannot close before the camera is attached; residual for gate 1).
+  - Rewrites taken as the reviewer wrote them: 001, 003, 005, 007, 008, 010, 011, 012, 013, 014, 015; 002 points at `PICTURE_WIDTH` x `PICTURE_HEIGHT`; Table 1 `CAMERA_ERROR`, `TIMEOUT`.
+  - New rows: 019 (restart during a capture; source: plan L3-3/L3-4, REQ-PiSensor-029), 020 and 021 (returned buffer not delivered or returned twice; fault scenario of the picture-return interface).
+  - Trace additions: 006 ← fault scenario "reply to an earlier or refused request" (the requester pairs each reply, `BUSY` included, with its request); 015 ← request "The sensors should stream telemetry" (the camera is sensor 3 of the request; SSDD Table 1 names no camera metric, so the channels are proposal P5); 018 ← REQ-PiSensor-029 and the buffer fault scenario (a picture buffer never released ends captures with `NO_BUFFER`).
+  - 017 [V]: `libcamera-dev` 0.8.0+rpt20261104-1 read from the public Raspberry Pi OS trixie archive index (archive.raspberrypi.com), not from the bench; the version installed on `soakee` is confirmed at DEVELOPMENT start, a difference reopens 017.
+- Decisions revised at round-1 close (supersede the "pending" list above):
+  - Timeout stays a tick count (requirements skill directive): `CAPTURE_TIMEOUT_TICKS` = 10 on a `run` port wired to `rateGroup1Hz`. Port addition to report to the parent (sketch has no `run`).
+  - `BUSY` = an earlier request has no reply yet (state, plus queue overflow).
+  - One delivered picture outstanding at a time: a request before the last picture is returned gets `NO_BUFFER` (P7, proposed) — makes 020 checkable with one remembered buffer.
+  - Picture size 640x480 (P5 revised).
