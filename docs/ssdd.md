@@ -117,7 +117,7 @@ at Approve SSDD.
 |---|---|---|---|
 | `CdhCore.Subtopology` | subtopology | Command dispatch, events, telemetry channels, health, fatal handling | — |
 | `ComCcsds.Subtopology` (prototype), `ComCcsds.FramingSubtopology` (flight) | subtopology | CCSDS framing, deframing, queues, routing; member `tcDeframer` checks frame integrity | fprime-yamcs ground system |
-| `FileHandlingCfdp.Subtopology` | subtopology | CFDP class 2 file transfer, file manager, parameters; reads product files | Ground CFDP entity |
+| `PiFileHandling` | subtopology | CFDP class 2 file transfer, file manager, parameters; reads product files | Ground CFDP entity |
 | `DataProducts.Subtopology` | subtopology | Data product buffers and writer; writes product files | Pi 5 file system (SD card) |
 | `Bmp280.Subtopology` | subtopology | Reads BMP280 temperature; checks its identity register | BMP280 on SPI |
 | `MpuImu.Subtopology` | subtopology | Reads MPU6050 acceleration and gyro rates | MPU6050 on I2C bus 1, address 0x68 |
@@ -139,7 +139,7 @@ Two link configurations, never run together:
 | Prototype | `ComCcsds.Subtopology` (its `comStub` over a byte stream) and `tcpLink` |
 | Flight | `ComCcsds.FramingSubtopology`, `Rfm69.Subtopology` (in place of `comStub` and `tcpLink`) and `groundRadio` |
 
-Five elements are bespoke. The constraint for each:
+Six elements are bespoke. The constraint for each:
 
 - `sensorMonitor`: no standard element computes roll and pitch or marks a
   metric invalid. The sensor elements report a failed bus read, but not a
@@ -155,7 +155,13 @@ Five elements are bespoke. The constraint for each:
   sends all stored products, not one named product.
 - `PiGps`: `NmeaGps.Subtopology` wires `frameAccumulator` to `gpsAdapter`
   inside itself, so the sentence cannot be read from outside; `PiGps` is the
-  same members with that one connection opened.
+  same members with that one connection opened. It also connects the UART
+  driver's buffer ports, which the catalog subtopology leaves open.
+- `PiFileHandling`: `FileHandlingCfdp.Subtopology` does not compile at the
+  pinned ref (its `cfdpManager` instance calls `configure` without the file
+  queue depth), so the project instantiates the same three components
+  (`cfdpManager`, `fileManager`, `prmDb`), unmodified. `ComCcsds` has no
+  CFDP ports at the pin; CFDP data uses its file queue and file uplink port.
 - `groundRadio`: no catalog has a ground-side RFM69 element. It is a second
   small deployment on the ground Pi that reuses `Rfm69.Subtopology` and a
   standard byte-stream driver towards fprime-yamcs; allocation decides its
@@ -219,9 +225,9 @@ wiring is fixed in the base-deployment lane.
 </details>
 
 <details>
-<summary>Subtopology <code>FileHandlingCfdp.Subtopology</code></summary>
+<summary>Subtopology <code>PiSensor.PiFileHandling</code></summary>
 
-> ![Topology FileHandlingCfdp.Subtopology](img/FileHandlingCfdp.Subtopology.svg)
+> ![Topology PiSensor.PiFileHandling](img/PiSensor.PiFileHandling.svg)
 >
 </details>
 
@@ -252,7 +258,7 @@ wiring is fixed in the base-deployment lane.
 |---|---|---|---|
 | `CdhCore.Subtopology` | `CdhCore.Subtopology` | 1 Hz: telemetry send, health | Command, event and telemetry spine |
 | `ComCcsds.Subtopology` | `ComCcsds.Subtopology` | 10 Hz: queue, aggregator timeout | Prototype; flight uses `ComCcsds.FramingSubtopology`. File traffic queued behind telemetry and events |
-| `FileHandlingCfdp.Subtopology` | `FileHandlingCfdp.Subtopology` | 1 Hz: CFDP timers | One CFDP channel |
+| `PiFileHandling` | `PiSensor.PiFileHandling` | 1 Hz: CFDP timers, file manager | One CFDP channel. The three member components of `FileHandlingCfdp.Subtopology`, instantiated by this project |
 | `DataProducts.Subtopology` | `DataProducts.Subtopology` | 1 Hz: writer, buffers | Product files on the Pi 5 file system |
 | `Bmp280.Subtopology` | `Bmp280.Subtopology` | 1 Hz: read | — |
 | `MpuImu.Subtopology` | `MpuImu.Subtopology` | 1 Hz: read | — |
@@ -273,7 +279,7 @@ wiring is fixed in the base-deployment lane.
 Short names: `Cdh` = `CdhCore.Subtopology`, `Com` = the `ComCcsds` subtopology of the
 configuration under test, `link` = `tcpLink` (prototype) or `Rfm` and
 `groundRadio` (flight),
-`Cfdp` = `FileHandlingCfdp.Subtopology`, `Dp` = `DataProducts.Subtopology`,
+`Cfdp` = `PiFileHandling`, `Dp` = `DataProducts.Subtopology`,
 `Bmp` = `Bmp280.Subtopology`, `Imu` = `MpuImu.Subtopology`,
 `Gps` = `PiGps`, `Rfm` = `Rfm69.Subtopology`,
 `sched` = `linuxTimer`, `rateGroupDriver`, `rateGroup1Hz`, `rateGroup10Hz`.
@@ -369,7 +375,10 @@ each is `platform: unverified` until the base deployment builds.
 | `ComCcsds.Subtopology` (prototype) | INHERITED | nasa/fprime@v4.4.2 | `ComCcsdsConfig` override; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 016, 036 |
 | `ComCcsds.FramingSubtopology` (flight) | INHERITED | nasa/fprime@v4.4.2 | `ComCfg.TmFrameFixedSize` of 255 or less, the RFM69 payload limit; same value in the ground configuration; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/ComCcsds/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/ComCcsds/index.html) | checklist no; ut no; int no | — | 001, 002, 003, 012, 013, 015, 036 |
 | `ComCcsds.tcDeframer` (`Svc.Ccsds.TcDeframer`) | INHERITED | nasa/fprime@v4.4.2 | Member of both `ComCcsds` variants; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Ccsds/TcDeframer/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Ccsds/TcDeframer/index.html) | checklist no; ut yes; int no | — | 027 |
-| `FileHandlingCfdp.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | CFDP parameters: class 2, 60 s inactivity; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/FileHandlingCfdp/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/FileHandlingCfdp/index.html) | checklist no; ut no; int no | — | 012, 013, 034, 035, 038 |
+| `PiFileHandling` | NEW-SUBTOPOLOGY | new: this repository | The three member rows below: the components of `FileHandlingCfdp.Subtopology` (nasa/fprime@v4.4.2), instantiated by this project because the catalog instance of `cfdpManager` does not compile at the pin (it calls `configure` without the file queue depth) | — | — | — | — | 012, 013, 034, 035, 038 |
+| `cfdpManager` in `PiFileHandling` (`Svc.Ccsds.Cfdp.CfdpManager`) | INHERITED | nasa/fprime@v4.4.2 | CFDP parameters: class 2, 60 s inactivity; file queue depth 10; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Ccsds/CfdpManager/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Ccsds/CfdpManager/index.html) | checklist no; ut yes; int no | — | — |
+| `fileManager` in `PiFileHandling` (`Svc.FileManager`) | INHERITED | nasa/fprime@v4.4.2 | Unchanged; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/FileManager/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/FileManager/index.html) | checklist no; ut yes; int yes | — | — |
+| `prmDb` in `PiFileHandling` (`Svc.PrmDb`) | INHERITED | nasa/fprime@v4.4.2 | Unchanged; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/PrmDb/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/PrmDb/index.html) | checklist no; ut yes; int yes | — | — |
 | `DataProducts.Subtopology` | INHERITED | nasa/fprime@v4.4.2 | Product directory in `config/`; platform: unverified | [sdd](https://github.com/nasa/fprime/blob/v4.4.2/Svc/Subtopologies/DataProducts/docs/sdd.md) | [Bronze](https://github.com/nasa/fprime/blob/coverage/v4.4.2/Svc/Subtopologies/DataProducts/index.html) | checklist no; ut no; int no (members `DpWriter`, `DpManager`, `DpCatalog`: int yes) | — | 004, 005, 010, 029, 031, 035, 038 |
 | `Bmp280.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | SPI device in `Bmp280Config`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/Bmp280/Components/BmpManager/docs/sdd.md) | unavailable | checklist no; ut no; int no | — | 001, 007, 008, 019, 022, 023, 026 |
 | `MpuImu.Subtopology` | INHERITED | fprime-community/fprime-sensors@e5d83d1 | I2C bus 1, address 0x68; its bus driver also serves `sensorMonitor`; platform: unverified | [sdd](https://github.com/fprime-community/fprime-sensors/blob/e5d83d165d5a5ceadc1ea4d0a0d6a74f0d0fbc4f/fprime-sensors/MpuImu/Components/ImuManager/docs/sdd.md) | unavailable | checklist no; ut yes; int no | — | 002, 007, 008, 020, 022, 023 |
@@ -420,7 +429,10 @@ becomes a system test; see decision D11.
 
 ### Red flags
 
-None. No inherited source is changed. Two catalog elements lack a function
+None. No inherited source is changed. One catalog subtopology,
+`FileHandlingCfdp.Subtopology`, does not compile at the pinned ref; the
+project instantiates its three components, unmodified, as `PiFileHandling`.
+Two catalog elements lack a function
 and `sensorMonitor` supplies it through the ports named in its row: the
 MPU6050 manager reads no identity register, and the GPS manager reports
 neither fix status nor sentence arrival.

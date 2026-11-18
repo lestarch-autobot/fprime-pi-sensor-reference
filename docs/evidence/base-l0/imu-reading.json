@@ -1,0 +1,89 @@
+{
+  "id": {
+    "name": "Reading",
+    "namespace": "/PiSensor_PiSensor/MpuImu/imuManager"
+  },
+  "rawValue": {
+    "type": "AGGREGATE",
+    "aggregateValue": {
+      "name": ["acceleration", "rotation", "temperature"],
+      "value": [{
+        "type": "AGGREGATE",
+        "aggregateValue": {
+          "name": ["x", "y", "z"],
+          "value": [{
+            "type": "FLOAT",
+            "floatValue": -0.072753906
+          }, {
+            "type": "FLOAT",
+            "floatValue": -0.008056641
+          }, {
+            "type": "FLOAT",
+            "floatValue": 0.8901367
+          }]
+        }
+      }, {
+        "type": "AGGREGATE",
+        "aggregateValue": {
+          "name": ["x", "y", "z"],
+          "value": [{
+            "type": "FLOAT",
+            "floatValue": -2.2671757
+          }, {
+            "type": "FLOAT",
+            "floatValue": 1.1374046
+          }, {
+            "type": "FLOAT",
+            "floatValue": 0.08396947
+          }]
+        }
+      }, {
+        "type": "FLOAT",
+        "floatValue": 26.177057
+      }]
+    }
+  },
+  "engValue": {
+    "type": "AGGREGATE",
+    "aggregateValue": {
+      "name": ["acceleration", "rotation", "temperature"],
+      "value": [{
+        "type": "AGGREGATE",
+        "aggregateValue": {
+          "name": ["x", "y", "z"],
+          "value": [{
+            "type": "FLOAT",
+            "floatValue": -0.072753906
+          }, {
+            "type": "FLOAT",
+            "floatValue": -0.008056641
+          }, {
+            "type": "FLOAT",
+            "floatValue": 0.8901367
+          }]
+        }
+      }, {
+        "type": "AGGREGATE",
+        "aggregateValue": {
+          "name": ["x", "y", "z"],
+          "value": [{
+            "type": "FLOAT",
+            "floatValue": -2.2671757
+          }, {
+            "type": "FLOAT",
+            "floatValue": 1.1374046
+          }, {
+            "type": "FLOAT",
+            "floatValue": 0.08396947
+          }]
+        }
+      }, {
+        "type": "FLOAT",
+        "floatValue": 26.177057
+      }]
+    }
+  },
+  "acquisitionTime": "2026-11-18T00:28:57.249Z",
+  "generationTime": "2026-11-18T00:28:58.041Z",
+  "acquisitionStatus": "ACQUIRED"
+}
