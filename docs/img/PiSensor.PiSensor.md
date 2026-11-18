@@ -15,9 +15,23 @@
 </details>
 
 <details>
-<summary>Subtopology <code>ComCcsds.SpacePacketFraming</code></summary>
+<summary>Subtopology <code>ComCcsds.FramingSubtopology</code></summary>
 
-> ![Topology ComCcsds.SpacePacketFraming](ComCcsds.SpacePacketFraming.svg)
+> ![Topology ComCcsds.FramingSubtopology](ComCcsds.FramingSubtopology.svg)
+>
+> <details>
+> <summary>Subtopology <code>ComCcsds.SpacePacketFraming</code></summary>
+>
+> > ![Topology ComCcsds.SpacePacketFraming](ComCcsds.SpacePacketFraming.svg)
+> >
+> </details>
+>
+> <details>
+> <summary>Subtopology <code>ComCcsds.TmTcFraming</code></summary>
+>
+> > ![Topology ComCcsds.TmTcFraming](ComCcsds.TmTcFraming.svg)
+> >
+> </details>
 >
 </details>
 

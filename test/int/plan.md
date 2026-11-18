@@ -8,6 +8,11 @@ L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(
 - Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time; every CFDP file received is copied to `record/raw/files/` before it is checked; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json`.
 - Completeness: every window requires STD; an overflowed queue makes the window UNVERIFIED, never a pass of an absence check.
 - Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 and must be under 0.5 s; tolerances that compare the two clocks use 2 s.
+- Heartbeat: `imuManager.Reading`, written to the telemetry packet every 1 Hz cycle; `cmdDisp.CommandsDispatched` updates on change only.
+- Telemetry gaps are judged on ground reception time: the requirement is stated at the ground. Telemetry is sent at 1 Hz, so the 2 s bound leaves one period of margin for radio delay.
+- A CAPTURE that fails makes its window UNVERIFIED through STD (`OpCodeError`), not FAIL: the run is then repeated after the cause is found.
+- CFDP as shipped deletes a file after sending it (`cfdpManager.FileInDefaultKeep`, default DELETE): the on-board CRC is taken before the downlink, and L7-1 sets KEEP.
+- Constants: temperature -20 to 60 degC and gravity 8 to 12 m/s^2 are plausibility bounds for an indoor bench at rest; 1 km is the GPS plausibility bound around the surveyed bench position; 0.1 deg is the rounding allowance of the roll and pitch computation; the 30 s downlink precondition is three times the 10 s bound; the file CRC is that of `Os::File::calculateCrc`; the product directory is `DataProductsConfig.Paths.dpDir`.
 - Out of scope: BMP280 pressure; yaw.
 
 ## 1 Entry gates
@@ -25,7 +30,7 @@ Window rule: rows from the **last** `cmdDisp.NoOpStringReceived(id=START)` row t
 
 Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event piCamera.CaptureFailed count == 0; severity FATAL count == 0.
-Packets (named channel sets for `<packet> samples >= n`): Heartbeat = cmdDisp.CommandsDispatched; Sensors = bmpManager.Reading, imuManager.Reading, gpsManager.Reading.
+Packets (named channel sets for `<packet> samples >= n`): Heartbeat = imuManager.Reading; Sensors = bmpManager.Reading, imuManager.Reading, gpsManager.Reading.
 
 ID:        L0-1
 Title:     Image and platform identity
@@ -35,7 +40,7 @@ Setup:     Deployment running on the Raspberry Pi 5; RFM69 link up.
 Procedure: MARK(10); version.VERSION(ALL); action: read /proc/device-tree/model, /etc/os-release and `getconf LONG_BIT` on the Pi over ssh into bench-actions.log; bracket (2 Heartbeat samples); action: list TCP sockets of the deployment process; MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
 Pass rule: named checks declared in the integration test (test_L0_1). metrics: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
-Evidence:  Version events equal the manifest describe strings; check: model starts with "Raspberry Pi 5", os-release ID is the Raspberry Pi OS (Debian) release of the manifest, LONG_BIT == 64; socket list empty.
+Evidence:  Version events equal the manifest describe strings; check: model starts with "Raspberry Pi 5", os-release ID is the Raspberry Pi OS (Debian) release of the manifest, LONG_BIT == 64; socket list empty; check: the dictionary of the image holds no command of a test component.
 Planted faults:none
 
 ID:        L0-2
@@ -56,8 +61,8 @@ Covers:    REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-01
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
 Procedure: MARK(30); wait 60 s; MARK(31).
 Window:    Marker(id=30) … Marker(id=31)
-Pass rule: named checks declared in the integration test (test_L2_1). metrics: largest gap between ground reception times of every sensor channel in the window <= 2 s.
-Evidence:  Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 8 and 12 m/s^2; gpsManager.Reading within 1 km of the bench position in the manifest.
+Pass rule: named checks declared in the integration test (test_L2_1). metrics: for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s.
+Evidence:  Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 8 and 12 m/s^2 and angular rate magnitude <= 0.5 rad/s (bench at rest; MPU6050 datasheet zero-rate offset 20 deg/s); gpsManager.Reading within 1 km of the bench position in the manifest.
 Planted faults:none
 
 ID:        L2-2
@@ -67,51 +72,51 @@ Covers:    REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-01
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
 Procedure: MARK(32); cmdDisp.CMD_NO_OP(); wait 10 s; cmdDisp.CMD_NO_OP(); wait 10 s; cmdDisp.CMD_NO_OP(); wait 10 s; MARK(33).
 Window:    Marker(id=32) … Marker(id=33)
-Pass rule: named checks declared in the integration test (test_L2_2). metrics: largest gap between ground reception times of every sensor channel in the window <= 2 s.
+Pass rule: named checks declared in the integration test (test_L2_2). metrics: for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s.
 Evidence:  As L2-1; check: event cmdDisp.NoOpReceived count == 3.
-Planted faults:none
+Planted faults:extra_noop
 
 ID:        L2-3
 Title:     Capture and downlink of one product
-Purpose:   Proves one capture stores one product with a JPEG of at least 640x480, the three metrics and their times, delivered byte-identical by CFDP class 2.
-Covers:    REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-011
+Purpose:   Proves one capture stores one product with a JPEG of at least 640x480, the metrics and their times, sampled within 2 s of the capture, delivered byte-identical by CFDP class 2.
+Covers:    REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-011, REQ-PiSensor-014
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(40); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait CFDP transactions finished at the ground; MARK(41).
+Procedure: MARK(40); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; MARK(41).
 Window:    Marker(id=40) … Marker(id=41)
-Pass rule: named checks declared in the integration test (test_L2_3). metrics: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s.
-Evidence:  check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record.
-Planted faults:capture_twice
+Pass rule: named checks declared in the integration test (test_L2_3). metrics: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock); bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each.
+Evidence:  check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record.
+Planted faults:capture_before_xmit
 
 ID:        L2-4
 Title:     Two captures, one catalog downlink
 Purpose:   Proves a second capture stores a second product with its own capture time and the catalog downlinks both, byte-identical.
-Covers:    REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009
+Covers:    REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-014
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(42); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P1); wait 5 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P2); fileManager.CalculateCrc(P1); fileManager.CalculateCrc(P2); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait CFDP transactions finished at the ground; MARK(43).
+Procedure: MARK(42); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P1); wait 5 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P2); fileManager.CalculateCrc(P1); fileManager.CalculateCrc(P2); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; MARK(43).
 Window:    Marker(id=42) … Marker(id=43)
-Pass rule: named checks declared in the integration test (test_L2_4). metrics: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s.
-Evidence:  check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record.
-Planted faults:append_before_xmit
+Pass rule: named checks declared in the integration test (test_L2_4). metrics: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock); bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each.
+Evidence:  check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record.
+Planted faults:capture_before_xmit
 
 ID:        L2-5
 Title:     Product content against the telemetry
 Purpose:   Proves the metrics stored in a product are the sensor readings downlinked around its capture.
-Covers:    REQ-PiSensor-005, REQ-PiSensor-006
+Covers:    REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-014
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(44); wait 10 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); wait 10 s; dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait CFDP transactions finished at the ground; MARK(45).
+Procedure: MARK(44); wait 10 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); wait 10 s; dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; MARK(45).
 Window:    Marker(id=44) … Marker(id=45)
-Pass rule: named checks declared in the integration test (test_L2_5). metrics: bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s.
-Evidence:  checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window, the acceleration and angular rate of the attitude record equal an imuManager.Reading sample, the location record equals a gpsManager.Reading sample; roll and pitch equal the bench computation from that acceleration within 0.1 deg.
+Pass rule: named checks declared in the integration test (test_L2_5). metrics: bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each.
+Evidence:  checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window; the latitude and longitude records equal a gpsManager.Reading sample of the window; roll and pitch equal, within 0.1 deg, the bench computation from the acceleration of an imuManager.Reading sample of the window.
 Planted faults:none
 
 ID:        L2-6
 Title:     Capture time bound, repeated
-Purpose:   Proves three captures in a row each complete within 30 s.
+Purpose:   Proves three captures in a row each store their product within 30 s.
 Covers:    REQ-PiSensor-004, REQ-PiSensor-007
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(46); piCamera.CAPTURE(); wait command completion; piCamera.CAPTURE(); wait command completion; piCamera.CAPTURE(); wait command completion; MARK(47).
+Procedure: MARK(46); piCamera.CAPTURE(); wait event dpWriter.FileWritten; piCamera.CAPTURE(); wait event dpWriter.FileWritten; piCamera.CAPTURE(); wait event dpWriter.FileWritten; MARK(47).
 Window:    Marker(id=46) … Marker(id=47)
-Pass rule: named checks declared in the integration test (test_L2_6). metrics: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s.
+Pass rule: named checks declared in the integration test (test_L2_6). metrics: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock).
 Evidence:  check: event dpWriter.FileWritten count == 3.
 Planted faults:none
 
@@ -120,32 +125,32 @@ Title:     Telemetry during a downlink
 Purpose:   Proves sensor telemetry continues at least every 10 s while products are downlinked over the RFM69.
 Covers:    REQ-PiSensor-012, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-010, REQ-PiSensor-011
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(50); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); MARK(51); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait CFDP transactions finished at the ground; MARK(52).
+Procedure: MARK(50); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); MARK(51); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; MARK(52).
 Window:    Q = Marker(id=50) … Marker(id=51); D = Marker(id=51) … Marker(id=52)
-Pass rule: named checks declared in the integration test (test_L2_7). metrics: largest gap between ground reception times of every sensor channel in D <= 10 s; CFDP transaction duration in D >= 30 s (a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound).
-Evidence:  check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
-Planted faults:append_before_xmit
+Pass rule: named checks declared in the integration test (test_L2_7). metrics: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s (a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound).
+Evidence:  check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
+Planted faults:capture_before_xmit
 
 ID:        L2-8
 Title:     Telemetry and commands during a downlink
 Purpose:   Proves sensor telemetry continues and a command is served while two products are downlinked.
 Covers:    REQ-PiSensor-012, REQ-PiSensor-010
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(53); piCamera.CAPTURE(); wait event dpWriter.FileWritten; piCamera.CAPTURE(); wait event dpWriter.FileWritten; MARK(54); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait 15 s; cmdDisp.CMD_NO_OP(); wait CFDP transactions finished at the ground; MARK(55).
+Procedure: MARK(53); piCamera.CAPTURE(); wait event dpWriter.FileWritten; piCamera.CAPTURE(); wait event dpWriter.FileWritten; MARK(54); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait 15 s; cmdDisp.CMD_NO_OP(); wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground; MARK(55).
 Window:    Q = Marker(id=53) … Marker(id=54); D = Marker(id=54) … Marker(id=55)
-Pass rule: named checks declared in the integration test (test_L2_8). metrics: largest gap between ground reception times of every sensor channel in D <= 10 s; CFDP transaction duration in D >= 30 s (as L2-7).
-Evidence:  check: event cmdDisp.NoOpReceived count == 1 during the downlink; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
-Planted faults:none
+Pass rule: named checks declared in the integration test (test_L2_8). metrics: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s (as L2-7).
+Evidence:  check: event cmdDisp.NoOpReceived count == 1 during the downlink; check: exactly two files arrived; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
+Planted faults:extra_noop
 
 ID:        L7-1
 Title:     Final state
 Purpose:   Leaves one known product on board for the independent final-state check.
 Covers:    REQ-PiSensor-009, REQ-PiSensor-005
 Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.
-Procedure: MARK(60); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait CFDP transactions finished at the ground; fileManager.ListDirectory(product directory); MARK(61).
+Procedure: MARK(60); cfdpManager.FileInDefaultKeep_PRM_SET(KEEP); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P); fileManager.CalculateCrc(P); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; fileManager.ListDirectory(product directory); MARK(61).
 Window:    Marker(id=60) … Marker(id=61)
 Pass rule: named checks declared in the integration test (test_L7_1).
-Evidence:  check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record; the directory listing names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt.
+Evidence:  check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; the directory listing names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt.
 Planted faults:none
 
 ## 4 Traceability
@@ -164,20 +169,21 @@ Planted faults:none
 | REQ-PiSensor-011 | L2-1, L2-2, L2-3, L2-7 |  |
 | REQ-PiSensor-012 | L2-7, L2-8 |  |
 | REQ-PiSensor-013 | L0-1, L0-2 |  |
+| REQ-PiSensor-014 | L2-3, L2-4, L2-5 |  |
 
 ## 5 Metrics
 - L0-1: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require)
-- L2-1: largest gap between ground reception times of every sensor channel in the window <= 2 s
-- L2-2: largest gap between ground reception times of every sensor channel in the window <= 2 s
-- L2-3: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s
-- L2-4: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s; bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s
-- L2-5: bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s
-- L2-6: CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s
-- L2-7: largest gap between ground reception times of every sensor channel in D <= 10 s; CFDP transaction duration in D >= 30 s
-- L2-8: largest gap between ground reception times of every sensor channel in D <= 10 s; CFDP transaction duration in D >= 30 s
+- L2-1: for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s
+- L2-2: for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s
+- L2-3: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock); bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each
+- L2-4: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock); bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each
+- L2-5: bench time of CAPTURE sent - 2 s <= capture time record <= time of CAPTURE completion + 2 s; the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each
+- L2-6: t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)
+- L2-7: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s
+- L2-8: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s
 
 ## 6 Fault menu
-Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): append_before_xmit (uut-state; L2-4, L2-7); capture_twice (stimulus; L2-3).
+Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): capture_before_xmit (uut-state; L2-3, L2-4, L2-7); extra_noop (stimulus; L2-2, L2-8).
 
 ## 7 Not covered
 - Fault, warning and rejection behaviour of `piCamera`: its component campaign.
@@ -189,5 +195,5 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 ## 8 Decision log
 1. 2026-11-18 designer — test deployment = the deployment as flown; no test component (human direction).
 2. 2026-11-18 designer — product content is judged on the ground copy of the file; `fileManager.CalculateCrc` gives the on-board check and the bench `sha256sum` the independent final state.
-3. 2026-11-18 designer — planted faults rewrite or insert commands of existing components only.
+3. 2026-11-18 designer — planted faults insert commands of existing components only; a grown or altered product file is not usable as a fault because `Svc.DpCatalog` refuses it (size check).
 4. 2026-11-18 designer — every test makes its own product; no test depends on a product of another test.

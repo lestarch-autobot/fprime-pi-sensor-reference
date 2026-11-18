@@ -22,29 +22,31 @@ def _declare(name, doc):
 
 for _name, _doc in [
     ("max_ground_gap", "Largest gap between ground reception times of each listed channel <= bound_s."),
-    ("command_completed_within", "OpCodeCompleted of the command's opcode - its dispatch <= bound_s (FSW clock)."),
+    ("event_after_command_within", "Named event time - OpCodeDispatched time of the named command <= bound_s (FSW clock), per command."),
     ("product_time_within", "Capture time record of the ground file against the bench time of the CAPTURE, tol_s."),
-    ("product_sample_times_present", "Each metric record of the ground file carries a sample time not later than capture time + tol_s."),
+    ("product_sample_times_within", "Each metric record of the ground file carries a sample time within bound_s of the capture time record."),
     ("downlink_duration_at_least", "CFDP transaction duration from the ground transfer record >= bound_s."),
     ("clock_offset_within", "Pi clock against bench clock from a bench action; a precondition (UNVERIFIED when not met)."),
 ]:
     _declare(_name, _doc)
 
 
-@planted_fault("capture_twice", applies_to=["L2-3"], cls="stimulus", kind="insert",
-               mechanism="piCamera.CAPTURE is sent twice in a row (inserted copy); two products are written and sent where the test expects one",
-               fails={"L2-3": ["event dpWriter.FileWritten count == 1", "exactly one file arrived"]})
-def capture_twice(test_id, command_name, args):
-    if _is(command_name, "CAPTURE"):
-        return [(command_name, args), (command_name, args)]
+@planted_fault("capture_before_xmit", applies_to=["L2-3", "L2-4", "L2-7"], cls="uut-state", kind="insert",
+               mechanism="piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored and sent than the test made",
+               fails={"L2-3": ["event dpWriter.FileWritten count == 1", "exactly one file arrived"],
+                      "L2-4": ["event dpWriter.FileWritten count == 2 with different names", "exactly two files arrived"],
+                      "L2-7": ["event dpWriter.FileWritten count == 1", "exactly one file arrived"]})
+def capture_before_xmit(test_id, command_name, args):
+    if _is(command_name, "BUILD_CATALOG"):
+        return [("piCamera.CAPTURE", []), (command_name, args)]
     return None
 
 
-@planted_fault("append_before_xmit", applies_to=["L2-4", "L2-7"], cls="uut-state", kind="insert",
-               mechanism="fileManager.AppendFile(P, P) is inserted before dpCat.BUILD_CATALOG, after fileManager.CalculateCrc: the stored product grows on board, so the file sent differs from the file checked",
-               fails={"L2-4": ["CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"],
-                      "L2-7": ["CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"]})
-def append_before_xmit(test_id, command_name, args):
-    if _is(command_name, "BUILD_CATALOG"):
-        return [("fileManager.AppendFile", ["<last product>", "<last product>"]), (command_name, args)]
+@planted_fault("extra_noop", applies_to=["L2-2", "L2-8"], cls="stimulus", kind="insert",
+               mechanism="cmdDisp.CMD_NO_OP() is sent twice in a row (inserted copy): one more command is served than the test expects",
+               fails={"L2-2": ["event cmdDisp.NoOpReceived count == 3"],
+                      "L2-8": ["event cmdDisp.NoOpReceived count == 1 during the downlink"]})
+def extra_noop(test_id, command_name, args):
+    if _is(command_name, "CMD_NO_OP"):
+        return [(command_name, args), (command_name, args)]
     return None

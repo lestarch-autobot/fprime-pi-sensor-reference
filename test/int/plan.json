@@ -11,7 +11,7 @@
  },
  "packets": {
   "Heartbeat": [
-   "cmdDisp.CommandsDispatched"
+   "imuManager.Reading"
   ],
   "Sensors": [
    "bmpManager.Reading",
@@ -174,6 +174,15 @@
    ],
    "verification": "L0-1, L0-2",
    "note": ""
+  },
+  "REQ-PiSensor-014": {
+   "tests": [
+    "L2-3",
+    "L2-4",
+    "L2-5"
+   ],
+   "verification": "L2-3, L2-4, L2-5",
+   "note": ""
   }
  },
  "scope": [
@@ -184,6 +193,11 @@
   "- Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time; every CFDP file received is copied to `record/raw/files/` before it is checked; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json`.",
   "- Completeness: every window requires STD; an overflowed queue makes the window UNVERIFIED, never a pass of an absence check.",
   "- Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 and must be under 0.5 s; tolerances that compare the two clocks use 2 s.",
+  "- Heartbeat: `imuManager.Reading`, written to the telemetry packet every 1 Hz cycle; `cmdDisp.CommandsDispatched` updates on change only.",
+  "- Telemetry gaps are judged on ground reception time: the requirement is stated at the ground. Telemetry is sent at 1 Hz, so the 2 s bound leaves one period of margin for radio delay.",
+  "- A CAPTURE that fails makes its window UNVERIFIED through STD (`OpCodeError`), not FAIL: the run is then repeated after the cause is found.",
+  "- CFDP as shipped deletes a file after sending it (`cfdpManager.FileInDefaultKeep`, default DELETE): the on-board CRC is taken before the downlink, and L7-1 sets KEEP.",
+  "- Constants: temperature -20 to 60 degC and gravity 8 to 12 m/s^2 are plausibility bounds for an indoor bench at rest; 1 km is the GPS plausibility bound around the surveyed bench position; 0.1 deg is the rounding allowance of the roll and pitch computation; the 30 s downlink precondition is three times the 10 s bound; the file CRC is that of `Os::File::calculateCrc`; the product directory is `DataProductsConfig.Paths.dpDir`.",
   "- Out of scope: BMP280 pressure; yaw."
  ],
  "entry_gates": [
@@ -205,7 +219,7 @@
  "decision_log": [
   "1. 2026-11-18 designer — test deployment = the deployment as flown; no test component (human direction).",
   "2. 2026-11-18 designer — product content is judged on the ground copy of the file; `fileManager.CalculateCrc` gives the on-board check and the bench `sha256sum` the independent final state.",
-  "3. 2026-11-18 designer — planted faults rewrite or insert commands of existing components only.",
+  "3. 2026-11-18 designer — planted faults insert commands of existing components only; a grown or altered product file is not usable as a fault because `Svc.DpCatalog` refuses it (size check).",
   "4. 2026-11-18 designer — every test makes its own product; no test depends on a product of another test."
  ],
  "tests": [
@@ -245,7 +259,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Version events equal the manifest describe strings; check: model starts with \"Raspberry Pi 5\", os-release ID is the Raspberry Pi OS (Debian) release of the manifest, LONG_BIT == 64; socket list empty."
+   "evidence": "Version events equal the manifest describe strings; check: model starts with \"Raspberry Pi 5\", os-release ID is the Raspberry Pi OS (Debian) release of the manifest, LONG_BIT == 64; socket list empty; check: the dictionary of the image holds no command of a test component."
   },
   {
    "id": "L0-2",
@@ -304,16 +318,17 @@
    "metrics": [
     {
      "helper": "max_ground_gap",
-     "text": "largest gap between ground reception times of every sensor channel in the window <= 2 s",
+     "text": "for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
      "args": {
       "channels": "Sensors",
-      "bound_s": 2
+      "bound_s": 2,
+      "min_samples": 30
      }
     }
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 8 and 12 m/s^2; gpsManager.Reading within 1 km of the bench position in the manifest."
+   "evidence": "Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 8 and 12 m/s^2 and angular rate magnitude <= 0.5 rad/s (bench at rest; MPU6050 datasheet zero-rate offset 20 deg/s); gpsManager.Reading within 1 km of the bench position in the manifest."
   },
   {
    "id": "L2-2",
@@ -348,21 +363,24 @@
    "metrics": [
     {
      "helper": "max_ground_gap",
-     "text": "largest gap between ground reception times of every sensor channel in the window <= 2 s",
+     "text": "for every sensor channel in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
      "args": {
       "channels": "Sensors",
-      "bound_s": 2
+      "bound_s": 2,
+      "min_samples": 30
      }
     }
    ],
    "rationale": [],
-   "knobs": [],
+   "knobs": [
+    "extra_noop"
+   ],
    "evidence": "As L2-1; check: event cmdDisp.NoOpReceived count == 3."
   },
   {
    "id": "L2-3",
    "title": "Capture and downlink of one product",
-   "purpose": "Proves one capture stores one product with a JPEG of at least 640x480, the three metrics and their times, delivered byte-identical by CFDP class 2.",
+   "purpose": "Proves one capture stores one product with a JPEG of at least 640x480, the metrics and their times, sampled within 2 s of the capture, delivered byte-identical by CFDP class 2.",
    "covers": [
     "REQ-PiSensor-004",
     "REQ-PiSensor-005",
@@ -370,7 +388,8 @@
     "REQ-PiSensor-007",
     "REQ-PiSensor-008",
     "REQ-PiSensor-009",
-    "REQ-PiSensor-011"
+    "REQ-PiSensor-011",
+    "REQ-PiSensor-014"
    ],
    "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.",
    "procedure": [
@@ -380,7 +399,7 @@
     "fileManager.CalculateCrc(P)",
     "dpCat.BUILD_CATALOG()",
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(41)"
    ],
    "windows": [
@@ -393,10 +412,11 @@
    ],
    "metrics": [
     {
-     "helper": "command_completed_within",
-     "text": "CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s",
+     "helper": "event_after_command_within",
+     "text": "t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)",
      "args": {
       "command": "piCamera.CAPTURE",
+      "event": "dpWriter.FileWritten",
       "bound_s": 30
      }
     },
@@ -408,18 +428,18 @@
      }
     },
     {
-     "helper": "product_sample_times_present",
-     "text": "the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s",
+     "helper": "product_sample_times_within",
+     "text": "the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each",
      "args": {
-      "tol_s": 2
+      "bound_s": 2
      }
     }
    ],
    "rationale": [],
    "knobs": [
-    "capture_twice"
+    "capture_before_xmit"
    ],
-   "evidence": "check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record."
+   "evidence": "check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record."
   },
   {
    "id": "L2-4",
@@ -431,7 +451,8 @@
     "REQ-PiSensor-006",
     "REQ-PiSensor-007",
     "REQ-PiSensor-008",
-    "REQ-PiSensor-009"
+    "REQ-PiSensor-009",
+    "REQ-PiSensor-014"
    ],
    "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.",
    "procedure": [
@@ -445,7 +466,7 @@
     "fileManager.CalculateCrc(P2)",
     "dpCat.BUILD_CATALOG()",
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(43)"
    ],
    "windows": [
@@ -458,10 +479,11 @@
    ],
    "metrics": [
     {
-     "helper": "command_completed_within",
-     "text": "CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s",
+     "helper": "event_after_command_within",
+     "text": "t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)",
      "args": {
       "command": "piCamera.CAPTURE",
+      "event": "dpWriter.FileWritten",
       "bound_s": 30
      }
     },
@@ -473,18 +495,18 @@
      }
     },
     {
-     "helper": "product_sample_times_present",
-     "text": "the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s",
+     "helper": "product_sample_times_within",
+     "text": "the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each",
      "args": {
-      "tol_s": 2
+      "bound_s": 2
      }
     }
    ],
    "rationale": [],
    "knobs": [
-    "append_before_xmit"
+    "capture_before_xmit"
    ],
-   "evidence": "check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record."
+   "evidence": "check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record."
   },
   {
    "id": "L2-5",
@@ -492,7 +514,8 @@
    "purpose": "Proves the metrics stored in a product are the sensor readings downlinked around its capture.",
    "covers": [
     "REQ-PiSensor-005",
-    "REQ-PiSensor-006"
+    "REQ-PiSensor-006",
+    "REQ-PiSensor-014"
    ],
    "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.",
    "procedure": [
@@ -503,7 +526,7 @@
     "wait 10 s",
     "dpCat.BUILD_CATALOG()",
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(45)"
    ],
    "windows": [
@@ -523,21 +546,21 @@
      }
     },
     {
-     "helper": "product_sample_times_present",
-     "text": "the location, attitude and temperature records each carry a sample time, none later than the capture time record + 2 s",
+     "helper": "product_sample_times_within",
+     "text": "the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each",
      "args": {
-      "tol_s": 2
+      "bound_s": 2
      }
     }
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window, the acceleration and angular rate of the attitude record equal an imuManager.Reading sample, the location record equals a gpsManager.Reading sample; roll and pitch equal the bench computation from that acceleration within 0.1 deg."
+   "evidence": "checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: the temperature record equals a bmpManager.Reading sample of the window; the latitude and longitude records equal a gpsManager.Reading sample of the window; roll and pitch equal, within 0.1 deg, the bench computation from the acceleration of an imuManager.Reading sample of the window."
   },
   {
    "id": "L2-6",
    "title": "Capture time bound, repeated",
-   "purpose": "Proves three captures in a row each complete within 30 s.",
+   "purpose": "Proves three captures in a row each store their product within 30 s.",
    "covers": [
     "REQ-PiSensor-004",
     "REQ-PiSensor-007"
@@ -546,11 +569,11 @@
    "procedure": [
     "MARK(46)",
     "piCamera.CAPTURE()",
-    "wait command completion",
+    "wait event dpWriter.FileWritten",
     "piCamera.CAPTURE()",
-    "wait command completion",
+    "wait event dpWriter.FileWritten",
     "piCamera.CAPTURE()",
-    "wait command completion",
+    "wait event dpWriter.FileWritten",
     "MARK(47)"
    ],
    "windows": [
@@ -563,10 +586,11 @@
    ],
    "metrics": [
     {
-     "helper": "command_completed_within",
-     "text": "CAPTURE completion (cmdDisp.OpCodeCompleted of its opcode) - t(piCamera.CAPTURE sent) <= 30 s",
+     "helper": "event_after_command_within",
+     "text": "t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)",
      "args": {
       "command": "piCamera.CAPTURE",
+      "event": "dpWriter.FileWritten",
       "bound_s": 30
      }
     }
@@ -595,7 +619,7 @@
     "MARK(51)",
     "dpCat.BUILD_CATALOG()",
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "MARK(52)"
    ],
    "windows": [
@@ -615,10 +639,11 @@
    "metrics": [
     {
      "helper": "max_ground_gap",
-     "text": "largest gap between ground reception times of every sensor channel in D <= 10 s",
+     "text": "for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s",
      "args": {
       "channels": "Sensors",
-      "bound_s": 10
+      "bound_s": 10,
+      "min_samples": 3
      }
     },
     {
@@ -636,9 +661,9 @@
     }
    ],
    "knobs": [
-    "append_before_xmit"
+    "capture_before_xmit"
    ],
-   "evidence": "check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
   },
   {
    "id": "L2-8",
@@ -660,7 +685,7 @@
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
     "wait 15 s",
     "cmdDisp.CMD_NO_OP()",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground",
     "MARK(55)"
    ],
    "windows": [
@@ -680,10 +705,11 @@
    "metrics": [
     {
      "helper": "max_ground_gap",
-     "text": "largest gap between ground reception times of every sensor channel in D <= 10 s",
+     "text": "for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s",
      "args": {
       "channels": "Sensors",
-      "bound_s": 10
+      "bound_s": 10,
+      "min_samples": 3
      }
     },
     {
@@ -700,8 +726,10 @@
      "text": "as L2-7"
     }
    ],
-   "knobs": [],
-   "evidence": "check: event cmdDisp.NoOpReceived count == 1 during the downlink; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "knobs": [
+    "extra_noop"
+   ],
+   "evidence": "check: event cmdDisp.NoOpReceived count == 1 during the downlink; check: exactly two files arrived; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
   },
   {
    "id": "L7-1",
@@ -714,12 +742,13 @@
    "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty.",
    "procedure": [
     "MARK(60)",
+    "cfdpManager.FileInDefaultKeep_PRM_SET(KEEP)",
     "piCamera.CAPTURE()",
     "wait event dpWriter.FileWritten (names P)",
     "fileManager.CalculateCrc(P)",
     "dpCat.BUILD_CATALOG()",
     "dpCat.START_XMIT_CATALOG(NO_WAIT)",
-    "wait CFDP transactions finished at the ground",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
     "fileManager.ListDirectory(product directory)",
     "MARK(61)"
    ],
@@ -734,7 +763,7 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one location, one attitude and one temperature record; the directory listing names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt."
+   "evidence": "check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; the directory listing names P only. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt."
   }
  ]
 }
