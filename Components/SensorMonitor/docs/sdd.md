@@ -30,9 +30,9 @@ identified on the bench yet; its identification reopens REQ-SensorMonitor-009,
 | REQ-SensorMonitor-006 | A metric shall be reported invalid while its reading time is after the current time. | Unit Test |
 | REQ-SensorMonitor-007 | A metric shall be reported invalid until its source delivers a first reading. | Unit Test |
 | REQ-SensorMonitor-008 | A metric shall be reported invalid while its reading is outside its Table 1 limits. | Unit Test |
-| REQ-SensorMonitor-009 | The component shall report location invalid unless the newest GGA quality indicator is 1 to 8. | Unit Test |
+| REQ-SensorMonitor-009 | Location shall be reported invalid unless the newest GGA quality indicator is 1 to 8. | Unit Test |
 | REQ-SensorMonitor-010 | The component shall read the MPU6050 identity register on each schedule call. | Unit Test |
-| REQ-SensorMonitor-011 | The component shall report attitude invalid unless the latest identity read returned the identity value. | Unit Test |
+| REQ-SensorMonitor-011 | Attitude shall be reported invalid unless the latest identity read returned the identity value. | Unit Test |
 | REQ-SensorMonitor-012 | A metric shall be reported valid while no condition of REQ-SensorMonitor-005 to -011 holds. | Unit Test |
 | REQ-SensorMonitor-013 | A sensor shall become lost when one of its Table 2 loss conditions holds. | Unit Test |
 | REQ-SensorMonitor-014 | The component shall emit the sensor's `WARNING_HI` Table 2 loss event once per loss. | Unit Test |
