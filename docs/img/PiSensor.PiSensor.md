@@ -15,30 +15,9 @@
 </details>
 
 <details>
-<summary>Subtopology <code>ComCcsds.Subtopology</code></summary>
+<summary>Subtopology <code>ComCcsds.SpacePacketFraming</code></summary>
 
-> ![Topology ComCcsds.Subtopology](ComCcsds.Subtopology.svg)
->
-> <details>
-> <summary>Subtopology <code>ComCcsds.FramingSubtopology</code></summary>
->
-> > ![Topology ComCcsds.FramingSubtopology](ComCcsds.FramingSubtopology.svg)
-> >
-> > <details>
-> > <summary>Subtopology <code>ComCcsds.SpacePacketFraming</code></summary>
-> >
-> > > ![Topology ComCcsds.SpacePacketFraming](ComCcsds.SpacePacketFraming.svg)
-> > >
-> > </details>
-> >
-> > <details>
-> > <summary>Subtopology <code>ComCcsds.TmTcFraming</code></summary>
-> >
-> > > ![Topology ComCcsds.TmTcFraming](ComCcsds.TmTcFraming.svg)
-> > >
-> > </details>
-> >
-> </details>
+> ![Topology ComCcsds.SpacePacketFraming](ComCcsds.SpacePacketFraming.svg)
 >
 </details>
 
@@ -50,6 +29,13 @@
 </details>
 
 <details>
+<summary>Subtopology <code>FileHandlingCfdp.Subtopology</code></summary>
+
+> ![Topology FileHandlingCfdp.Subtopology](FileHandlingCfdp.Subtopology.svg)
+>
+</details>
+
+<details>
 <summary>Subtopology <code>MpuImu.Subtopology</code></summary>
 
 > ![Topology MpuImu.Subtopology](MpuImu.Subtopology.svg)
@@ -57,16 +43,9 @@
 </details>
 
 <details>
-<summary>Subtopology <code>PiSensor.PiFileHandling</code></summary>
+<summary>Subtopology <code>NmeaGps.Subtopology</code></summary>
 
-> ![Topology PiSensor.PiFileHandling](PiSensor.PiFileHandling.svg)
->
-</details>
-
-<details>
-<summary>Subtopology <code>PiSensor.PiGps</code></summary>
-
-> ![Topology PiSensor.PiGps](PiSensor.PiGps.svg)
+> ![Topology NmeaGps.Subtopology](NmeaGps.Subtopology.svg)
 >
 </details>
 

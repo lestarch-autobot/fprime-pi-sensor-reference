@@ -3,52 +3,12 @@
 
 module PiSensor {
 
-  @ Request for the latest sample of every metric
-  port SamplesGet(context: U32)
-  @ Request to acquire one picture
-  port CaptureRequest(context: U32)
-
-  @ Pi Camera manager: acquires one JPEG per request
+  @ Pi Camera: on a capture command acquires one JPEG, reads the latest
+  @ sensor readings from the telemetry store and writes one product container
   active component PiCamera {
-    async input port captureIn: CaptureRequest
-    output port imageOut: Fw.BufferSend
-    async input port imageReturnIn: Fw.BufferSend
-    output port allocate: Fw.BufferGet
-    output port deallocate: Fw.BufferSend
-    event port eventOut
-    text event port textEventOut
-    telemetry port tlmOut
-    time get port timeGetOut
-  }
-
-  @ Sensor monitor: reads the latest sensor readings, publishes Table 1 telemetry
-  @ with validity, reports sensor loss and return, serves samples to products.
-  @ Adapter: reads the MPU6050 identity register, and the fix field and
-  @ arrival time of each GPS sentence passing through it.
-  passive component SensorMonitor {
     output port tlmGetOut: Fw.TlmGet
-    output port imuIdentityOut: Drv.I2cWriteRead
-    guarded input port gpsSentenceIn: Svc.ComDataWithContext
-    output port gpsSentenceOut: Svc.ComDataWithContext
-    guarded input port samplesGetIn: SamplesGet
-    sync input port run: Svc.Sched
-    event port eventOut
-    text event port textEventOut
-    telemetry port tlmOut
-    time get port timeGetOut
-  }
-
-  @ Product manager: capture, downlink and delete commands; builds the data product
-  active component ProductManager {
-    output port captureOut: CaptureRequest
-    async input port imageIn: Fw.BufferSend
-    output port imageReturnOut: Fw.BufferSend
-    output port samplesGetOut: SamplesGet
-    async input port dpWrittenIn: Svc.DpWritten
-    output port sendFileOut: Svc.SendFileRequest
-    async input port fileDoneIn: Svc.SendFileComplete
-    async input port run: Svc.Sched
-    product get port productGetOut
+    product request port productRequestOut
+    async product recv port productRecvIn
     product send port productSendOut
     command recv port cmdIn
     command reg port cmdRegOut
@@ -61,147 +21,103 @@ module PiSensor {
 
   instance linuxTimer: Svc.LinuxTimer base id 0x10000000
   instance rateGroupDriver: Svc.RateGroupDriver base id 0x10001000
-  instance rateGroup10Hz: Svc.ActiveRateGroup base id 0x10002000 queue size 10 stack size 65536 priority 40
-  instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10003000 queue size 10 stack size 65536 priority 39
-  instance posixTime: Svc.PosixTime base id 0x10004000
-  instance tcpLink: Drv.TcpClient base id 0x10005000
-  instance cfdpManager: Svc.Ccsds.Cfdp.CfdpManager base id 0x10010000 queue size 30 stack size 131072 priority 24
-  instance fileManager: Svc.FileManager base id 0x10011000 queue size 10 stack size 65536 priority 22
-  instance prmDb: Svc.PrmDb base id 0x10012000 queue size 10 stack size 65536 priority 21
+  instance rateGroup1KHz: Svc.ActiveRateGroup base id 0x10002000 queue size 10 stack size 65536 priority 41
+  instance rateGroup10Hz: Svc.ActiveRateGroup base id 0x10003000 queue size 10 stack size 65536 priority 40
+  instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10004000 queue size 10 stack size 65536 priority 39
+  instance posixTime: Svc.PosixTime base id 0x10005000
+  instance comRetry: Svc.ComRetry base id 0x10006000
   instance piCamera: PiCamera base id 0x10008000 queue size 5 stack size 65536 priority 30
-  instance sensorMonitor: SensorMonitor base id 0x10009000
-  instance productManager: ProductManager base id 0x1000A000 queue size 10 stack size 65536 priority 31
-
-  @ GPS subtopology: the members of NmeaGps.Subtopology, with the sentence
-  @ path from the accumulator to the GPS manager opened for sensorMonitor
-  topology PiGps {
-    instance NmeaGps.gpsManager
-    instance NmeaGps.gpsAdapter
-    instance NmeaGps.frameAccumulator
-    instance NmeaGps.driverInterface
-    instance NmeaGps.driver
-    instance NmeaGps.bufferManager
-
-    connections Gps {
-      NmeaGps.gpsAdapter.bufferLikeOut -> NmeaGps.gpsManager.dataIn
-      NmeaGps.gpsManager.dataReturnOut -> NmeaGps.gpsAdapter.bufferLikeIn
-      NmeaGps.frameAccumulator.bufferAllocate -> NmeaGps.bufferManager.bufferGetCallee
-      NmeaGps.frameAccumulator.bufferDeallocate -> NmeaGps.bufferManager.bufferSendIn
-      NmeaGps.gpsAdapter.commLikeOut -> NmeaGps.frameAccumulator.dataReturnIn
-      NmeaGps.driverInterface.commLikeOut -> NmeaGps.frameAccumulator.dataIn
-      NmeaGps.frameAccumulator.dataReturnOut -> NmeaGps.driverInterface.commLikeIn
-      NmeaGps.driver.$recv -> NmeaGps.driverInterface.byteStreamLikeIn
-      NmeaGps.driverInterface.bufferLikeOut -> NmeaGps.driver.recvReturnIn
-      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
-      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
-    }
-  }
-
-  @ File handling subtopology: the three member components of the catalog
-  @ FileHandlingCfdp.Subtopology, instantiated by this project
-  topology PiFileHandling {
-    instance cfdpManager
-    instance fileManager
-    instance prmDb
-  }
 
   topology PiSensor {
     instance CdhCore.Subtopology
-    instance ComCcsds.Subtopology
-    instance PiFileHandling
+    instance ComCcsds.SpacePacketFraming
+    instance FileHandlingCfdp.Subtopology
     instance DataProducts.Subtopology
     instance Bmp280.Subtopology
     instance MpuImu.Subtopology
-    instance PiGps
+    instance NmeaGps.Subtopology
     instance Rfm69.Subtopology
 
     instance linuxTimer
     instance rateGroupDriver
+    instance rateGroup1KHz
     instance rateGroup10Hz
     instance rateGroup1Hz
     instance posixTime
-    instance tcpLink
+    instance comRetry
     instance piCamera
-    instance sensorMonitor
-    instance productManager
 
     command connections instance CdhCore.cmdDisp
     event connections instance CdhCore.events
     telemetry connections instance CdhCore.tlmSend
     text event connections instance CdhCore.textLogger
     health connections instance CdhCore.$health
-    param connections instance prmDb
+    param connections instance FileHandlingCfdp.prmDb
     time connections instance posixTime
 
     connections RateGroups {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
-      rateGroupDriver.CycleOut[0] -> rateGroup10Hz.CycleIn
-      rateGroupDriver.CycleOut[1] -> rateGroup1Hz.CycleIn
-      # Members of the new components (sensorMonitor, productManager, piCamera) and of the
-      # radio (Rfm69.rfm69Manager): see the instance table in docs/ssdd.md.
-      rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.Subtopology.comQueueRun
-      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.Subtopology.aggregatorTimeout
+      rateGroupDriver.CycleOut[0] -> rateGroup1KHz.CycleIn
+      rateGroupDriver.CycleOut[1] -> rateGroup10Hz.CycleIn
+      rateGroupDriver.CycleOut[2] -> rateGroup1Hz.CycleIn
+      rateGroup1KHz.RateGroupMemberOut[0] -> Rfm69.rfm69Manager.run
+      rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
+      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.aggregator.timeout
       rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun
       rateGroup10Hz.RateGroupMemberOut[3] -> Bmp280.bmpManager.run
       rateGroup10Hz.RateGroupMemberOut[4] -> MpuImu.imuManager.run
       rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.Subtopology.tlmSendRun
       rateGroup1Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.healthRun
       rateGroup1Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.eventsRun
-      rateGroup1Hz.RateGroupMemberOut[3] -> ComCcsds.Subtopology.bufferManagerSchedIn
+      rateGroup1Hz.RateGroupMemberOut[3] -> ComCcsds.commsBufferManager.schedIn
       rateGroup1Hz.RateGroupMemberOut[4] -> DataProducts.Subtopology.dpBufferManagerSchedIn
       rateGroup1Hz.RateGroupMemberOut[5] -> DataProducts.Subtopology.dpWriterSchedIn
       rateGroup1Hz.RateGroupMemberOut[6] -> DataProducts.Subtopology.dpMgrSchedIn
-      rateGroup1Hz.RateGroupMemberOut[7] -> cfdpManager.run1Hz
-      rateGroup1Hz.RateGroupMemberOut[8] -> fileManager.schedIn
-    }
-
-    connections Sensors {
-      # Latest BMP280, MPU6050 and GPS readings with their sample times.
-      sensorMonitor.tlmGetOut -> CdhCore.tlmSend.TlmGet
-      # MPU6050 identity register, through the IMU bus driver.
-      sensorMonitor.imuIdentityOut -> MpuImu.imuDriver.writeRead
-      # Each GPS sentence passes through sensorMonitor (fix field, arrival time).
-      NmeaGps.frameAccumulator.dataOut -> sensorMonitor.gpsSentenceIn
-      sensorMonitor.gpsSentenceOut -> NmeaGps.gpsAdapter.commLikeIn
+      rateGroup1Hz.RateGroupMemberOut[7] -> FileHandlingCfdp.cfdpManager.run1Hz
+      rateGroup1Hz.RateGroupMemberOut[8] -> FileHandlingCfdp.fileManager.schedIn
     }
 
     connections Products {
-      productManager.captureOut -> piCamera.captureIn
-      piCamera.imageOut -> productManager.imageIn
-      productManager.imageReturnOut -> piCamera.imageReturnIn
-      productManager.samplesGetOut -> sensorMonitor.samplesGetIn
-      productManager.productGetOut -> DataProducts.Subtopology.productGetIn
-      productManager.productSendOut -> DataProducts.Subtopology.productSendIn
-      DataProducts.dpWriter.dpWrittenOut -> productManager.dpWrittenIn
-      productManager.sendFileOut -> cfdpManager.fileIn
-      cfdpManager.fileDoneOut -> productManager.fileDoneIn
+      # Latest BMP280, MPU6050 and GPS readings with their sample times.
+      piCamera.tlmGetOut -> CdhCore.tlmSend.TlmGet
+      piCamera.productRequestOut -> DataProducts.Subtopology.productRequestIn
+      DataProducts.Subtopology.productResponseOut -> piCamera.productRecvIn
+      piCamera.productSendOut -> DataProducts.Subtopology.productSendIn
+      # The catalog downlinks stored products by CFDP.
+      DataProducts.Subtopology.dpCatFileOut -> FileHandlingCfdp.cfdpManager.fileIn
+      FileHandlingCfdp.cfdpManager.fileDoneOut -> DataProducts.Subtopology.dpCatFileDone
+    }
+
+    connections Gps {
+      # Not connected and not exported by NmeaGps.Subtopology as shipped.
+      NmeaGps.driver.allocate -> NmeaGps.bufferManager.bufferGetCallee
+      NmeaGps.driver.deallocate -> NmeaGps.bufferManager.bufferSendIn
     }
 
     connections Communications {
-      # Prototype configuration: TCP byte stream under the CCSDS stack.
-      tcpLink.allocate -> ComCcsds.Subtopology.commsBufferGetCallee
-      tcpLink.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
-      tcpLink.$recv -> ComCcsds.Subtopology.drvReceiveIn
-      ComCcsds.Subtopology.drvReceiveReturnOut -> tcpLink.recvReturnIn
-      ComCcsds.Subtopology.drvSendOut -> tcpLink.$send
-      tcpLink.ready -> ComCcsds.Subtopology.drvConnected
-      # Flight configuration: ComCcsds.FramingSubtopology with Rfm69.Subtopology
-      # in place of comStub and tcpLink; wired in the base-deployment lane.
-      Rfm69.rfm69Manager.allocate -> ComCcsds.Subtopology.commsBufferGetCallee
-      Rfm69.rfm69Manager.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
+      Rfm69.rfm69Manager.allocate -> ComCcsds.commsBufferManager.bufferGetCallee
+      Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
+      ComCcsds.SpacePacketFraming.dataOut -> comRetry.dataIn
+      comRetry.dataReturnOut -> ComCcsds.SpacePacketFraming.dataReturnIn
+      comRetry.comStatusOut -> ComCcsds.SpacePacketFraming.comStatusIn
+      comRetry.dataOut -> Rfm69.rfm69Manager.dataIn
+      Rfm69.rfm69Manager.dataReturnOut -> comRetry.dataReturnIn
+      Rfm69.rfm69Manager.comStatusOut -> comRetry.comStatusIn
+      Rfm69.rfm69Manager.dataOut -> ComCcsds.SpacePacketFraming.dataIn
+      ComCcsds.SpacePacketFraming.dataReturnOut -> Rfm69.rfm69Manager.dataReturnIn
     }
 
     connections Spine {
-      CdhCore.Subtopology.eventsPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.EVENTS]
-      CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
-      ComCcsds.Subtopology.commandOut -> CdhCore.Subtopology.seqCmdBuff
-      CdhCore.Subtopology.seqCmdStatus -> ComCcsds.Subtopology.cmdResponseIn
-      cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
-      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> cfdpManager.dataReturnIn[0]
-      ComCcsds.Subtopology.fileUplinkOut -> cfdpManager.dataIn[0]
-      cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
-      cfdpManager.bufferAllocate[0] -> ComCcsds.Subtopology.commsBufferGetCallee
-      cfdpManager.bufferDeallocate[0] -> ComCcsds.Subtopology.commsBufferSendIn
+      CdhCore.Subtopology.eventsPktSend -> ComCcsds.comQueue.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.EVENTS]
+      CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.comQueue.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
+      ComCcsds.fprimeRouter.commandOut -> CdhCore.Subtopology.seqCmdBuff
+      CdhCore.Subtopology.seqCmdStatus -> ComCcsds.fprimeRouter.cmdResponseIn
+      FileHandlingCfdp.cfdpManager.dataOut[0] -> ComCcsds.comQueue.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
+      ComCcsds.comQueue.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> FileHandlingCfdp.cfdpManager.dataReturnIn[0]
+      ComCcsds.fprimeRouter.fileOut -> FileHandlingCfdp.cfdpManager.dataIn[0]
+      FileHandlingCfdp.cfdpManager.dataInReturn[0] -> ComCcsds.fprimeRouter.fileBufferReturnIn
+      FileHandlingCfdp.cfdpManager.bufferAllocate[0] -> ComCcsds.commsBufferManager.bufferGetCallee
+      FileHandlingCfdp.cfdpManager.bufferDeallocate[0] -> ComCcsds.commsBufferManager.bufferSendIn
     }
   }
 }

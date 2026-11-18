@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1045" height="260" viewBox="-8 -8 1045 260">
+<style>
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: normal; }
+    .sprotty-node { fill: #dbe9f9; stroke: #1b1b1b; stroke-width: 1.5; }
+    .sprotty-label { fill: #1b1b1b; stroke: none; }
+    .node-label { fill: #1b1b1b; }
+    .sprotty-port { fill: #1b1b1b; stroke: #7b337d; stroke-width: 1; }
+    .sprotty-edge { fill: none; stroke: #3b3b3b; }
+    .sprotty-edge-arrow { fill: #3b3b3b; stroke-width: 0; }
+    .component-active { stroke: #3FB984; }
+    .component-passive { stroke: #fe92a8; }
+    .topology-node { fill: #f1f1f1; stroke: #1b1b1b; stroke-dasharray: 8 4; }
+    .boundary-port { stroke: #1b1b1b; stroke-width: 1; }
+    .boundary-input { fill: #9cc8ff; }
+    .boundary-output { fill: #f5c58a; }
+    .sprotty-edge path.edge-implicit { stroke-dasharray: 5 4; opacity: 0.85; }
+    .sprotty-edge path.edge-bus { stroke-width: 3px; }
+    .sprotty-edge path.edge-bus.edge-implicit { stroke-dasharray: 8 5; }
+    .sprotty-edge .edge-bus-slash { stroke-width: 1.5px; }
+    .port-sync { fill: #fe92a8; }
+    .port-guarded { fill: #FDD35C; }
+    </style>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" class="sprotty-edge-arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>
+</defs>
+<rect x="-8" y="-8" width="1045" height="260" fill="#ffffff"/>
+<g id="NmeaGps.bufferManager" transform="translate(824,102)"><rect class="sprotty-node task component-passive" width="105" height="38" rx="10"/><text class="sprotty-label node-label" x="16.50" y="15">bufferManager</text><text class="sprotty-label node-label" x="5" y="29">Svc.BufferManager</text></g>
+<g id="NmeaGps.driver" transform="translate(824,163)"><rect class="sprotty-node task component-passive" width="108" height="38" rx="10"/><text class="sprotty-label node-label" x="40" y="15">driver</text><text class="sprotty-label node-label" x="5" y="29">Drv.PosixUartDriver</text><g id="NmeaGps.driver.recv.0" transform="translate(108,14)"><title>NmeaGps.driver.recv.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">recv</text></g><g id="NmeaGps.driver.recvReturnIn.0" transform="translate(-10,14)"><title>NmeaGps.driver.recvReturnIn.0 (guarded)</title><rect class="sprotty-port port-guarded" width="10" height="10"/><text class="sprotty-label" x="-68" y="21">recvReturnIn</text></g></g>
+<g id="NmeaGps.driverInterface" transform="translate(455,167)"><rect class="sprotty-node task component-passive" width="188" height="50" rx="10"/><text class="sprotty-label node-label" x="58.50" y="21">driverInterface</text><text class="sprotty-label node-label" x="5" y="35">FprimeSensors.AccumulatorAdapter</text><g id="NmeaGps.driverInterface.bufferLikeOut.0" transform="translate(188,10)"><title>NmeaGps.driverInterface.bufferLikeOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="-5">bufferLikeOut</text></g><g id="NmeaGps.driverInterface.byteStreamLikeIn.0" transform="translate(-10,10)"><title>NmeaGps.driverInterface.byteStreamLikeIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-91" y="-5">byteStreamLikeIn</text></g><g id="NmeaGps.driverInterface.commLikeIn.0" transform="translate(-10,30)"><title>NmeaGps.driverInterface.commLikeIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-65" y="21">commLikeIn</text></g><g id="NmeaGps.driverInterface.commLikeOut.0" transform="translate(188,30)"><title>NmeaGps.driverInterface.commLikeOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">commLikeOut</text></g></g>
+<g id="NmeaGps.frameAccumulator" transform="translate(101,27)"><rect class="sprotty-node task component-passive" width="125" height="75" rx="10"/><text class="sprotty-label node-label" x="17.50" y="33.50">frameAccumulator</text><text class="sprotty-label node-label" x="5" y="47.50">Svc.FrameAccumulator</text><g id="NmeaGps.frameAccumulator.dataIn.0" transform="translate(-10,46.67)"><title>NmeaGps.frameAccumulator.dataIn.0 (guarded)</title><rect class="sprotty-port port-guarded" width="10" height="10"/><text class="sprotty-label" x="-36" y="21">dataIn</text></g><g id="NmeaGps.frameAccumulator.dataOut.0" transform="translate(125,10)"><title>NmeaGps.frameAccumulator.dataOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">dataOut</text></g><g id="NmeaGps.frameAccumulator.dataReturnIn.0" transform="translate(-10,18.33)"><title>NmeaGps.frameAccumulator.dataReturnIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-69" y="-5">dataReturnIn</text></g><g id="NmeaGps.frameAccumulator.dataReturnOut.0" transform="translate(125,55)"><title>NmeaGps.frameAccumulator.dataReturnOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">dataReturnOut</text></g></g>
+<g id="NmeaGps.gpsAdapter" transform="translate(446,27)"><rect class="sprotty-node task component-passive" width="188" height="50" rx="10"/><text class="sprotty-label node-label" x="65.50" y="21">gpsAdapter</text><text class="sprotty-label node-label" x="5" y="35">FprimeSensors.AccumulatorAdapter</text><g id="NmeaGps.gpsAdapter.bufferLikeIn.0" transform="translate(-10,30)"><title>NmeaGps.gpsAdapter.bufferLikeIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-63" y="21">bufferLikeIn</text></g><g id="NmeaGps.gpsAdapter.bufferLikeOut.0" transform="translate(188,30)"><title>NmeaGps.gpsAdapter.bufferLikeOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">bufferLikeOut</text></g><g id="NmeaGps.gpsAdapter.commLikeIn.0" transform="translate(-10,10)"><title>NmeaGps.gpsAdapter.commLikeIn.0 (sync)</title><rect class="sprotty-port port-sync" width="10" height="10"/><text class="sprotty-label" x="-65" y="-5">commLikeIn</text></g><g id="NmeaGps.gpsAdapter.commLikeOut.0" transform="translate(188,10)"><title>NmeaGps.gpsAdapter.commLikeOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="-5">commLikeOut</text></g></g>
+<g id="NmeaGps.gpsManager" transform="translate(792,43)"><rect class="sprotty-node task component-passive" width="127" height="38" rx="10"/><text class="sprotty-label node-label" x="32.50" y="15">gpsManager</text><text class="sprotty-label node-label" x="5" y="29">NmeaGps.GpsManager</text><g id="NmeaGps.gpsManager.dataIn.0" transform="translate(-10,14)"><title>NmeaGps.gpsManager.dataIn.0 (guarded)</title><rect class="sprotty-port port-guarded" width="10" height="10"/><text class="sprotty-label" x="-36" y="21">dataIn</text></g><g id="NmeaGps.gpsManager.dataReturnOut.0" transform="translate(127,14)"><title>NmeaGps.gpsManager.dataReturnOut.0 (output)</title><rect class="sprotty-port" width="10" height="10"/><text class="sprotty-label" x="15" y="21">dataReturnOut</text></g></g>
+<g id="NmeaGps.connection.0" class="sprotty-edge"><path d="M 644,62 L 782,62" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.1" class="sprotty-edge"><path d="M 929,62 L 1017,62 L 1017,92 L 344,92 L 344,62 L 436,62" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.2" class="sprotty-edge"><path d="M 236,42 L 436,42" marker-end="url(#arrow)"/></g>
+<g id="bus.NmeaGps.frameAccumulator.NmeaGps.bufferManager" class="sprotty-edge"><title>NmeaGps.frameAccumulator.bufferAllocate -&gt; NmeaGps.bufferManager.bufferGetCallee
+NmeaGps.frameAccumulator.bufferDeallocate -&gt; NmeaGps.bufferManager.bufferSendIn</title><path class="edge-bus" d="M 226,72 L 334,72 L 334,121 L 824,121" marker-end="url(#arrow)"/><line class="edge-bus-slash" x1="497" y1="114.94" x2="504" y2="127.06"/><text class="sprotty-label" x="535" y="137">/2</text></g>
+<g id="NmeaGps.connection.5" class="sprotty-edge"><path d="M 644,42 L 736,42 L 736,12 L 12,12 L 12,50.33 L 91,50.33" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.6" class="sprotty-edge"><path d="M 653,202 L 736,202 L 736,232 L 12,232 L 12,78.67 L 91,78.67" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.7" class="sprotty-edge"><path d="M 236,87 L 324,87 L 324,202 L 445,202" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.8" class="sprotty-edge"><path d="M 942,182 L 1017,182 L 1017,152 L 344,152 L 344,182 L 445,182" marker-end="url(#arrow)"/></g>
+<g id="NmeaGps.connection.9" class="sprotty-edge"><path d="M 653,182 L 814,182" marker-end="url(#arrow)"/></g>
+</svg>

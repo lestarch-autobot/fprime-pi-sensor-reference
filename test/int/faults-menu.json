@@ -1,0 +1,45 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "append_before_xmit",
+      "class": "uut-state",
+      "applies_to": [
+        "L2-4",
+        "L2-7"
+      ],
+      "fails": {
+        "L2-4": [
+          "CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"
+        ],
+        "L2-7": [
+          "CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"
+        ]
+      },
+      "mechanism": "fileManager.AppendFile(P, P) is inserted before dpCat.BUILD_CATALOG, after fileManager.CalculateCrc: the stored product grows on board, so the file sent differs from the file checked",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "capture_twice",
+      "class": "stimulus",
+      "applies_to": [
+        "L2-3"
+      ],
+      "fails": {
+        "L2-3": [
+          "event dpWriter.FileWritten count == 1",
+          "exactly one file arrived"
+        ]
+      },
+      "mechanism": "piCamera.CAPTURE is sent twice in a row (inserted copy); two products are written and sent where the test expects one",
+      "kind": "insert",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "L2-3",
+    "L2-4",
+    "L2-7"
+  ]
+}
