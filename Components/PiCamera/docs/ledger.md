@@ -13,7 +13,7 @@
   - P2 `CaptureStarted` severity `ACTIVITY_LO` (REQ-PiCamera-007).
   - P3 `CAPTURE_TIMEOUT_TICKS` = 10 ticks of a 1 Hz `run` port, inside the 30 s of REQ-PiSensor-010 (REQ-PiCamera-008). Needs a `run` port the sketch does not show.
   - P4 A request during a capture gets `BUSY` and does not disturb it (REQ-PiCamera-012, 013); the system owner of REQ-PiSensor-030 is `productManager`, this is the component's own guard.
-  - P5 Telemetry Table 2 and picture size 1280x960 (REQ-PiCamera-015, Table 3).
+  - P5 Telemetry Table 2 and picture size 640x480 (REQ-PiCamera-015, Table 3).
   - P6 Failure reasons of Table 1 (REQ-PiCamera-005).
 - Device identity: camera model unknown until attached (after SSDD approval); a mismatch with the libcamera-supported sensors reopens requirements.
 - Requirements review loop started, bound 3 (source: default). Round 1 reviewer: child session 1a2514060578497289718f98b131436e (requirements-review.agent.md), artifact commit a84dc87. Records land in `Components/PiCamera/docs/review/`.
@@ -33,3 +33,5 @@
   - `BUSY` = an earlier request has no reply yet (state, plus queue overflow).
   - One delivered picture outstanding at a time: a request before the last picture is returned gets `NO_BUFFER` (P7, proposed) — makes 020 checkable with one remembered buffer.
   - Picture size 640x480 (P5 revised).
+- 2026-11-17 requirements review round 2 [V]: must fix 1, could fix 0, disagreements 0, no new findings. Loop stopped after round 2 of 3: the one open finding `req-unclear:Introduction/device-identity` cannot be closed by the writer (camera not attached, no model named) — residual carried to gate 1.
+- Design [V]: `PiCamera.fpp` builds (model only, v4.4.2, fpp 3.4.0). Sketch changes for the parent: `imageOut` type `PiSensor.CaptureReply`; new async `run: Svc.Sched` port wired to `rateGroup1Hz`; `imageReturnIn` and `captureIn` carry queue-overflow hooks; new event `ReturnRejected`; constants `FRAME_DEADLINE_TICKS` = 8 (a frame arriving later is not encoded, so the reply meets 008), `SETTLE_FRAMES` = 10, `PICTURE_BUFFER_SIZE` = 262144 (design values, tuned on the bench in DEVELOPMENT).

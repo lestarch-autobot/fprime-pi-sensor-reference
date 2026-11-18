@@ -67,3 +67,145 @@ External References
 |---|---|---|---|
 | libcamera public API | `libcamera-dev` 0.8.0+rpt20261104-1, Raspberry Pi OS 13 (trixie) archive | Other | camera discovery, configuration, frame request |
 | JPEG File Interchange Format | JFIF 1.02; ITU-T T.81 | Standard | picture encoding |
+
+## 3. Design
+
+### 3.1 Component Diagram
+
+```
+                      +------------------------+
+captureIn :         [ ]                        [ ] imageOut : PiSensor.CaptureReply
+PiSensor.CaptureRequest                        |
+imageReturnIn :     [ ]       PiCamera         [ ] allocate : Fw.BufferGet
+Fw.BufferSend         |                        |
+run : Svc.Sched     [ ]                        [ ] deallocate : Fw.BufferSend
+                      +------------------------+
+  special ports: eventOut, textEventOut, tlmOut, timeGetOut
+```
+
+### 3.2 Ports
+
+| Name | Kind | Type | Purpose |
+|---|---|---|---|
+| `captureIn` | async input, hook | `PiSensor.CaptureRequest` | Request for one picture |
+| `imageOut` | output | `PiSensor.CaptureReply` | One reply per request |
+| `imageReturnIn` | async input, hook | `Fw.BufferSend` | Delivered picture buffer comes back |
+| `run` | async input, drop | `Svc.Sched` | Tick that counts the capture timeout |
+| `allocate` | output | `Fw.BufferGet` | Gets the picture buffer |
+| `deallocate` | output | `Fw.BufferSend` | Releases the picture buffer |
+| `frameDone` | internal, drop | — | Camera library thread reports the frame |
+
+A capture request that finds the queue full gets a `BUSY` reply, and a returned buffer that finds it full emits `ReturnRejected`.
+
+`CaptureReply` carries `context: U32`, `status: CaptureStatus`, `acquired: Fw.Time` and `picture: Fw.Buffer`; `CaptureStatus` is `OK` or a Table 1 reason.
+
+### 3.3 State
+
+| Member | Values | Meaning |
+|---|---|---|
+| `m_state` | `IDLE`, `ACQUIRING` | A request without a reply exists |
+| `m_context` | U32 | Context of the request in `ACQUIRING` |
+| `m_capture` | U32 | Number of the current capture; a frame report with another number is discarded |
+| `m_ticks` | 0..`CAPTURE_TIMEOUT_TICKS` | Ticks since the request in `ACQUIRING` |
+| `m_buffer` | `Fw.Buffer` | Picture buffer of the request in `ACQUIRING` |
+| `m_delivered` | `Fw.Buffer` or invalid | The delivered picture not yet returned |
+| `m_completed`, `m_failed` | U32 | Counts behind `CapturesCompleted`, `CapturesFailed` |
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> ACQUIRING: request, camera started
+    IDLE --> IDLE: request refused (NO_BUFFER, NO_CAMERA, CAMERA_ERROR)
+    ACQUIRING --> ACQUIRING: request (BUSY reply)
+    ACQUIRING --> IDLE: frame encoded (OK)
+    ACQUIRING --> IDLE: frame bad, JPEG too large, or ticks spent
+```
+
+### 3.4 Configuration and Setup
+
+```fpp
+constant PICTURE_WIDTH = 640
+constant PICTURE_HEIGHT = 480
+constant PICTURE_BUFFER_SIZE = 262144
+constant CAPTURE_TIMEOUT_TICKS = 10
+constant FRAME_DEADLINE_TICKS = 8
+constant SETTLE_FRAMES = 10
+```
+
+Picture size, size of the buffer asked per capture, reply limit in ticks, the tick after which a frame is no longer encoded, and the frames discarded while exposure settles.
+
+```fpp
+instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 5 stack size 65536 priority 30
+```
+
+The instance of the system sketch; `run` is driven at 1 Hz.
+
+The camera is reached through one interface class (`open`, `start`, `stop`, `close`, frame access) with a libcamera implementation; unit tests substitute it.
+
+### 3.5 Port Handlers
+
+#### captureIn
+
+Admitted always. In `ACQUIRING` it replies `BUSY`; in `IDLE` it gets a buffer, opens and starts the camera, emits `CaptureStarted` and enters `ACQUIRING`, or replies the Table 1 reason of the step that failed.
+
+#### frameDone
+
+Admitted in `ACQUIRING` when its capture number is current and `m_ticks` is below `FRAME_DEADLINE_TICKS`. It stops the camera, encodes the frame into the buffer and replies `OK` with the reported time, or releases the buffer and replies `CAMERA_ERROR` or `TOO_LARGE`.
+
+#### run
+
+Admitted in `ACQUIRING`. It counts a tick and at `CAPTURE_TIMEOUT_TICKS` stops the camera, releases the buffer and replies `TIMEOUT`.
+
+#### imageReturnIn
+
+Admitted when the buffer is the delivered picture. It releases the buffer and forgets it; any other buffer is left alone and emits `ReturnRejected`.
+
+Every reply path publishes the changed Table 2 channels; every failure reply emits `CaptureFailed` with its reason.
+
+## 4. Data Product Format
+
+None; the picture leaves through `imageOut` and the requester builds the data product.
+
+## 5. Ground Interface
+
+The component has no commands and no parameters.
+
+| Telemetry | Type | Content |
+|---|---|---|
+| `CapturesCompleted` | U32 | Count of success replies since start |
+| `CapturesFailed` | U32 | Count of failure replies since start |
+| `LastPictureSize` | U32 | Size in bytes of the last delivered JPEG |
+
+| Event | Severity | Arguments | Meaning |
+|---|---|---|---|
+| `CaptureStarted` | `ACTIVITY_LO` | `context` | Acquisition of a picture begins |
+| `CaptureFailed` | `WARNING_LO` | `context`, `reason` | A request got a failure reply |
+| `ReturnRejected` | `WARNING_LO` | `bytes` | A returned buffer was not released |
+
+## 6. Example Uses
+
+```mermaid
+sequenceDiagram
+    participant R as Requester
+    participant C as PiCamera
+    participant B as Buffer provider
+    participant L as Camera library
+    R->>C: captureIn(context)
+    C->>B: allocate(PICTURE_BUFFER_SIZE)
+    C->>L: open, start
+    C-->>R: event CaptureStarted
+    L-->>C: frameDone(capture, ok, acquired)
+    C->>L: stop
+    C->>R: imageOut(context, OK, acquired, picture)
+    R->>C: imageReturnIn(picture)
+    C->>B: deallocate(picture)
+```
+
+## 7. Idiosyncrasies
+
+| Failure or limit | Owner |
+|---|---|
+| Camera model, sensor modes and identification reply | Recorded when the camera is attached |
+| Requester never returns a picture: later requests get `NO_BUFFER` | Requester |
+| Picture content (exposure, focus, scene) | Not judged |
+| Command failure, `WARNING_HI` event and product removal after a failure reply | Requester |
