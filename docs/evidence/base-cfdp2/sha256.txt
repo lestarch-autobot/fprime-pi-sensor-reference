@@ -1,0 +1,4 @@
+828d7fc9257510694a49491cbf789c495630eb4f282e3a25fef68fdb8eaf2c5a  cfdp-span4.bin (YAMCS bucket cfdpDown)
+828d7fc9257510694a49491cbf789c495630eb4f282e3a25fef68fdb8eaf2c5a  cfdp-span5.bin (YAMCS bucket cfdpDown)
+828d7fc9257510694a49491cbf789c495630eb4f282e3a25fef68fdb8eaf2c5a  cfdp-test.bin
+e15f0ded3b18acfde311b33fbf1f627036b386916a9e3707ea586494ab108ab5  PiSensor.9a77e59

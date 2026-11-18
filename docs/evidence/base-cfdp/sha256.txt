@@ -1,0 +1,5 @@
+# Bench CFDP, 2026-11-18T00:44Z. Both hashes taken with sha256sum outside the system under test.
+# On board: `sha256sum cfdp-test.bin` in ~/pisensor-campaign on soakee, before the transfer.
+828d7fc9257510694a49491cbf789c495630eb4f282e3a25fef68fdb8eaf2c5a  cfdp-test.bin (soakee, source)
+# Ground: object `cfdp-test3.bin` of YAMCS bucket `cfdpDown`, fetched over the YAMCS HTTP API on the workstation.
+828d7fc9257510694a49491cbf789c495630eb4f282e3a25fef68fdb8eaf2c5a  cfdp-test3.bin (YAMCS bucket cfdpDown)

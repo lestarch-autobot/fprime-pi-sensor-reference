@@ -1,0 +1,4052 @@
+{
+  "entry": [{
+    "commandId": {
+      "generationTime": "1794963339676",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAABADABBA=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAwAGAAABADABBA=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.676Z",
+        "timestampValue": "1794963339676"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.677Z",
+        "timestampValue": "1794963339677"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.677Z",
+        "timestampValue": "1794963339677"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.679Z",
+        "timestampValue": "1794963339679"
+      }
+    }],
+    "generationTime": "2026-11-18T00:55:02.676Z",
+    "id": "1794963339676-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 16789505
+      },
+      "userInput": false
+    }, {
+      "name": "version_type",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "ALL",
+        "sint64Value": "4"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963339655",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAgAJAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.656Z",
+        "timestampValue": "1794963339656"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.657Z",
+        "timestampValue": "1794963339657"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.657Z",
+        "timestampValue": "1794963339657"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 2
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.659Z",
+        "timestampValue": "1794963339659"
+      }
+    }],
+    "generationTime": "2026-11-18T00:55:02.655Z",
+    "id": "1794963339655-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268496896
+      },
+      "userInput": false
+    }, {
+      "name": "id",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 3735928559
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963297655",
+      "origin": "cfdp-service",
+      "sequenceNumber": 2,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPAAwAKAAMoAAIAKgJkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:22.266Z",
+        "timestampValue": "1794963299266"
+      }
+    }],
+    "generationTime": "2026-11-18T00:54:20.655Z",
+    "id": "1794963297655-cfdp-service-2",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 2
+  }, {
+    "commandId": {
+      "generationTime": "1794963296681",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjUuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjUuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.682Z",
+        "timestampValue": "1794963296682"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.683Z",
+        "timestampValue": "1794963296683"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.683Z",
+        "timestampValue": "1794963296683"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.685Z",
+        "timestampValue": "1794963296685"
+      }
+    }],
+    "generationTime": "2026-11-18T00:54:19.681Z",
+    "id": "1794963296681-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-span5.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963271693",
+      "origin": "cfdp-service",
+      "sequenceNumber": 1,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPAAQAKAAMoAAIAKgFkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:56.313Z",
+        "timestampValue": "1794963273313"
+      }
+    }],
+    "generationTime": "2026-11-18T00:53:54.693Z",
+    "id": "1794963271693-cfdp-service-1",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 1
+  }, {
+    "commandId": {
+      "generationTime": "1794963271615",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjQuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjQuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.628Z",
+        "timestampValue": "1794963271628"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.633Z",
+        "timestampValue": "1794963271633"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.633Z",
+        "timestampValue": "1794963271633"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.641Z",
+        "timestampValue": "1794963271641"
+      }
+    }],
+    "generationTime": "2026-11-18T00:53:54.615Z",
+    "id": "1794963271615-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-span4.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962699877",
+      "origin": "cfdp-service",
+      "sequenceNumber": 2,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 8
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPACAAKAAMoAAIAKgJkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:24.484Z",
+        "timestampValue": "1794962701484"
+      }
+    }],
+    "generationTime": "2026-11-18T00:44:22.877Z",
+    "id": "1794962699877-cfdp-service-2",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 2
+  }, {
+    "commandId": {
+      "generationTime": "1794962698871",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDMuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADABAA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDMuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.871Z",
+        "timestampValue": "1794962698871"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.872Z",
+        "timestampValue": "1794962698872"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.872Z",
+        "timestampValue": "1794962698872"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 4
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.874Z",
+        "timestampValue": "1794962698874"
+      }
+    }],
+    "generationTime": "2026-11-18T00:44:21.871Z",
+    "id": "1794962698871-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test3.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962661809",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDIuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAwA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDIuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.812Z",
+        "timestampValue": "1794962661812"
+      }
+    }],
+    "generationTime": "2026-11-18T00:43:44.809Z",
+    "id": "1794962661809-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test2.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962659792",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/OUTGOINGFILECHUNKSIZE_PRM_SET"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQALAAAB4A=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAgAJAAAQAQALAAAB4A=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.793Z",
+        "timestampValue": "1794962659793"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.794Z",
+        "timestampValue": "1794962659794"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.794Z",
+        "timestampValue": "1794962659794"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 2
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.795Z",
+        "timestampValue": "1794962659795"
+      }
+    }],
+    "generationTime": "2026-11-18T00:43:42.792Z",
+    "id": "1794962659792-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/OUTGOINGFILECHUNKSIZE_PRM_SET",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268501003
+      },
+      "userInput": false
+    }, {
+      "name": "val",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 480
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962599960",
+      "origin": "cfdp-service",
+      "sequenceNumber": 1,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 6
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPABgALAAMoAAMAKgFkBkAB"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:45.989Z",
+        "timestampValue": "1794962662989"
+      }
+    }],
+    "generationTime": "2026-11-18T00:42:42.960Z",
+    "id": "1794962599960-cfdp-service-1",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 1
+  }, {
+    "commandId": {
+      "generationTime": "1794962599501",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADWNmZHAtdGVzdC5iaW4="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQA3AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADWNmZHAtdGVzdC5iaW4="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.501Z",
+        "timestampValue": "1794962599501"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.502Z",
+        "timestampValue": "1794962599502"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.502Z",
+        "timestampValue": "1794962599502"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.505Z",
+        "timestampValue": "1794962599505"
+      }
+    }],
+    "generationTime": "2026-11-18T00:42:42.501Z",
+    "id": "1794962599501-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962535803",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAALC9ob21lL2ZwcmltZS9waXNlbnNvci1jYW1wYWlnbi9jZmRwLXRlc3QuYmluAAAAAAAAAA1jZmRwLXRlc3QuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAABWAAAQAQAAAAAAAGQAAQAAAAAAAAAALC9ob21lL2ZwcmltZS9waXNlbnNvci1jYW1wYWlnbi9jZmRwLXRlc3QuYmluAAAAAAAAAA1jZmRwLXRlc3QuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.817Z",
+        "timestampValue": "1794962535817"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.822Z",
+        "timestampValue": "1794962535822"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.822Z",
+        "timestampValue": "1794962535822"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.831Z",
+        "timestampValue": "1794962535831"
+      }
+    }],
+    "generationTime": "2026-11-18T00:41:38.803Z",
+    "id": "1794962535803-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "/home/fprime/pisensor-campaign/cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794961755171",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAABADABBA=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQAGAAABADABBA=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.173Z",
+        "timestampValue": "1794961755173"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.174Z",
+        "timestampValue": "1794961755174"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.174Z",
+        "timestampValue": "1794961755174"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.176Z",
+        "timestampValue": "1794961755176"
+      }
+    }],
+    "generationTime": "2026-11-18T00:28:38.171Z",
+    "id": "1794961755171-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 16789505
+      },
+      "userInput": false
+    }, {
+      "name": "version_type",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "ALL",
+        "sint64Value": "4"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794961755105",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAJAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.121Z",
+        "timestampValue": "1794961755121"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.129Z",
+        "timestampValue": "1794961755129"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.129Z",
+        "timestampValue": "1794961755129"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.138Z",
+        "timestampValue": "1794961755138"
+      }
+    }],
+    "generationTime": "2026-11-18T00:28:38.105Z",
+    "id": "1794961755105-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268496896
+      },
+      "userInput": false
+    }, {
+      "name": "id",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 3735928559
+      },
+      "userInput": true
+    }]
+  }],
+  "commands": [{
+    "commandId": {
+      "generationTime": "1794963339676",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAABADABBA=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAwAGAAABADABBA=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.676Z",
+        "timestampValue": "1794963339676"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.677Z",
+        "timestampValue": "1794963339677"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.677Z",
+        "timestampValue": "1794963339677"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.679Z",
+        "timestampValue": "1794963339679"
+      }
+    }],
+    "generationTime": "2026-11-18T00:55:02.676Z",
+    "id": "1794963339676-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 16789505
+      },
+      "userInput": false
+    }, {
+      "name": "version_type",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "ALL",
+        "sint64Value": "4"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963339655",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAgAJAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.656Z",
+        "timestampValue": "1794963339656"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.657Z",
+        "timestampValue": "1794963339657"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.657Z",
+        "timestampValue": "1794963339657"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 2
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:55:02.659Z",
+        "timestampValue": "1794963339659"
+      }
+    }],
+    "generationTime": "2026-11-18T00:55:02.655Z",
+    "id": "1794963339655-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268496896
+      },
+      "userInput": false
+    }, {
+      "name": "id",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 3735928559
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963297655",
+      "origin": "cfdp-service",
+      "sequenceNumber": 2,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPAAwAKAAMoAAIAKgJkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:22.266Z",
+        "timestampValue": "1794963299266"
+      }
+    }],
+    "generationTime": "2026-11-18T00:54:20.655Z",
+    "id": "1794963297655-cfdp-service-2",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 2
+  }, {
+    "commandId": {
+      "generationTime": "1794963296681",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjUuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjUuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.682Z",
+        "timestampValue": "1794963296682"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.683Z",
+        "timestampValue": "1794963296683"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.683Z",
+        "timestampValue": "1794963296683"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:54:19.685Z",
+        "timestampValue": "1794963296685"
+      }
+    }],
+    "generationTime": "2026-11-18T00:54:19.681Z",
+    "id": "1794963296681-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-span5.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794963271693",
+      "origin": "cfdp-service",
+      "sequenceNumber": 1,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPAAQAKAAMoAAIAKgFkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:56.313Z",
+        "timestampValue": "1794963273313"
+      }
+    }],
+    "generationTime": "2026-11-18T00:53:54.693Z",
+    "id": "1794963271693-cfdp-service-1",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 1
+  }, {
+    "commandId": {
+      "generationTime": "1794963271615",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjQuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtc3BhbjQuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.628Z",
+        "timestampValue": "1794963271628"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.633Z",
+        "timestampValue": "1794963271633"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.633Z",
+        "timestampValue": "1794963271633"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:53:54.641Z",
+        "timestampValue": "1794963271641"
+      }
+    }],
+    "generationTime": "2026-11-18T00:53:54.615Z",
+    "id": "1794963271615-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-span4.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962699877",
+      "origin": "cfdp-service",
+      "sequenceNumber": 2,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 8
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPACAAKAAMoAAIAKgJkBQo="
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:24.484Z",
+        "timestampValue": "1794962701484"
+      }
+    }],
+    "generationTime": "2026-11-18T00:44:22.877Z",
+    "id": "1794962699877-cfdp-service-2",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 2
+  }, {
+    "commandId": {
+      "generationTime": "1794962698871",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDMuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADABAA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDMuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.871Z",
+        "timestampValue": "1794962698871"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.872Z",
+        "timestampValue": "1794962698872"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.872Z",
+        "timestampValue": "1794962698872"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 4
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:44:21.874Z",
+        "timestampValue": "1794962698874"
+      }
+    }],
+    "generationTime": "2026-11-18T00:44:21.871Z",
+    "id": "1794962698871-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test3.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962661809",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDIuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAwA4AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADmNmZHAtdGVzdDIuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.810Z",
+        "timestampValue": "1794962661810"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 3
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:44.812Z",
+        "timestampValue": "1794962661812"
+      }
+    }],
+    "generationTime": "2026-11-18T00:43:44.809Z",
+    "id": "1794962661809-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test2.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962659792",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/OUTGOINGFILECHUNKSIZE_PRM_SET"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQALAAAB4A=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAgAJAAAQAQALAAAB4A=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.793Z",
+        "timestampValue": "1794962659793"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.794Z",
+        "timestampValue": "1794962659794"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.794Z",
+        "timestampValue": "1794962659794"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 2
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:42.795Z",
+        "timestampValue": "1794962659795"
+      }
+    }],
+    "generationTime": "2026-11-18T00:43:42.792Z",
+    "id": "1794962659792-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/OUTGOINGFILECHUNKSIZE_PRM_SET",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268501003
+      },
+      "userInput": false
+    }, {
+      "name": "val",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 480
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962599960",
+      "origin": "cfdp-service",
+      "sequenceNumber": 1,
+      "commandName": "/yamcs/cfdp/upload"
+    },
+    "attr": [{
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 6
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EAPABgALAAMoAAMAKgFkBkAB"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:43:45.989Z",
+        "timestampValue": "1794962662989"
+      }
+    }],
+    "generationTime": "2026-11-18T00:42:42.960Z",
+    "id": "1794962599960-cfdp-service-1",
+    "commandName": "/yamcs/cfdp/upload",
+    "origin": "cfdp-service",
+    "sequenceNumber": 1
+  }, {
+    "commandId": {
+      "generationTime": "1794962599501",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADWNmZHAtdGVzdC5iaW4="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQA3AAAQAQAAAAAAAGQAAQAAAAAAAAAADWNmZHAtdGVzdC5iaW4AAAAAAAAADWNmZHAtdGVzdC5iaW4="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.501Z",
+        "timestampValue": "1794962599501"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.502Z",
+        "timestampValue": "1794962599502"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.502Z",
+        "timestampValue": "1794962599502"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:42:42.505Z",
+        "timestampValue": "1794962599505"
+      }
+    }],
+    "generationTime": "2026-11-18T00:42:42.501Z",
+    "id": "1794962599501-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794962535803",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAQAAAAAAAGQAAQAAAAAAAAAALC9ob21lL2ZwcmltZS9waXNlbnNvci1jYW1wYWlnbi9jZmRwLXRlc3QuYmluAAAAAAAAAA1jZmRwLXRlc3QuYmlu"
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAABWAAAQAQAAAAAAAGQAAQAAAAAAAAAALC9ob21lL2ZwcmltZS9waXNlbnNvci1jYW1wYWlnbi9jZmRwLXRlc3QuYmluAAAAAAAAAA1jZmRwLXRlc3QuYmlu"
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.817Z",
+        "timestampValue": "1794962535817"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.822Z",
+        "timestampValue": "1794962535822"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.822Z",
+        "timestampValue": "1794962535822"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:41:38.831Z",
+        "timestampValue": "1794962535831"
+      }
+    }],
+    "generationTime": "2026-11-18T00:41:38.803Z",
+    "id": "1794962535803-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/cfdpManager/SendFile",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268500992
+      },
+      "userInput": false
+    }, {
+      "name": "channelId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "destId",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 100
+      },
+      "userInput": true
+    }, {
+      "name": "cfdpClass",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "CLASS_2",
+        "sint64Value": "0"
+      },
+      "userInput": true
+    }, {
+      "name": "keep",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "KEEP",
+        "sint64Value": "1"
+      },
+      "userInput": true
+    }, {
+      "name": "priority",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": true
+    }, {
+      "name": "sourceFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "/home/fprime/pisensor-campaign/cfdp-test.bin"
+      },
+      "userInput": true
+    }, {
+      "name": "destFileName",
+      "value": {
+        "type": "STRING",
+        "stringValue": "cfdp-test.bin"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794961755171",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAABADABBA=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAQAGAAABADABBA=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.173Z",
+        "timestampValue": "1794961755173"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.174Z",
+        "timestampValue": "1794961755174"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.174Z",
+        "timestampValue": "1794961755174"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 1
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.176Z",
+        "timestampValue": "1794961755176"
+      }
+    }],
+    "generationTime": "2026-11-18T00:28:38.171Z",
+    "id": "1794961755171-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/CdhCore/version/VERSION",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 16789505
+      },
+      "userInput": false
+    }, {
+      "name": "version_type",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "ALL",
+        "sint64Value": "4"
+      },
+      "userInput": true
+    }]
+  }, {
+    "commandId": {
+      "generationTime": "1794961755105",
+      "origin": "0:0:0:0:0:0:0:1",
+      "sequenceNumber": 0,
+      "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK"
+    },
+    "attr": [{
+      "name": "unprocessedBinary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAAAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "binary",
+      "value": {
+        "type": "BINARY",
+        "binaryValue": "EADAAAAJAAAQAPAA3q2+7w=="
+      }
+    }, {
+      "name": "username",
+      "value": {
+        "type": "STRING",
+        "stringValue": "guest"
+      }
+    }, {
+      "name": "queue",
+      "value": {
+        "type": "STRING",
+        "stringValue": "default"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Queued_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.121Z",
+        "timestampValue": "1794961755121"
+      }
+    }, {
+      "name": "TransmissionConstraints_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "NA"
+      }
+    }, {
+      "name": "TransmissionConstraints_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.129Z",
+        "timestampValue": "1794961755129"
+      }
+    }, {
+      "name": "Acknowledge_Released_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Released_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.129Z",
+        "timestampValue": "1794961755129"
+      }
+    }, {
+      "name": "ccsds-seqcount",
+      "value": {
+        "type": "SINT32",
+        "sint32Value": 0
+      }
+    }, {
+      "name": "Acknowledge_Sent_Status",
+      "value": {
+        "type": "STRING",
+        "stringValue": "OK"
+      }
+    }, {
+      "name": "Acknowledge_Sent_Time",
+      "value": {
+        "type": "TIMESTAMP",
+        "stringValue": "2026-11-18T00:28:38.138Z",
+        "timestampValue": "1794961755138"
+      }
+    }],
+    "generationTime": "2026-11-18T00:28:38.105Z",
+    "id": "1794961755105-0:0:0:0:0:0:0:1-0",
+    "commandName": "/PiSensor_PiSensor/PiSensor/sysTester/MARK",
+    "origin": "0:0:0:0:0:0:0:1",
+    "sequenceNumber": 0,
+    "assignments": [{
+      "name": "CCSDS_Version",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Type",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": true
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Sec_Hdr_Flag",
+      "value": {
+        "type": "BOOLEAN",
+        "booleanValue": false
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_APID",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 0
+      },
+      "userInput": false
+    }, {
+      "name": "CCSDS_Group_Flags",
+      "value": {
+        "type": "ENUMERATED",
+        "stringValue": "Standalone",
+        "sint64Value": "3"
+      },
+      "userInput": false
+    }, {
+      "name": "OpCode",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 268496896
+      },
+      "userInput": false
+    }, {
+      "name": "id",
+      "value": {
+        "type": "UINT32",
+        "uint32Value": 3735928559
+      },
+      "userInput": true
+    }]
+  }]
+}
