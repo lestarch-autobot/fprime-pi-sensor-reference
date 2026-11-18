@@ -138,6 +138,18 @@ module PiSensor {
       rateGroupDriver.CycleOut[0] -> rateGroup10Hz.CycleIn
       rateGroupDriver.CycleOut[1] -> rateGroup1Hz.CycleIn
       # Members: see the instance table in docs/ssdd.md.
+      rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.Subtopology.comQueueRun
+      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.Subtopology.aggregatorTimeout
+      rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun
+      rateGroup10Hz.RateGroupMemberOut[3] -> Bmp280.bmpManager.run
+      rateGroup10Hz.RateGroupMemberOut[4] -> MpuImu.imuManager.run
+      rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.Subtopology.tlmSendRun
+      rateGroup1Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.healthRun
+      rateGroup1Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.eventsRun
+      rateGroup1Hz.RateGroupMemberOut[3] -> ComCcsds.Subtopology.bufferManagerSchedIn
+      rateGroup1Hz.RateGroupMemberOut[4] -> DataProducts.Subtopology.dpBufferManagerSchedIn
+      rateGroup1Hz.RateGroupMemberOut[5] -> DataProducts.Subtopology.dpWriterSchedIn
+      rateGroup1Hz.RateGroupMemberOut[6] -> DataProducts.Subtopology.dpMgrSchedIn
       rateGroup1Hz.RateGroupMemberOut[7] -> cfdpManager.run1Hz
       rateGroup1Hz.RateGroupMemberOut[8] -> fileManager.schedIn
     }
