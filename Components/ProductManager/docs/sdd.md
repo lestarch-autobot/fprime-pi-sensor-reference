@@ -271,6 +271,7 @@ sequenceDiagram
 | Delivering the picture within 1 s of its acquisition time | `piCamera` |
 | Changing the time-outs in flight | none: rebuild (REQ-ProductManager-018, -021) |
 | Files of the product directory not named as product files | left untouched and unlisted |
+| Hardware input and output | none: camera, sensors and radio are reached through ports, files through the operating system |
 
 ## 8. Tests
 
