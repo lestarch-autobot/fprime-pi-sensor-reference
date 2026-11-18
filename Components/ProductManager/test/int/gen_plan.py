@@ -78,7 +78,7 @@ for x in T:
     for r in x["covers"]: cov[r].append(x["id"])
 SYS = {14: "REQ-PiSensor-011", 15: "REQ-PiSensor-005", 25: "REQ-PiSensor-030", 31: "REQ-PiSensor-033", 33: "REQ-PiSensor-032", 34: "REQ-PiSensor-014", 35: "REQ-PiSensor-041"}
 req = {}
-for i in range(1, 49):
+for i in range(1, 50):
     k = R(i)[0]
     if i in SYS:
         assert len(cov[k]) >= 2, (k, cov[k])

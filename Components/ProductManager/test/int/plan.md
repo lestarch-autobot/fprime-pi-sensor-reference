@@ -245,6 +245,7 @@ Planted faults:none
 | REQ-ProductManager-046 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
 | REQ-ProductManager-047 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
 | REQ-ProductManager-048 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
+| REQ-ProductManager-049 | waived: UT only | observable at the component boundary; the unit-test list of docs/sdd.md covers it |
 
 ## 5 Metrics
 - L2-1: CAPTURE command completion (cmdDisp.OpCodeCompleted of its opcode) - t(productManager.CAPTURE sent) <= 30 s

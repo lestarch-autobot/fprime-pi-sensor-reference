@@ -344,6 +344,11 @@
    "tests": [],
    "verification": "UT only",
    "note": "observable at the component boundary; the unit-test list of docs/sdd.md covers it"
+  },
+  "REQ-ProductManager-049": {
+   "tests": [],
+   "verification": "UT only",
+   "note": "observable at the component boundary; the unit-test list of docs/sdd.md covers it"
   }
  },
  "scope": [

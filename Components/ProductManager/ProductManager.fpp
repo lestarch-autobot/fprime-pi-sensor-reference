@@ -64,7 +64,7 @@ module PiSensor {
     constant WRITTEN_TIMEOUT_TICKS = 5
 
     @ Run ticks during which the file of a failed capture is removed if it appears
-    constant DISCARD_RECHECK_TICKS = 10
+    constant DISCARD_RECHECK_TICKS = 5
 
     @ ProductStored events emitted per run tick
     constant LIST_EVENTS_PER_TICK = 4
@@ -122,6 +122,7 @@ module PiSensor {
       DELETE_REMOVE
       LIST_OPEN
       LIST_READ
+      FILE_READ
     }
 
     @ Why a file was removed without a DELETE command
@@ -151,7 +152,7 @@ module PiSensor {
     output port sendFileOut: Svc.SendFileRequest
 
     @ File transfer ended
-    async input port fileDoneIn: Svc.SendFileComplete
+    async input port fileDoneIn: Svc.SendFileComplete hook
 
     @ 1 Hz tick: time-outs, stored check of the capture, listing
     async input port run: Svc.Sched drop
@@ -301,9 +302,6 @@ module PiSensor {
 
     @ Listing activity
     telemetry ListingActivity: Activity update on change
-
-    @ Products written since start-up
-    telemetry ProductsWritten: U32 update on change
 
     # ----------------------------------------------------------------------
     # Special ports
