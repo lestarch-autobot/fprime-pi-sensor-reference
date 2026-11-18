@@ -193,3 +193,4 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 4. 2026-11-17 designer — REQ-SensorMonitor-003 and -017 are verified by unit test of record; the bench judges their system effect within stated allowances.
 5. 2026-11-17 designer — review round 1 (system-test-review Mode A, 11 must fix / 12 could fix): all accepted; dispositions in the campaign's review record.
 6. 2026-11-17 designer — review round 2 (4 must fix / 3 could fix): all accepted.
+7. 2026-11-17 designer — review round 3, the last of the bound (1 must fix, STR-30): accepted and closed after the round, not re-reviewed: both line-dropped faults insert their OFF command directly after the START marker. Review totals: 30 raised, 30 closed, 0 disagreements. Deferred to the bench (L0 / stage-2 refresh): marker round-trip, event rate, noise allowances, clock offset, enum rendering, the I2C_OTHER_ERR status; `sysTester.BENCH_LINE` is not in `SystemTester.fpp` yet; D13 pending.

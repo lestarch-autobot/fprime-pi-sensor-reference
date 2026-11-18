@@ -76,23 +76,23 @@ def sensor_line_kept_on(test_id, command_name, args):
 
 
 @planted_fault("bmp_line_dropped", applies_to=["L2-1"], cls="uut-state", kind="insert",
-               mechanism="sysTester.BENCH_LINE(BMP280, OFF) is inserted before the START marker: the BMP280 is unpowered for the whole window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. The unpowered sensor fails the manager's reset write (DeviceFailure, BmpManager.cpp lines 57 to 63) and leaves no Reading sample to pair within 1.5 s",
+               mechanism="sysTester.BENCH_LINE(BMP280, OFF) is inserted directly after the START marker, so the precondition and the first samples of the window are untouched and the BMP280 is unpowered for the rest of the window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. The unpowered sensor fails the manager's reset write (DeviceFailure, BmpManager.cpp lines 57 to 63) and leaves no Reading sample to pair within 1.5 s",
                fails={"L2-1": ["last(sensorMonitor.TemperatureValid) == VALID", "last(sensorMonitor.TemperatureInvalidReason) == NONE",
                                "last(sensorMonitor.Bmp280State) == PRESENT", "event sensorMonitor.Bmp280Lost count == 0",
                                "event bmpManager.DeviceFailure count == 0", _metric("L2-1", "values_match_reading")]})
 def bmp_line_dropped(test_id, command_name, args):
     if _is(command_name, "MARK") and len(args) == 1 and int(args[0]) == 30:
-        return [("sysTester.BENCH_LINE", ["BMP280", "OFF"]), (command_name, args)]
+        return [(command_name, args), ("sysTester.BENCH_LINE", ["BMP280", "OFF"])]
     return None
 
 
 @planted_fault("mpu_line_dropped", applies_to=["L2-2"], cls="uut-state", kind="insert",
-               mechanism="sysTester.BENCH_LINE(MPU6050, OFF) is inserted before the START marker: the MPU6050 is unpowered for the whole window, so roll and pitch freeze and the tilt is not seen; the procedure's BENCH_LINE(MPU6050, ON) after the END marker and its settle wait restore it",
+               mechanism="sysTester.BENCH_LINE(MPU6050, OFF) is inserted directly after the START marker, so the precondition is untouched and the MPU6050 is unpowered for the rest of the window, so roll and pitch freeze and the tilt is not seen; the procedure's BENCH_LINE(MPU6050, ON) after the END marker and its settle wait restore it",
                fails={"L2-2": ["last(sensorMonitor.AttitudeValid) == VALID", "last(sensorMonitor.AttitudeInvalidReason) == NONE",
                                "last(sensorMonitor.Mpu6050State) == PRESENT", "event sensorMonitor.Mpu6050Lost count == 0",
                                "event imuManager.I2cError count == 0", _metric("L2-2", "angle_step_after_action"),
                                _metric("L2-2", "angles_match_reading")]})
 def mpu_line_dropped(test_id, command_name, args):
     if _is(command_name, "MARK") and len(args) == 1 and int(args[0]) == 40:
-        return [("sysTester.BENCH_LINE", ["MPU6050", "OFF"]), (command_name, args)]
+        return [(command_name, args), ("sysTester.BENCH_LINE", ["MPU6050", "OFF"])]
     return None

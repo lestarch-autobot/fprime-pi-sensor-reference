@@ -17,7 +17,7 @@
           "every sample: |Temperature - bmpManager.Reading.temperature| <= 0.5 degC and |GyroX,Y,Z - imuManager.Reading.rotation| <= 1.0 deg/s against the Reading sample nearest in FSW time and within 1.5 s (else unpaired); at least 30 pairs each"
         ]
       },
-      "mechanism": "sysTester.BENCH_LINE(BMP280, OFF) is inserted before the START marker: the BMP280 is unpowered for the whole window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. The unpowered sensor fails the manager's reset write (DeviceFailure, BmpManager.cpp lines 57 to 63) and leaves no Reading sample to pair within 1.5 s",
+      "mechanism": "sysTester.BENCH_LINE(BMP280, OFF) is inserted directly after the START marker, so the precondition and the first samples of the window are untouched and the BMP280 is unpowered for the rest of the window; the procedure's BENCH_LINE(BMP280, ON) after the END marker and its settle wait restore it, so no later test is disturbed. The unpowered sensor fails the manager's reset write (DeviceFailure, BmpManager.cpp lines 57 to 63) and leaves no Reading sample to pair within 1.5 s",
       "kind": "insert",
       "ripples_to": {}
     },
@@ -38,7 +38,7 @@
           "|Roll - atan2(a_y, a_z)| <= 1.0 deg and |Pitch - atan2(-a_x, sqrt(a_y^2 + a_z^2))| <= 1.0 deg for every Roll and Pitch sample against the imuManager.Reading sample nearest in FSW time and within 1.5 s (else unpaired), samples within 3 s of the logged tilt action excluded; at least 25 pairs"
         ]
       },
-      "mechanism": "sysTester.BENCH_LINE(MPU6050, OFF) is inserted before the START marker: the MPU6050 is unpowered for the whole window, so roll and pitch freeze and the tilt is not seen; the procedure's BENCH_LINE(MPU6050, ON) after the END marker and its settle wait restore it",
+      "mechanism": "sysTester.BENCH_LINE(MPU6050, OFF) is inserted directly after the START marker, so the precondition is untouched and the MPU6050 is unpowered for the rest of the window, so roll and pitch freeze and the tilt is not seen; the procedure's BENCH_LINE(MPU6050, ON) after the END marker and its settle wait restore it",
       "kind": "insert",
       "ripples_to": {}
     },

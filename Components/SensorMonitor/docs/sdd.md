@@ -62,16 +62,16 @@ Table 2 — sensors.
 ### Component Diagram
 
 ```text
-                          +--------------------------------+
-        run : Svc.Sched  [] PiSensor.SensorMonitor         [] tlmGetOut : Fw.TlmGet
- bmpDataIn :             []                                [] imuIdentityOut : Drv.I2cWriteRead
-  Bmp280.Bmp280DataOut    |                                [] gpsSentenceOut : Svc.ComDataWithContext
- imuDataIn :             []                                 |
-  MpuImu.ImuDataOut       |                                 |
- gpsSentenceIn :         []                                 |
-  Svc.ComDataWithContext  |                                 |
- samplesGetIn :          []                                 |
-  PiSensor.SamplesGet     +--------------------------------+
+                          ┌────────────────────────────────┐
+        run : Svc.Sched   ■ PiSensor.SensorMonitor         ■ tlmGetOut : Fw.TlmGet
+ bmpDataIn :              ■                                ■ imuIdentityOut : Drv.I2cWriteRead
+  Bmp280.Bmp280DataOut    │                                ■ gpsSentenceOut : Svc.ComDataWithContext
+ imuDataIn :              ■                                │
+  MpuImu.ImuDataOut       │                                │
+ gpsSentenceIn :          ■                                │
+  Svc.ComDataWithContext  │                                │
+ samplesGetIn :           ■                                │
+  PiSensor.SamplesGet     └────────────────────────────────┘
         special ports: eventOut, textEventOut, tlmOut, timeGetOut
 ```
 
