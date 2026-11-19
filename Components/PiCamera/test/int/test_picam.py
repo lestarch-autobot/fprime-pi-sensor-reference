@@ -29,6 +29,7 @@ def commands_dispatched(h):
 
 
 def complete(require):
+    """Preconditions of a window, judged on the record at the time of the call: call it after the stimulus."""
     require("STD")
     require("every command sent in the window was dispatched", commands_dispatched)
 
@@ -94,11 +95,11 @@ def no_start_between_failure_and_success(h):
 @pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-020")
 def test_C_1(window, send, bench, check, require):
     with window(10, 11):
-        complete(require)
         bracket(bench)
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
+        complete(require)
         check("ABS")
         check("event piCamera.CaptureStarted count == 1")
         check("event piCamera.CaptureStarted precedes event piCamera.CaptureCompleted")
@@ -111,7 +112,6 @@ def test_C_1(window, send, bench, check, require):
 @pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-016", "REQ-PiCamera-019")
 def test_C_2(window, send, bench, check, require):
     with window(20, 21):
-        complete(require)
         bracket(bench)
         bench.action("camera_hold")
         try:
@@ -124,6 +124,7 @@ def test_C_2(window, send, bench, check, require):
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
+        complete(require)
         check("first CaptureFailed is CAMERA_ERROR at OPEN", first_failure_is_camera_open)
         check("event piCamera.CaptureFailed count == 1")
         check("event cmdDisp.OpCodeError count == 1")
@@ -137,7 +138,6 @@ def test_C_2(window, send, bench, check, require):
 @pytest.mark.req("REQ-PiCamera-024")
 def test_C_3(window, send, bench, check, require):
     with window(30, 31):
-        complete(require)
         bracket(bench)
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
@@ -147,6 +147,7 @@ def test_C_3(window, send, bench, check, require):
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
+        complete(require)
         check("ABS")
         check("event piCamera.CaptureCompleted count == 2")
         check("event dpWriter.FileWritten count == 2")

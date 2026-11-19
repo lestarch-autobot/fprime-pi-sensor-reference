@@ -158,7 +158,9 @@ def cmd_action(args) -> None:
 
 
 def cmd_action_release(args) -> None:
-    stop_recorded(args, HOLD_PID, "$(command -v rpicam-hello)")
+    program = ssh(args.pi, "command -v rpicam-hello", check=False).strip()
+    if program:
+        stop_recorded(args, HOLD_PID, program)
     ssh(args.pi, "sleep 2")
 
 
