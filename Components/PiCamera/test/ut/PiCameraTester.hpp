@@ -9,6 +9,8 @@
 #include "Components/PiCamera/PiCamera.hpp"
 #include "Components/PiCamera/PiCameraGTestBase.hpp"
 #include "Components/PiCamera/test/ut/FakeCamera.hpp"
+#include "STest/Scenario/BoundedScenario.hpp"
+#include "STest/Scenario/RandomScenario.hpp"
 #include "TestUtils/RuleBasedTesting.hpp"
 
 namespace PiSensor {
@@ -74,6 +76,10 @@ class PiCameraTester final : public PiCameraGTestBase {
     FW_RBT_DEFINE_RULE(PiCameraTester, Health, Ping);
 
   private:
+    // Generated helpers
+    void connectPorts();
+    void initComponents();
+
     // Substitutes
     Fw::TlmValid from_tlmGetOut_handler(FwIndexType portNum,
                                         FwChanIdType id,

@@ -112,25 +112,29 @@ void PiCamera::acquire_internalInterfaceHandler(FwOpcodeType opCode, U32 cmdSeq)
 // ----------------------------------------------------------------------
 
 PiCamera::StepResult PiCamera::acquireFrame() {
+    // Each call is a statement of its own: it writes code before cameraResult reads it
     I32 code = 0;
-    StepResult result = cameraResult(this->m_camera->detect(code), PiCamera_FailStep::DETECT, code);
+    Camera::Status status = this->m_camera->detect(code);
+    StepResult result = cameraResult(status, PiCamera_FailStep::DETECT, code);
     if (result.ok) {
         code = 0;
-        result = cameraResult(this->m_camera->open(code), PiCamera_FailStep::OPEN, code);
+        status = this->m_camera->open(code);
+        result = cameraResult(status, PiCamera_FailStep::OPEN, code);
     }
     if (result.ok) {
         code = 0;
-        result = cameraResult(this->m_camera->configure(PiCamera_PICTURE_WIDTH, PiCamera_PICTURE_HEIGHT, code),
-                              PiCamera_FailStep::CONFIGURE, code);
+        status = this->m_camera->configure(PiCamera_PICTURE_WIDTH, PiCamera_PICTURE_HEIGHT, code);
+        result = cameraResult(status, PiCamera_FailStep::CONFIGURE, code);
     }
     if (result.ok) {
         code = 0;
-        result = cameraResult(this->m_camera->start(code), PiCamera_FailStep::START, code);
+        status = this->m_camera->start(code);
+        result = cameraResult(status, PiCamera_FailStep::START, code);
     }
     if (result.ok) {
         code = 0;
-        result = cameraResult(this->m_camera->waitFrame(PiCamera_FRAME_TIMEOUT_MS, PiCamera_SETTLE_FRAMES, code),
-                              PiCamera_FailStep::FRAME, code);
+        status = this->m_camera->waitFrame(PiCamera_FRAME_TIMEOUT_MS, PiCamera_SETTLE_FRAMES, code);
+        result = cameraResult(status, PiCamera_FailStep::FRAME, code);
     }
     return result;
 }
