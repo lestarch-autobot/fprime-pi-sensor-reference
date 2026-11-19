@@ -12,7 +12,7 @@ module PiSensor {
     enum FailReason : U8 {
       BUSY = 0 @< An earlier capture has not ended
       NO_CAMERA = 1 @< The camera library lists no camera
-      CAMERA_ERROR = 2 @< A camera or JPEG library call failed
+      CAMERA_ERROR = 2 @< A camera or JPEG library call failed or the frame is in error
       TIMEOUT = 3 @< No frame arrived within FRAME_TIMEOUT_MS
       TOO_LARGE = 4 @< The JPEG exceeds PICTURE_MAX_SIZE
       SENSOR_NO_DATA = 5 @< The telemetry store holds no usable reading
@@ -23,17 +23,17 @@ module PiSensor {
 
     @ Where a capture command failed
     enum FailStep : U8 {
-      RECEIVE = 0
-      DETECT = 1
-      OPEN = 2
-      CONFIGURE = 3
-      START = 4
-      FRAME = 5
-      TEMPERATURE = 6
-      ATTITUDE = 7
-      LOCATION = 8
-      ENCODE = 9
-      CONTAINER = 10
+      RECEIVE = 0 @< Receipt of the command
+      DETECT = 1 @< Listing the cameras
+      OPEN = 2 @< Opening the camera
+      CONFIGURE = 3 @< Configuring the camera
+      START = 4 @< Starting the camera
+      FRAME = 5 @< Waiting for or reading the frame
+      TEMPERATURE = 6 @< Reading the temperature
+      ATTITUDE = 7 @< Reading the acceleration
+      LOCATION = 8 @< Reading latitude and longitude
+      ENCODE = 9 @< Encoding the JPEG
+      CONTAINER = 10 @< Getting the container buffer
     }
 
     @ Metrics stored with a picture
@@ -70,8 +70,14 @@ module PiSensor {
     @ Longest wait for the frame, in milliseconds
     constant FRAME_TIMEOUT_MS = 10000
 
+    @ Longest time from receipt of a capture command to its response, in milliseconds
+    constant CAPTURE_MAX_MS = 15000
+
     @ Frames discarded while exposure settles
     constant SETTLE_FRAMES = 10
+
+    @ libjpeg quality setting, 1 to 100
+    constant JPEG_QUALITY = 90
 
     @ Largest difference between a sample time and the capture time, in milliseconds
     constant METRIC_MAX_AGE_MS = 2000
@@ -90,7 +96,7 @@ module PiSensor {
     output port pingOut: Svc.Ping
 
     @ Work of one capture, on the component thread
-    internal port acquire drop
+    internal port acquire
 
     product get port productGetOut
     product send port productSendOut
@@ -113,16 +119,19 @@ module PiSensor {
     # Events
     # ----------------------------------------------------------------------
 
+    @ A capture command is accepted; acquisition begins
     event CaptureStarted severity activity low format "Capture started"
 
+    @ The container of a capture was sent
     event CaptureCompleted(
       bytes: U32 @< Size of the JPEG in bytes
     ) severity activity high format "Capture stored a picture of {} bytes"
 
+    @ A capture command failed
     event CaptureFailed(
-      reason: FailReason
-      step: FailStep
-      code: I32 @< Return code of the failing library call, else 0
+      reason: FailReason @< Why the capture failed
+      step: FailStep @< Step that failed
+      code: I32 @< Return code of the failing library call; sample age in ms for SENSOR_STALE; else 0
     ) severity warning high format "Capture failed: {} at {} code {}"
 
     # ----------------------------------------------------------------------
