@@ -30,21 +30,24 @@ _c3 = _Once(2)
 
 
 @planted_fault("c1_second_capture", applies_to=["C-1"],
-               fails={"C-1": ["event piCamera.CaptureCompleted count == 1"]},
+               fails={"C-1": ["event piCamera.CaptureCompleted count == 1", "event dpWriter.FileWritten count == 1",
+                               "delta(piCamera.CapturesCompleted) == 1"]},
                cls="stimulus", mechanism="a second CAPTURE is sent before the one of the test", kind="insert")
 def c1_second_capture(test_id, command_name, args):
     return _c1(test_id, command_name, args)
 
 
 @planted_fault("c2_capture_before_hold", applies_to=["C-2"],
-               fails={"C-2": ["event piCamera.CaptureFailed count == 1"]},
+               fails={"C-2": ["event piCamera.CaptureFailed(reason=CAMERA_ERROR, step=OPEN) count == 1",
+                               "event piCamera.CaptureFailed count == 1", "event cmdDisp.OpCodeError count == 1"]},
                cls="stimulus", mechanism="a second CAPTURE is sent while the camera is held", kind="insert")
 def c2_capture_before_hold(test_id, command_name, args):
     return _c2(test_id, command_name, args)
 
 
 @planted_fault("c3_capture_after_restart", applies_to=["C-3"],
-               fails={"C-3": ["last(piCamera.CapturesCompleted) == 1"]},
+               fails={"C-3": ["event piCamera.CaptureCompleted count == 2", "event dpWriter.FileWritten count == 2",
+                               "last(piCamera.CapturesCompleted) == 1"]},
                cls="stimulus", mechanism="a second CAPTURE is sent after the restart", kind="insert")
 def c3_capture_after_restart(test_id, command_name, args):
     return _c3(test_id, command_name, args)
