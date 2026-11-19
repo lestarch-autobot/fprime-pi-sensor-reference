@@ -20,7 +20,7 @@ capture fails at `LOCATION` and the test fails.
 ```bash
 PYTHONDONTWRITEBYTECODE=1 fth verify-plan plan.json --tests . --bench bench.json
 fth render-plan plan.json -o plan.md
-fth planted-faults-menu plan.json -o faults-menu.json
+fth planted-faults-menu plan.json -o faults-menu.json --max-count 1
 ```
 
 ## Dry run of the whole plan on the bench

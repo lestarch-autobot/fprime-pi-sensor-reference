@@ -1,5 +1,5 @@
 {
-  "max_count": 2,
+  "max_count": 1,
   "knobs": [
     {
       "name": "c1_second_capture",
