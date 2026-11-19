@@ -28,8 +28,12 @@ def commands_dispatched(h):
     return dispatched == sent, f"commands sent, markers apart: {sent}; dispatched: {dispatched}"
 
 
-def complete(require):
-    """Preconditions of a window, judged on the record at the time of the call: call it after the stimulus."""
+def complete(bench, require):
+    """Preconditions of a window, judged on the record at the time of the call: call it after the stimulus.
+
+    The wait lets the recorder write the samples the bracket counted.
+    """
+    bench.wait(3)
     require("STD")
     require("every command sent in the window was dispatched", commands_dispatched)
 
@@ -99,7 +103,7 @@ def test_C_1(window, send, bench, check, require):
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
-        complete(require)
+        complete(bench, require)
         check("ABS")
         check("event piCamera.CaptureStarted count == 1")
         check("event piCamera.CaptureStarted precedes event piCamera.CaptureCompleted")
@@ -124,7 +128,7 @@ def test_C_2(window, send, bench, check, require):
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
-        complete(require)
+        complete(bench, require)
         check("first CaptureFailed is CAMERA_ERROR at OPEN", first_failure_is_camera_open)
         check("event piCamera.CaptureFailed count == 1")
         check("event cmdDisp.OpCodeError count == 1")
@@ -147,7 +151,7 @@ def test_C_3(window, send, bench, check, require):
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
         bracket(bench)
-        complete(require)
+        complete(bench, require)
         check("ABS")
         check("event piCamera.CaptureCompleted count == 2")
         check("event dpWriter.FileWritten count == 2")
