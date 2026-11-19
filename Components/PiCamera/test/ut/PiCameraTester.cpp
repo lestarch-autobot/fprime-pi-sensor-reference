@@ -188,8 +188,10 @@ PiCameraTester::Product PiCameraTester::readProduct(U32 index) {
         EXPECT_EQ(data.deserializeTo(recordId), Fw::FW_SERIALIZE_OK);
         product.records++;
         if (recordId == this->component.getIdBase() + PiCamera::RecordId::Metrics) {
+            product.metricsRecords++;
             EXPECT_EQ(data.deserializeTo(product.metrics), Fw::FW_SERIALIZE_OK);
         } else if (recordId == this->component.getIdBase() + PiCamera::RecordId::Picture) {
+            product.pictureRecords++;
             FwSizeStoreType size = 0;
             EXPECT_EQ(data.deserializeTo(size), Fw::FW_SERIALIZE_OK);
             product.pictureSize = size;
@@ -217,6 +219,8 @@ void PiCameraTester::assertSuccess(FwSizeType pictureSize) {
     ASSERT_PRODUCT_SEND_SIZE(1);
     const Product product = this->readProduct(0);
     ASSERT_EQ(product.records, 2U);
+    ASSERT_EQ(product.metricsRecords, 1U);
+    ASSERT_EQ(product.pictureRecords, 1U);
     ASSERT_EQ(product.pictureSize, pictureSize);
     ASSERT_TRUE(product.pictureMatches);
     this->assertCameraClosed();
@@ -387,6 +391,11 @@ void PiCameraTester::testMissingReading() {
         this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
         ASSERT_EQ(this->m_store[channel].value.setBuffLen(this->m_store[channel].value.getSize() - 1),
                   Fw::FW_SERIALIZE_OK);
+        this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+        // Stale and too short to decode: the decode is checked first
+        ASSERT_EQ(this->m_store[channel].value.setBuffLen(this->m_store[channel].value.getSize() - 1),
+                  Fw::FW_SERIALIZE_OK);
+        this->m_store[channel].time = this->timeAt(-10 * USEC_PER_SEC);
         this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
     }
 }

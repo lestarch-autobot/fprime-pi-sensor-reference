@@ -279,9 +279,9 @@ PiCamera::StepResult PiCamera::store(const Fw::Time& captureTime,
     return success();
 }
 
-void PiCamera::endCapture(bool success, U32 size) {
+void PiCamera::endCapture(bool captured, U32 size) {
     this->lock();
-    if (success) {
+    if (captured) {
         this->m_completed++;
         this->tlmWrite_CapturesCompleted(this->m_completed);
         this->tlmWrite_LastPictureSize(size);
@@ -318,6 +318,7 @@ PiCamera::StepResult PiCamera::failure(PiCamera_FailReason reason, PiCamera_Fail
 }
 
 PiCamera::StepResult PiCamera::success() {
+    // Reason, step and code are placeholders: they are not read when ok is true
     return StepResult{true, PiCamera_FailReason::BUSY, PiCamera_FailStep::RECEIVE, 0};
 }
 

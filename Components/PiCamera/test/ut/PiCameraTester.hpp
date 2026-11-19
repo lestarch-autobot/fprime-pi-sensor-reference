@@ -40,6 +40,8 @@ class PiCameraTester final : public PiCameraGTestBase {
         FwSizeType pictureSize;
         bool pictureMatches;  //!< Every picture byte equals the substitute's fill
         U32 records;
+        U32 metricsRecords;
+        U32 pictureRecords;
     };
 
     PiCameraTester();

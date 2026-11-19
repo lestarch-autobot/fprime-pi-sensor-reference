@@ -33,6 +33,7 @@ struct JpegError {
 };
 
 void jpegErrorExit(j_common_ptr cinfo) {
+    // reinterpret_cast: libjpeg hands back the base struct, JpegError starts with it
     JpegError* error = reinterpret_cast<JpegError*>(cinfo->err);
     longjmp(error->jump, 1);
 }
@@ -52,6 +53,7 @@ struct JpegDestination {
 };
 
 void jpegInitDestination(j_compress_ptr cinfo) {
+    // reinterpret_cast: libjpeg hands back the base struct, JpegDestination starts with it
     JpegDestination* dest = reinterpret_cast<JpegDestination*>(cinfo->dest);
     dest->base.next_output_byte = dest->buffer;
     dest->base.free_in_buffer = dest->capacity;
@@ -60,6 +62,7 @@ void jpegInitDestination(j_compress_ptr cinfo) {
 boolean jpegEmptyOutputBuffer(j_compress_ptr cinfo) {
     // libjpeg calls this when the buffer is full, also when the JPEG ends exactly there.
     // Later bytes go to a scratch area; one that receives a byte is the overflow.
+    // reinterpret_cast: libjpeg hands back the base struct, JpegDestination starts with it
     JpegDestination* dest = reinterpret_cast<JpegDestination*>(cinfo->dest);
     if (dest->full) {
         dest->overflow = true;
@@ -200,6 +203,7 @@ class LibcameraCamera final : public Camera {
             this->m_settle = NO_SETTLE;
             this->m_kept = nullptr;
             this->m_keptError = false;
+            this->m_queueError = 0;
         }
         this->m_camera->requestCompleted.connect(this, &LibcameraCamera::requestCompleted);
         ret = this->m_camera->start();
@@ -229,8 +233,18 @@ class LibcameraCamera final : public Camera {
         // steady_clock is monotonic
         const std::chrono::steady_clock::time_point limit =
             std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-        const bool arrived = this->m_condition.wait_until(lock, limit, [this] { return this->m_kept != nullptr; });
-        if (!arrived) {
+        while ((this->m_kept == nullptr) && (this->m_queueError == 0)) {
+            if (this->m_condition.wait_until(lock, limit) == std::cv_status::timeout) {
+                break;
+            }
+        }
+        if (this->m_queueError != 0) {
+            // The stream stopped: the camera did not take a request back
+            code = this->m_queueError;
+            this->m_settle = NO_SETTLE;
+            return Status::ERROR;
+        }
+        if (this->m_kept == nullptr) {
             // A frame that arrives from now on is discarded
             this->m_settle = NO_SETTLE;
             return Status::TIMEOUT;
@@ -273,6 +287,7 @@ class LibcameraCamera final : public Camera {
             std::lock_guard<std::mutex> lock(this->m_mutex);
             this->m_kept = nullptr;
             this->m_keptError = false;
+            this->m_queueError = 0;
             this->m_settle = NO_SETTLE;
         }
         this->m_requests.clear();
@@ -317,7 +332,11 @@ class LibcameraCamera final : public Camera {
             this->m_frames++;
         }
         request->reuse(libcamera::Request::ReuseBuffers);
-        static_cast<void>(this->m_camera->queueRequest(request));
+        const int ret = this->m_camera->queueRequest(request);
+        if (ret != 0) {
+            this->m_queueError = ret;
+            this->m_condition.notify_all();
+        }
     }
 
     //! A frame is complete when the camera reports success and every plane is filled
@@ -382,9 +401,9 @@ class LibcameraCamera final : public Camera {
             return Status::ERROR;
         }
 
-        jpeg_compress_struct cinfo;
-        JpegError error;
-        JpegDestination dest;
+        jpeg_compress_struct cinfo{};
+        JpegError error{};
+        JpegDestination dest{};
         cinfo.err = jpeg_std_error(&error.base);
         error.base.error_exit = jpegErrorExit;
         error.base.output_message = jpegNoMessage;
@@ -419,11 +438,12 @@ class LibcameraCamera final : public Camera {
         cinfo.comp_info[2].v_samp_factor = 1;
         jpeg_start_compress(&cinfo, TRUE);
 
-        JSAMPROW yRows[MCU_LUMA_ROWS];
-        JSAMPROW uRows[MCU_LUMA_ROWS / 2];
-        JSAMPROW vRows[MCU_LUMA_ROWS / 2];
+        JSAMPROW yRows[MCU_LUMA_ROWS] = {};
+        JSAMPROW uRows[MCU_LUMA_ROWS / 2] = {};
+        JSAMPROW vRows[MCU_LUMA_ROWS / 2] = {};
         JSAMPARRAY rows[PLANES] = {yRows, uRows, vRows};
-        // The height is a multiple of MCU_LUMA_ROWS (checked in configure)
+        // The height is a multiple of MCU_LUMA_ROWS (checked in configure).
+        // const_cast: libjpeg takes non-const rows and only reads them.
         for (unsigned int row = 0; row < this->m_height; row += MCU_LUMA_ROWS) {
             for (unsigned int i = 0; i < MCU_LUMA_ROWS; i++) {
                 yRows[i] = const_cast<JSAMPROW>(planes[0].data + static_cast<size_t>(row + i) * this->m_stride);
@@ -433,7 +453,11 @@ class LibcameraCamera final : public Camera {
                 uRows[i] = const_cast<JSAMPROW>(planes[1].data + offset);
                 vRows[i] = const_cast<JSAMPROW>(planes[2].data + offset);
             }
-            static_cast<void>(jpeg_write_raw_data(&cinfo, rows, MCU_LUMA_ROWS));
+            if (jpeg_write_raw_data(&cinfo, rows, MCU_LUMA_ROWS) != MCU_LUMA_ROWS) {
+                jpeg_destroy_compress(&cinfo);
+                code = -EIO;
+                return Status::ERROR;
+            }
         }
         jpeg_finish_compress(&cinfo);
         // Once full, free_in_buffer counts the scratch area
@@ -464,6 +488,7 @@ class LibcameraCamera final : public Camera {
     unsigned int m_settle;                //!< Frames to discard before one is kept; NO_SETTLE keeps none
     libcamera::FrameBuffer* m_kept;       //!< The kept frame
     bool m_keptError;                     //!< The kept frame is in error or incomplete
+    int m_queueError = 0;                 //!< Code of a request the camera did not take back
 };
 
 }  // namespace

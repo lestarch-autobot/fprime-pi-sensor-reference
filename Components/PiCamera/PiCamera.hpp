@@ -80,7 +80,7 @@ class PiCamera final : public PiCameraComponentBase {
     StepResult store(const Fw::Time& captureTime, const PiCamera_CaptureMetrics& metrics, FwSizeType size);
 
     //! Count the result, publish the changed channels and clear the busy flag
-    void endCapture(bool success, U32 size);
+    void endCapture(bool captured, U32 size);
 
     //! Map a camera status to a step result
     static StepResult cameraResult(Camera::Status status, PiCamera_FailStep step, I32 code);

@@ -10,9 +10,9 @@ acceleration, and writes the picture and the metrics as one data product
 container. Storage and downlink of the container belong to the data product
 components it hands the container to.
 
-Open: camera model, datasheet (title, revision) and the identification the
-camera library reports. The camera is not yet attached to the bench. A camera
-that libcamera does not support reopens REQ-PiCamera-001, 002 and 003.
+Camera: Raspberry Pi Camera Module 3 (Sony IMX708 sensor), which the camera
+library reports as `imx708`. The component was built and run with libcamera
+0.7.2 and libjpeg62-turbo of Raspberry Pi OS 13.
 
 ## 2. Requirements
 
@@ -94,7 +94,7 @@ External References
 
 | Document | Identifier / Revision | Type | Governs |
 |---|---|---|---|
-| libcamera public API | `libcamera-dev` 0.8.0+rpt20261104-1, Raspberry Pi OS 13 (trixie) archive | Other | camera discovery, configuration, frame request |
+| libcamera public API | `libcamera-dev` 0.7.2, Raspberry Pi OS 13 (trixie) package installed on the target | Other | camera discovery, configuration, frame request |
 | libjpeg-turbo API | `libjpeg62-turbo-dev` 1:2.1.5-4, Debian 13 (trixie) main, as shipped by Raspberry Pi OS 13 | Other | JPEG compression calls |
 | JPEG File Interchange Format | JFIF 1.02; ITU-T T.81 | Standard | picture encoding |
 | F Prime data products | `nasa/fprime` `devel@83221ba`, `Fw/Dp`, `Svc/DpManager`, `Svc/DpWriter` | Other | container format, buffer and send ports |
@@ -146,7 +146,7 @@ Three threads enter the component.
 | `m_busy` | bool | A capture is accepted and has not ended |
 | `m_jpeg` | `PICTURE_MAX_SIZE` bytes | Encoded picture until it is copied into the container |
 | `m_completed`, `m_failed` | U32 | Counts behind `CapturesCompleted`, `CapturesFailed`; wrap to 0 after 4294967295 |
-| `m_channels` | 3 channel identifiers | Table 3 channels, set by `configure` |
+| `m_temperatureChannel`, `m_attitudeChannel`, `m_locationChannel` | Channel identifier each | Table 3 channels, set by `configure` |
 
 At start `m_busy` is false, the counts are 0 and the camera is closed. Nothing is kept across a restart (REQ-PiCamera-024).
 
@@ -180,7 +180,7 @@ Picture size, largest JPEG, longest wait for the frame, longest time from comman
 instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 5 stack size 1048576 priority 30
 ```
 
-`configure(temperatureChannel, attitudeChannel, locationChannel)` is called once before the component thread starts, with the identifiers of the Table 3 channels in the topology.
+`configure(camera, temperatureChannel, attitudeChannel, locationChannel)` is called once before the component thread starts, with the camera interface implementation and the identifiers of the Table 3 channels in the topology.
 
 The component thread publishes the three Table 2 channels with value 0 when it starts, after the ports are connected.
 
@@ -197,7 +197,7 @@ The ping is not answered during a capture; its limits lie above `CAPTURE_MAX_MS`
 
 The camera is asked for `PICTURE_WIDTH` x `PICTURE_HEIGHT` frames in a format libjpeg-turbo compresses without conversion (YUV420), encoded at `JPEG_QUALITY` (REQ-PiCamera-002).
 
-The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `waitFrame`, `stop`, `close`) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. `stop` returns only after no frame callback can run; a frame that arrives after the wait timed out is discarded. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
+The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `waitFrame`, `encode`, `stop`, `close`) implemented with libcamera; `encode` compresses the kept frame with libjpeg-turbo. Both are Raspberry Pi OS packages. `stop` returns only after no frame callback can run; a frame that arrives after the wait timed out is discarded. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
 
 ### 3.5 Handlers
 
