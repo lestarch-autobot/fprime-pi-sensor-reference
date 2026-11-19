@@ -46,12 +46,14 @@ module PiSensor {
       longitude: F64
       @ Sample time of latitude and longitude
       locationTime: Fw.TimeValue
-      @ Roll in degrees
+      @ Roll in degrees; NaN when attitudeValid is false
       roll: F32
-      @ Pitch in degrees
+      @ Pitch in degrees; NaN when attitudeValid is false
       pitch: F32
-      @ Sample time of the acceleration behind roll and pitch
+      @ Sample time of the acceleration behind roll and pitch; zero when attitudeValid is false
       attitudeTime: Fw.TimeValue
+      @ True when roll and pitch are derived from an acceleration reading
+      attitudeValid: bool
       @ Temperature in degrees Celsius
       temperature: F32
       @ Sample time of the temperature
@@ -136,6 +138,12 @@ module PiSensor {
       step: FailStep @< Step that failed
       code: I32 @< Return code of the failing library call; sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
     ) severity warning high format "Capture failed: {} at {} code {}"
+
+    @ The acceleration reading is missing or stale; the capture goes on without roll and pitch
+    event AttitudeUnavailable(
+      reason: FailReason @< SENSOR_NO_DATA or SENSOR_STALE
+      code: I32 @< Sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
+    ) severity warning low format "Attitude unavailable: {} code {}; roll and pitch stored as NaN"
 
     # ----------------------------------------------------------------------
     # Telemetry

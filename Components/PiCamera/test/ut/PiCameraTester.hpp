@@ -56,6 +56,7 @@ class PiCameraTester final : public PiCameraGTestBase {
     void testFrameTimeout();
     void testStaleReading();
     void testMissingReading();
+    void testAttitudeUnavailable();
     void testInvalidMetric();
     void testNoCamera();
     void testCameraErrors();
@@ -106,10 +107,15 @@ class PiCameraTester final : public PiCameraGTestBase {
     void ping(U32 key);
 
     // Helpers: checks
-    void assertSuccess(FwSizeType pictureSize);
+    //! attitudeValid false: the product has NaN for roll and pitch and AttitudeUnavailable was emitted
+    void assertSuccess(FwSizeType pictureSize, bool attitudeValid = true);
     void assertFailure(PiCamera_FailReason reason, PiCamera_FailStep step, I32 code);
     //! capture() and assertFailure(), then a capture with the nominal set-up that succeeds
     void captureFails(PiCamera_FailReason reason, PiCamera_FailStep step, I32 code);
+    //! A capture that succeeds without roll and pitch, then one with the nominal set-up that has them
+    void captureWithoutAttitude(PiCamera_FailReason reason, I32 code);
+    //! captureFails() for the temperature and the location, captureWithoutAttitude() for the acceleration
+    void captureLacks(U32 channel, PiCamera_FailReason reason, I32 code);
     void assertCameraClosed();
     Product readProduct(U32 index);
 

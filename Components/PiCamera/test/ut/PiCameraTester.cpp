@@ -208,10 +208,11 @@ PiCameraTester::Product PiCameraTester::readProduct(U32 index) {
     return product;
 }
 
-void PiCameraTester::assertSuccess(FwSizeType pictureSize) {
+void PiCameraTester::assertSuccess(FwSizeType pictureSize, bool attitudeValid) {
     ASSERT_CMD_RESPONSE_SIZE(1);
     ASSERT_CMD_RESPONSE(0, PiCamera::OPCODE_CAPTURE, this->m_cmdSeq, Fw::CmdResponse::OK);
-    ASSERT_EVENTS_SIZE(2);
+    ASSERT_EVENTS_SIZE(attitudeValid ? 2U : 3U);
+    ASSERT_EVENTS_AttitudeUnavailable_SIZE(attitudeValid ? 0U : 1U);
     ASSERT_EVENTS_CaptureStarted_SIZE(1);
     ASSERT_EVENTS_CaptureCompleted_SIZE(1);
     ASSERT_EVENTS_CaptureCompleted(0, static_cast<U32>(pictureSize));
@@ -222,6 +223,15 @@ void PiCameraTester::assertSuccess(FwSizeType pictureSize) {
     ASSERT_EQ(product.metricsRecords, 1U);
     ASSERT_EQ(product.pictureRecords, 1U);
     ASSERT_EQ(product.pictureSize, pictureSize);
+    ASSERT_EQ(product.metrics.get_attitudeValid(), attitudeValid);
+    if (!attitudeValid) {
+        ASSERT_TRUE(std::isnan(product.metrics.get_roll()));
+        ASSERT_TRUE(std::isnan(product.metrics.get_pitch()));
+        ASSERT_EQ(product.metrics.get_attitudeTime(), Fw::TimeValue());
+    } else {
+        ASSERT_TRUE(std::isfinite(product.metrics.get_roll()));
+        ASSERT_TRUE(std::isfinite(product.metrics.get_pitch()));
+    }
     ASSERT_TRUE(product.pictureMatches);
     this->assertCameraClosed();
     ASSERT_FALSE(this->component.m_busy);
@@ -248,6 +258,26 @@ void PiCameraTester::captureFails(PiCamera_FailReason reason, PiCamera_FailStep 
     this->setNominal();
     this->capture();
     this->assertSuccess(this->m_camera.jpegSize);
+}
+
+void PiCameraTester::captureWithoutAttitude(PiCamera_FailReason reason, I32 code) {
+    this->capture();
+    this->assertSuccess(this->m_camera.jpegSize, false);
+    ASSERT_EVENTS_AttitudeUnavailable(0, reason, code);
+    // With the reading back the next capture stores roll and pitch
+    this->setNominal();
+    this->capture();
+    this->assertSuccess(this->m_camera.jpegSize);
+}
+
+void PiCameraTester::captureLacks(U32 channel, PiCamera_FailReason reason, I32 code) {
+    const PiCamera_FailStep steps[NUM_CHANNELS] = {PiCamera_FailStep::TEMPERATURE, PiCamera_FailStep::ATTITUDE,
+                                                   PiCamera_FailStep::LOCATION};
+    if (channel == ATTITUDE) {
+        this->captureWithoutAttitude(reason, code);
+    } else {
+        this->captureFails(reason, steps[channel], code);
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -344,6 +374,7 @@ void PiCameraTester::testFrameTimeout() {
 void PiCameraTester::testStaleReading() {
     const PiCamera_FailStep steps[NUM_CHANNELS] = {PiCamera_FailStep::TEMPERATURE, PiCamera_FailStep::ATTITUDE,
                                                    PiCamera_FailStep::LOCATION};
+    const PiCamera_FailReason stale = PiCamera_FailReason::SENSOR_STALE;
     for (U32 channel = 0; channel < NUM_CHANNELS; channel++) {
         // At the limit, earlier and later: passes
         this->m_store[channel].time = this->timeAt(-MAX_AGE_USEC);
@@ -352,52 +383,100 @@ void PiCameraTester::testStaleReading() {
         this->m_store[channel].time = this->timeAt(MAX_AGE_USEC);
         this->capture();
         this->assertSuccess(this->m_camera.jpegSize);
-        // 1 ms beyond the limit, earlier and later: fails with the age
+        // 1 ms beyond the limit, earlier and later: fails with the age; the acceleration is left out instead
         this->m_store[channel].time = this->timeAt(-MAX_AGE_USEC - 1000);
-        this->captureFails(PiCamera_FailReason::SENSOR_STALE, steps[channel], PiCamera_METRIC_MAX_AGE_MS + 1);
+        this->captureLacks(channel, stale, PiCamera_METRIC_MAX_AGE_MS + 1);
         this->m_store[channel].time = this->timeAt(MAX_AGE_USEC + 1000);
-        this->captureFails(PiCamera_FailReason::SENSOR_STALE, steps[channel], -(PiCamera_METRIC_MAX_AGE_MS + 1));
-        // Another time base: fails with code 0
+        this->captureLacks(channel, stale, -(PiCamera_METRIC_MAX_AGE_MS + 1));
+        // Another time base: code 0
         this->m_store[channel].time =
             Fw::Time(TimeBase::TB_PROC_TIME, this->m_captureTime.getSeconds(), this->m_captureTime.getUSeconds());
-        this->captureFails(PiCamera_FailReason::SENSOR_STALE, steps[channel], 0);
+        this->captureLacks(channel, stale, 0);
         // An age beyond the I32 range: the range limit. The other readings carry the capture time.
         const Fw::Time early(TimeBase::TB_WORKSTATION_TIME, 0, 0);
         const Fw::Time late(TimeBase::TB_WORKSTATION_TIME, 4000000000U, 0);
-        this->m_captureTime = late;
-        for (U32 other = 0; other < NUM_CHANNELS; other++) {
-            this->m_store[other].time = (other == channel) ? early : late;
+        const Fw::Time captureTimes[2] = {late, early};
+        const I32 limits[2] = {std::numeric_limits<I32>::max(), std::numeric_limits<I32>::min()};
+        for (U32 i = 0; i < 2; i++) {
+            this->m_captureTime = captureTimes[i];
+            for (U32 other = 0; other < NUM_CHANNELS; other++) {
+                this->m_store[other].time = (other == channel) ? captureTimes[1 - i] : captureTimes[i];
+            }
+            this->capture();
+            if (channel == ATTITUDE) {
+                this->assertSuccess(this->m_camera.jpegSize, false);
+                ASSERT_EVENTS_AttitudeUnavailable(0, stale, limits[i]);
+            } else {
+                this->assertFailure(stale, steps[channel], limits[i]);
+            }
         }
-        this->capture();
-        this->assertFailure(PiCamera_FailReason::SENSOR_STALE, steps[channel], std::numeric_limits<I32>::max());
-        this->m_captureTime = early;
-        for (U32 other = 0; other < NUM_CHANNELS; other++) {
-            this->m_store[other].time = (other == channel) ? late : early;
-        }
-        this->capture();
-        this->assertFailure(PiCamera_FailReason::SENSOR_STALE, steps[channel], std::numeric_limits<I32>::min());
         this->m_captureTime = Fw::Time(TimeBase::TB_WORKSTATION_TIME, CAPTURE_SECONDS, 500000);
         this->setNominal();
     }
 }
 
 void PiCameraTester::testMissingReading() {
-    const PiCamera_FailStep steps[NUM_CHANNELS] = {PiCamera_FailStep::TEMPERATURE, PiCamera_FailStep::ATTITUDE,
-                                                   PiCamera_FailStep::LOCATION};
+    const PiCamera_FailReason noData = PiCamera_FailReason::SENSOR_NO_DATA;
     for (U32 channel = 0; channel < NUM_CHANNELS; channel++) {
         this->m_store[channel].valid = Fw::TlmValid::INVALID;
-        this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+        this->captureLacks(channel, noData, 0);
         this->m_store[channel].value.resetSer();
-        this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+        this->captureLacks(channel, noData, 0);
         ASSERT_EQ(this->m_store[channel].value.setBuffLen(this->m_store[channel].value.getSize() - 1),
                   Fw::FW_SERIALIZE_OK);
-        this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+        this->captureLacks(channel, noData, 0);
         // Stale and too short to decode: the decode is checked first
         ASSERT_EQ(this->m_store[channel].value.setBuffLen(this->m_store[channel].value.getSize() - 1),
                   Fw::FW_SERIALIZE_OK);
         this->m_store[channel].time = this->timeAt(-10 * USEC_PER_SEC);
-        this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+        this->captureLacks(channel, noData, 0);
     }
+}
+
+void PiCameraTester::testAttitudeUnavailable() {
+    // Missing: the product holds the other metrics, NaN for roll and pitch and the flag false
+    this->setTemperature(18.5F, this->timeAt(-1000));
+    this->setLocation(34.1304, -118.0588, this->timeAt(-2000));
+    this->m_store[ATTITUDE].valid = Fw::TlmValid::INVALID;
+    this->capture();
+    this->assertSuccess(this->m_camera.jpegSize, false);
+    ASSERT_EVENTS_AttitudeUnavailable(0, PiCamera_FailReason::SENSOR_NO_DATA, 0);
+    ASSERT_EVENTS_CaptureFailed_SIZE(0);
+    ASSERT_TLM_CapturesCompleted_SIZE(1);
+    ASSERT_TLM_CapturesFailed_SIZE(0);
+    Product product = this->readProduct(0);
+    ASSERT_EQ(product.metrics.get_temperature(), 18.5F);
+    ASSERT_EQ(product.metrics.get_latitude(), 34.1304);
+    ASSERT_EQ(product.metrics.get_longitude(), -118.0588);
+    ASSERT_EQ(product.metrics.get_temperatureTime(), this->timeAt(-1000).asTimeValue());
+    ASSERT_EQ(product.metrics.get_locationTime(), this->timeAt(-2000).asTimeValue());
+    // Stale: the same, with the age in the event
+    this->setNominal();
+    this->m_store[ATTITUDE].time = this->timeAt(-3 * USEC_PER_SEC);
+    this->capture();
+    this->assertSuccess(this->m_camera.jpegSize, false);
+    ASSERT_EVENTS_AttitudeUnavailable(0, PiCamera_FailReason::SENSOR_STALE, 3000);
+    // Present and fresh: the flag is true, no warning
+    this->setNominal();
+    this->setAcceleration(0.0F, 9.81F, 0.0F, this->timeAt(0));
+    this->capture();
+    this->assertSuccess(this->m_camera.jpegSize);
+    product = this->readProduct(0);
+    ASSERT_TRUE(product.metrics.get_attitudeValid());
+    ASSERT_NEAR(product.metrics.get_roll(), 90.0, 0.01);
+    // A value that is present but not usable still fails the capture
+    this->setAcceleration(0.0F, 0.0F, 0.0F, this->timeAt(0));
+    this->captureFails(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::ATTITUDE, 0);
+    // Without the acceleration the other readings are still required
+    this->m_store[ATTITUDE].valid = Fw::TlmValid::INVALID;
+    this->m_store[LOCATION].valid = Fw::TlmValid::INVALID;
+    this->capture();
+    this->assertFailure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::LOCATION, 0);
+    this->setNominal();
+    this->m_store[ATTITUDE].valid = Fw::TlmValid::INVALID;
+    this->m_store[TEMPERATURE].time = this->timeAt(-5 * USEC_PER_SEC);
+    this->capture();
+    this->assertFailure(PiCamera_FailReason::SENSOR_STALE, PiCamera_FailStep::TEMPERATURE, 5000);
 }
 
 void PiCameraTester::testInvalidMetric() {
@@ -579,8 +658,8 @@ void PiCameraTester::testRecoveryAfterFailure() {
     this->captureFails(PiCamera_FailReason::TOO_LARGE, PiCamera_FailStep::ENCODE, 0);
     this->m_store[TEMPERATURE].valid = Fw::TlmValid::INVALID;
     this->captureFails(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::TEMPERATURE, 0);
-    this->m_store[ATTITUDE].time = this->timeAt(-3 * USEC_PER_SEC);
-    this->captureFails(PiCamera_FailReason::SENSOR_STALE, PiCamera_FailStep::ATTITUDE, 3000);
+    this->m_store[LOCATION].time = this->timeAt(-3 * USEC_PER_SEC);
+    this->captureFails(PiCamera_FailReason::SENSOR_STALE, PiCamera_FailStep::LOCATION, 3000);
     this->setLocation(91.0, 0.0, this->timeAt(0));
     this->captureFails(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::LOCATION, 0);
     this->m_bufferAvailable = false;
@@ -724,10 +803,18 @@ void PiCameraTester::Capture__SensorFailure__action() {
                                                    PiCamera_FailStep::LOCATION};
     this->m_store[channel].valid = Fw::TlmValid::INVALID;
     this->capture();
-    this->assertFailure(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
-    this->m_expectedFailed++;
     this->m_commands++;
     this->m_responses += static_cast<U32>(this->cmdResponseHistory->size());
+    if (channel == ATTITUDE) {
+        // The acceleration is the one reading a capture goes on without
+        this->assertSuccess(this->m_camera.jpegSize, false);
+        this->m_expectedCompleted++;
+        ASSERT_TLM_CapturesCompleted(0, this->m_expectedCompleted);
+        ASSERT_TLM_CapturesFailed_SIZE(0);
+        return;
+    }
+    this->assertFailure(PiCamera_FailReason::SENSOR_NO_DATA, steps[channel], 0);
+    this->m_expectedFailed++;
     ASSERT_TLM_CapturesFailed(0, this->m_expectedFailed);
 }
 

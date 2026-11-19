@@ -6,7 +6,10 @@ import pytest
 CAPTURE = "piCamera.CAPTURE"
 PICTURE_MAX_SIZE = 262144
 CAPTURE_MAX_S = 15.0
-HEARTBEAT = "imuManager.Reading"
+HEARTBEAT = "bmpManager.Reading"
+IMU = "imuManager.Reading"
+IMU_FRESH_S = 1.5
+IMU_SILENT_S = 4.0
 RESPONSES = ("cmdDisp.OpCodeCompleted", "cmdDisp.OpCodeError")
 
 
@@ -104,6 +107,42 @@ def responses_within_bound(h):
     return ok, f"response times {times} s for opcode {code:#x}"
 
 
+def attitude_expected(capture_time, imu_times):
+    """Whether a capture at ``capture_time`` must warn that the attitude is unavailable.
+
+    True: no MPU6050 sample in the IMU_SILENT_S before it. False: a sample in the IMU_FRESH_S
+    before it. None: in between (the 2 s age limit of the unit is within that band), not judged.
+    """
+    ages = [capture_time - t for t in imu_times if t <= capture_time]
+    newest = min(ages) if ages else None
+    if newest is not None and newest <= IMU_FRESH_S:
+        return False
+    if newest is None or newest > IMU_SILENT_S:
+        return True
+    return None
+
+
+def attitude_warning_justified(h):
+    """No completed capture warned of an unavailable attitude while the MPU6050 telemetry was fresh.
+
+    One direction only: channel samples are lost on the downlink, so a gap in the recorded MPU6050
+    telemetry does not show that the unit had no reading, and a capture without the warning is not judged.
+    """
+    done = h.window.events("piCamera.CaptureCompleted")
+    warned = [e.t for e in h.window.events("piCamera.AttitudeUnavailable")]
+    started = [e.t for e in h.window.events("piCamera.CaptureStarted")]
+    imu = [c.t for c in h.window.ch if c.short == IMU]
+    if not done:
+        return False, "no completed capture in the window"
+    seen = []
+    for capture in done:
+        begin = max([t for t in started if t <= capture.t], default=capture.t)
+        warning = any(begin <= t <= capture.t for t in warned)
+        seen.append((warning, attitude_expected(capture.t, imu)))
+    ok = not any(warning and expected is False for warning, expected in seen)
+    return ok, f"(warned, warning expected from the MPU6050 telemetry) per capture: {seen}; {len(imu)} MPU6050 samples"
+
+
 def first_failure_is_camera_open(h):
     failed = h.window.events("piCamera.CaptureFailed")
     if not failed:
@@ -121,7 +160,7 @@ def no_start_between_failure_and_success(h):
     return not starts, f"start-up events between failure and success: {len(starts)}"
 
 
-@pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-020")
+@pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-020", "REQ-PiCamera-026")
 def test_C_1(window, send, bench, check, require):
     with window(10, 11):
         bracket(bench)
@@ -135,10 +174,11 @@ def test_C_1(window, send, bench, check, require):
         check("event piCamera.CaptureCompleted count == 1")
         check("event dpWriter.FileWritten count == 1")
         check("picture size within PICTURE_MAX_SIZE", picture_within_limit)
+        check("no attitude warning with fresh MPU6050 telemetry", attitude_warning_justified)
         check("every CAPTURE answered within CAPTURE_MAX_MS", responses_within_bound)
 
 
-@pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-016", "REQ-PiCamera-019")
+@pytest.mark.req("REQ-PiCamera-009", "REQ-PiCamera-016", "REQ-PiCamera-019", "REQ-PiCamera-026")
 def test_C_2(window, send, bench, check, require):
     with window(20, 21):
         bracket(bench)
@@ -161,10 +201,11 @@ def test_C_2(window, send, bench, check, require):
         check("event piCamera.CaptureCompleted count == 1")
         check("event dpWriter.FileWritten count == 1")
         check("no start-up between the failure and the success", no_start_between_failure_and_success)
+        check("no attitude warning with fresh MPU6050 telemetry", attitude_warning_justified)
         check("every CAPTURE answered within CAPTURE_MAX_MS", responses_within_bound)
 
 
-@pytest.mark.req("REQ-PiCamera-024")
+@pytest.mark.req("REQ-PiCamera-024", "REQ-PiCamera-026")
 def test_C_3(window, send, bench, check, require):
     with window(30, 31):
         bracket(bench)
@@ -182,3 +223,4 @@ def test_C_3(window, send, bench, check, require):
         check("event dpWriter.FileWritten count == 2")
         check("last(piCamera.CapturesCompleted) == 1")
         check("event version.ProjectVersion count == 1")
+        check("no attitude warning with fresh MPU6050 telemetry", attitude_warning_justified)

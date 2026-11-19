@@ -16,12 +16,12 @@ Window rule: rows from the **last** `cmdDisp.NoOpStringReceived(id=START)` row t
 
 Standard `complete` block (STD): both markers present; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event piCamera.CaptureFailed count == 0.
-Packets (named channel sets for `<packet> samples >= n`): Heartbeat = imuManager.Reading.
+Packets (named channel sets for `<packet> samples >= n`): Heartbeat = bmpManager.Reading.
 
 ID:        C-1
 Title:     Capture on the target
 Purpose:   Proves one capture command stores one product through the real camera within the response bound.
-Covers:    REQ-PiCamera-009, REQ-PiCamera-020
+Covers:    REQ-PiCamera-009, REQ-PiCamera-020, REQ-PiCamera-026
 Setup:     Deployment running on the Raspberry Pi 5, camera free, GPS fix, RFM69 link up.
 Procedure: MARK(10); bracket (2 Heartbeat samples); piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
@@ -32,7 +32,7 @@ Planted faults:c1_second_capture
 ID:        C-2
 Title:     Camera held by another process, then freed
 Purpose:   Proves a capture fails cleanly while another process holds the camera and succeeds once it is freed.
-Covers:    REQ-PiCamera-009, REQ-PiCamera-016, REQ-PiCamera-019
+Covers:    REQ-PiCamera-009, REQ-PiCamera-016, REQ-PiCamera-019, REQ-PiCamera-026
 Setup:     As C-1. The bench action `camera_hold` starts `rpicam-hello` on the Pi, which opens the camera.
 Procedure: MARK(20); bracket (2 Heartbeat samples); action: camera_hold; piCamera.CAPTURE(); wait event cmdDisp.OpCodeError; bracket (2 Heartbeat samples); action: camera_release; piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(21).
 Window:    Marker(id=20) … Marker(id=21)
@@ -43,7 +43,7 @@ Planted faults:c2_capture_before_hold
 ID:        C-3
 Title:     Capture after a restart
 Purpose:   Proves the component captures again after the deployment is stopped and started.
-Covers:    REQ-PiCamera-024
+Covers:    REQ-PiCamera-024, REQ-PiCamera-026
 Setup:     As C-1. The bench action `fsw_restart` stops the deployment process on the Pi and starts it again.
 Procedure: MARK(30); bracket (2 Heartbeat samples); piCamera.CAPTURE(); wait event dpWriter.FileWritten; action: fsw_restart; wait 20 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(31).
 Window:    Marker(id=30) … Marker(id=31)
@@ -59,6 +59,7 @@ Planted faults:c3_capture_after_restart
 | REQ-PiCamera-019 | C-2 | Capture after the camera is freed. |
 | REQ-PiCamera-020 | C-1 |  |
 | REQ-PiCamera-024 | C-3 (restart after a capture), unit test RecoveryAfterFailure | Not verified as written on the bench: the restart of C-3 follows a completed capture, not one in progress (not covered list). |
+| REQ-PiCamera-026 | C-1, C-2, C-3 (a capture completes whatever the MPU6050 does; no warning while its telemetry is fresh), unit test AttitudeUnavailable (record content, warning when the reading is missing or stale) | The bench does not read the stored record, and a gap in the recorded MPU6050 telemetry does not prove the unit had no reading (channel samples are lost on the downlink): the bench checks one direction only. |
 
 ## 5 Metrics
 - C-1: t(event piCamera.CaptureCompleted) - t(piCamera.CAPTURE sent) <= 15 s
@@ -70,6 +71,7 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 ## 7 Not covered
 - No camera attached (REQ-PiCamera-016, `NO_CAMERA`): needs the cable removed; unit test `NoCamera`.
 - Restart during a capture: the restart of C-3 comes after a completed capture; a capture lasts under 1 s on the bench and the bench action takes longer.
+- Content of the `Metrics` record (`attitudeValid`, NaN for roll and pitch): the component plan does not read the product file; unit test `AttitudeUnavailable` and the project system tests that read the downlinked product.
 
 ## 8 Decision log
 - (none)

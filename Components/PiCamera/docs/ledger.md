@@ -158,3 +158,18 @@ Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53
 - Channel samples reach the ground record about 36 s after events of the same unit time, and the lag grew by about 0.13 s per second over 12 s [V]; `comQueue` depth read 0, the place of the queue is not located. A window shorter than the lag closed with no bracket samples. The tests wait, before the END marker, until the bracket channel has a sample as new as the newest event (240 s at most). Reported to the project as a system finding.
 - Clean dry run [V], `comp/picam`@fe0a442, image sha256 `b1980c96…809cf`: C-1, C-2, C-3 PASS (record `d68bc46b…`).
 - Planted-fault dry runs of the same morning: invalid. The MPU6050 fault returned (two `I2cError` during the clean run with no bench action, then `lost arbitration` and `SDA stuck at low` in the kernel log about 35 s after the next image start). Reported to the project.
+
+## Design change: capture without the MPU6050 (2026-11-19)
+
+- Ruling of the Captain, 2026-11-19 10:50 PST, verbatim: "You are just going to have to continue without it.  Put placeholder values in the data product and move on". Passed on by the project (project ledger, `deploy/base`@d3c1359) after the MPU6050 of the bench failed a third time. It is the authority for this change to the SDD approved at gate 1.
+- Change: a missing, undecodable or stale acceleration reading no longer fails a capture. The `Metrics` record gets `attitudeValid` (false), roll and pitch NaN and `attitudeTime` zero; the component emits `AttitudeUnavailable` (`WARNING_LO`) with the reason and the code a failure would have carried. New REQ-PiCamera-026; REQ-PiCamera-010 and 011 now name the temperature and the location only; REQ-PiCamera-006 holds when the reading is usable.
+- Unchanged: no GPS fix, a stale GPS reading and a missing or stale BMP280 reading fail the capture and store nothing.
+- Decision: an acceleration that is present and fresh but not finite or of magnitude 0 still fails with `METRIC_INVALID` at `ATTITUDE`. The ruling names a sensor that is absent; a present sensor that reports nonsense is a different fault and is not hidden behind a placeholder.
+- Decision: `attitudeTime` is zero when the flag is false, also for a stale reading, so that no field of an invalid attitude looks usable. The age of a stale reading is in the event.
+- Decision: the warning is `WARNING_LO`, because the command succeeds; `CaptureFailed` stays `WARNING_HI`.
+- No MPU6050 data is substituted on the bench, in the image or in the harness.
+- System level: REQ-PiSensor-014 as written fails a capture for any stale metric; the exception for the attitude is the project's to record.
+- Unit tests: 22 pass (new `AttitudeUnavailable`; `StaleReading`, `MissingReading`, `RecoveryAfterFailure` and `RandomSequences` adapted). Coverage: lines 99.2% (244 of 246), branches 84.6% (319 of 377), functions 93.8% (30 of 32).
+- Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
+- Bench plan: the bracket channel is `bmpManager.Reading`; REQ-PiCamera-026 is covered by C-1 to C-3 in one direction only (no warning while MPU6050 telemetry is fresh), because recorded channel samples have gaps the unit did not have (21 of 34 expected MPU6050 samples in one window of the run of 2026-11-18 21:34, during which every capture read a fresh acceleration).
+- Review: one focused pass of this change (development review of the diff), as the project instructed; no further rounds.

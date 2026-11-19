@@ -91,6 +91,9 @@ class PiCamera final : public PiCameraComponentBase {
     //! A step that succeeded
     static StepResult success();
 
+    //! Step ATTITUDE: roll and pitch from the acceleration reading
+    StepResult readAttitude(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics);
+
     //! Roll in degrees from an acceleration
     static F32 roll(F32 ax, F32 ay, F32 az);
 

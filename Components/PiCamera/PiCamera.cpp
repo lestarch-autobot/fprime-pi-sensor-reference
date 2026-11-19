@@ -170,6 +170,36 @@ PiCamera::StepResult PiCamera::checkAge(PiCamera_FailStep step, const Fw::Time& 
     return success();
 }
 
+PiCamera::StepResult PiCamera::readAttitude(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics) {
+    Fw::TlmBuffer value;
+    Fw::Time sampleTime;
+    StepResult result = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, sampleTime, value);
+    if (!result.ok) {
+        return result;
+    }
+    MpuImu::ImuData imu;
+    if (value.deserializeTo(imu) != Fw::FW_SERIALIZE_OK) {
+        return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::ATTITUDE, 0);
+    }
+    result = checkAge(PiCamera_FailStep::ATTITUDE, captureTime, sampleTime);
+    if (!result.ok) {
+        return result;
+    }
+    const F32 ax = imu.get_acceleration().get_x();
+    const F32 ay = imu.get_acceleration().get_y();
+    const F32 az = imu.get_acceleration().get_z();
+    const bool finite = std::isfinite(ax) && std::isfinite(ay) && std::isfinite(az);
+    const bool zero = (ax == 0.0F) && (ay == 0.0F) && (az == 0.0F);
+    if ((!finite) || zero) {
+        return failure(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::ATTITUDE, 0);
+    }
+    metrics.set_roll(roll(ax, ay, az));
+    metrics.set_pitch(pitch(ax, ay, az));
+    metrics.set_attitudeTime(sampleTime.asTimeValue());
+    metrics.set_attitudeValid(true);
+    return success();
+}
+
 PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics) {
     Fw::TlmBuffer value;
     Fw::Time sampleTime;
@@ -195,30 +225,20 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_temperature(bmp.get_temperature());
     metrics.set_temperatureTime(sampleTime.asTimeValue());
 
-    // Attitude
-    result = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, sampleTime, value);
+    // Attitude: a missing or stale reading does not fail the capture
+    result = this->readAttitude(captureTime, metrics);
     if (!result.ok) {
-        return result;
+        const bool unavailable = (result.reason == PiCamera_FailReason::SENSOR_NO_DATA) ||
+                                 (result.reason == PiCamera_FailReason::SENSOR_STALE);
+        if (!unavailable) {
+            return result;
+        }
+        metrics.set_roll(std::numeric_limits<F32>::quiet_NaN());
+        metrics.set_pitch(std::numeric_limits<F32>::quiet_NaN());
+        metrics.set_attitudeTime(Fw::TimeValue());
+        metrics.set_attitudeValid(false);
+        this->log_WARNING_LO_AttitudeUnavailable(result.reason, result.code);
     }
-    MpuImu::ImuData imu;
-    if (value.deserializeTo(imu) != Fw::FW_SERIALIZE_OK) {
-        return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::ATTITUDE, 0);
-    }
-    result = checkAge(PiCamera_FailStep::ATTITUDE, captureTime, sampleTime);
-    if (!result.ok) {
-        return result;
-    }
-    const F32 ax = imu.get_acceleration().get_x();
-    const F32 ay = imu.get_acceleration().get_y();
-    const F32 az = imu.get_acceleration().get_z();
-    const bool finite = std::isfinite(ax) && std::isfinite(ay) && std::isfinite(az);
-    const bool zero = (ax == 0.0F) && (ay == 0.0F) && (az == 0.0F);
-    if ((!finite) || zero) {
-        return failure(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::ATTITUDE, 0);
-    }
-    metrics.set_roll(roll(ax, ay, az));
-    metrics.set_pitch(pitch(ax, ay, az));
-    metrics.set_attitudeTime(sampleTime.asTimeValue());
 
     // Location
     result = this->readChannel(this->m_locationChannel, PiCamera_FailStep::LOCATION, sampleTime, value);

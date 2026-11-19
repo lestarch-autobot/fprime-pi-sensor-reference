@@ -25,6 +25,9 @@ most twice, when the unit does not report its dispatch within 6 s, and writes
 each resend to `record/raw/cmd/resend.log`. Ground link events of YAMCS are
 kept in `record/raw/ground-events.log`.
 
+The bracket channel is `bmpManager.Reading`. The MPU6050 is not needed: without it a
+capture completes with the `AttitudeUnavailable` warning.
+
 C-1, and the second capture of C-2 and C-3, need a GPS fix. Without one the
 capture fails at `LOCATION` and the test fails.
 
