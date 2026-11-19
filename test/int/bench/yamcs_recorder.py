@@ -152,7 +152,9 @@ class Recorder:
     def on_parameters(self, data):
         with self.lock:
             for p in data.parameters:
-                if not p.name.startswith(self.root):
+                # channels of the dictionary only: YAMCS also publishes packet fields (CCSDS_Packet_*, FPrimeTime,
+                # FPrimeFilePacket*) whose generation time is no unit time; fth would read a reboot from them
+                if not p.name.startswith(self.root) or channel_name(p.name, self.root) not in self.ids:
                     continue
                 s = {"name": p.name, "generationTime": p.generation_time.isoformat(),
                      "receptionTime": p.reception_time.isoformat(), "value": p.eng_value}
