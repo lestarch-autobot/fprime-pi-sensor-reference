@@ -37,7 +37,7 @@ A dry run is labelled as such and is not a record.
 ## One test
 
 ```bash
-fth run --unsealed --allow-partial -k test_C_2 ...   # same arguments as above
+fth run --unsealed ... --fth-allow-partial -k test_C_2   # same arguments as above, then pytest arguments
 ```
 
 ## Release the bench
