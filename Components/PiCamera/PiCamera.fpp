@@ -96,7 +96,10 @@ module PiSensor {
     output port pingOut: Svc.Ping
 
     @ Work of one capture, on the component thread
-    internal port acquire
+    internal port acquire(
+      opCode: FwOpcodeType @< Opcode of the command the capture answers
+      cmdSeq: U32 @< Sequence number of that command
+    )
 
     product get port productGetOut
     product send port productSendOut
@@ -131,7 +134,7 @@ module PiSensor {
     event CaptureFailed(
       reason: FailReason @< Why the capture failed
       step: FailStep @< Step that failed
-      code: I32 @< Return code of the failing library call; sample age in ms for SENSOR_STALE; else 0
+      code: I32 @< Return code of the failing library call; sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
     ) severity warning high format "Capture failed: {} at {} code {}"
 
     # ----------------------------------------------------------------------

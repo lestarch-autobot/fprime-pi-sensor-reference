@@ -32,15 +32,15 @@ that libcamera does not support reopens REQ-PiCamera-001, 002 and 003.
 | REQ-PiCamera-012 | A capture shall fail with `METRIC_INVALID` when a reading holds a non-finite value, a latitude outside ±90, a longitude outside ±180 or an acceleration of magnitude 0. | REQ-PiSensor-005 | Unit Test |
 | REQ-PiCamera-013 | A failed capture shall send no container. | REQ-PiSensor-005, REQ-PiSensor-014 | Unit Test |
 | REQ-PiCamera-014 | Each `CAPTURE` command shall get exactly one command response: `OK` after the container is sent, `EXECUTION_ERROR` on failure. | Component | Unit Test |
-| REQ-PiCamera-015 | Each failed `CAPTURE` command shall emit one `CaptureFailed` (`WARNING_HI`) with the Table 1 reason and step of the failure and a code: the failing library call's return code, the sample age in ms for `SENSOR_STALE`, 0 otherwise. | Component | Unit Test |
-| REQ-PiCamera-016 | A capture shall fail with `NO_CAMERA` when the camera library lists no camera, and with `CAMERA_ERROR` when a camera or JPEG library call fails or the frame is reported in error or incomplete. | Component | Unit Test |
+| REQ-PiCamera-015 | Each failed `CAPTURE` command shall emit one `CaptureFailed` (`WARNING_HI`) with the Table 1 reason and step of the failure and a code: the failing library call's return code, the sample age in ms for `SENSOR_STALE` limited to the I32 range (0 for another time base), 0 otherwise. | Component | Unit Test |
+| REQ-PiCamera-016 | A capture shall fail with `NO_CAMERA` when the camera library lists no camera, and with `CAMERA_ERROR` when a camera or JPEG library call fails or the frame is reported in error or incomplete. | Component | Integration Test, Unit Test |
 | REQ-PiCamera-017 | A capture shall fail with `TOO_LARGE` when the JPEG exceeds `PICTURE_MAX_SIZE` bytes, and with `NO_CONTAINER` when no container buffer is obtained. | Component | Unit Test |
 | REQ-PiCamera-018 | A `CAPTURE` command received before an earlier capture ended shall fail with `BUSY` and shall not change the earlier capture's result. | Component | Unit Test |
-| REQ-PiCamera-019 | After a failed capture, the next capture shall succeed without a restart once the cause is gone. | Component | Unit Test, Integration Test |
+| REQ-PiCamera-019 | After a failed capture, the next capture shall succeed without a restart once the cause is gone. | Component | Integration Test, Unit Test |
 | REQ-PiCamera-020 | Each accepted `CAPTURE` command shall emit one `CaptureStarted` (`ACTIVITY_LO`) before acquisition. | Component | Unit Test |
 | REQ-PiCamera-021 | The component shall publish each Table 2 channel once at start and whenever its value changes. | Component | Unit Test |
 | REQ-PiCamera-022 | The component shall answer each health ping from its thread with the key it received. | Component | Unit Test |
-| REQ-PiCamera-023 | The component shall wait for a frame at most `FRAME_TIMEOUT_MS` and fail a capture whose wait timed out with `TIMEOUT`. | REQ-PiSensor-007 | Unit Test |
+| REQ-PiCamera-023 | The component shall ask the camera for a frame with a limit of `FRAME_TIMEOUT_MS` and fail a capture whose wait is reported timed out with `TIMEOUT`. | REQ-PiSensor-007 | Unit Test |
 | REQ-PiCamera-024 | After a restart during a capture, the first `CAPTURE` command shall succeed. | Component | Integration Test |
 | REQ-PiCamera-025 | Each successful capture shall emit one `CaptureCompleted` (`ACTIVITY_HI`) with the JPEG size. | Component | Unit Test |
 
@@ -129,13 +129,13 @@ pingIn : Svc.Ping         [ ]     (active)     [ ] productGetOut : Fw.DpGet
 | `productGetOut` | product get | `Fw.DpGet` | Gets the container buffer, synchronously |
 | `productSendOut` | product send | `Fw.DpSend` | Sends the filled container |
 | `pingIn`, `pingOut` | async input (drop), output | `Svc.Ping` | Health ping of the component thread |
-| `acquire` | internal | — | Work of one capture, on the component thread |
+| `acquire` | internal | `opCode`, `cmdSeq` | Work of one capture, on the component thread; carries the command it answers |
 
 Three threads enter the component.
 
 | Thread | Runs | Touches |
 |---|---|---|
-| Command dispatcher | `CAPTURE` handler | `m_busy`, `m_opCode`, `m_cmdSeq`, `m_failed`, under the component guard; emits its events, telemetry, response and `acquire` under the guard |
+| Command dispatcher | `CAPTURE` handler | `m_busy`, `m_failed`, under the component guard; emits its events, telemetry, response and `acquire` under the guard |
 | Component thread | `acquire`, `pingIn` | Everything else; `m_busy`, `m_completed`, `m_failed` under the guard |
 | Camera library thread | Frame callback inside the camera interface | The interface's frame slot and wake-up, under the interface's own lock; no component member, no port |
 
@@ -144,7 +144,6 @@ Three threads enter the component.
 | Member | Values | Meaning |
 |---|---|---|
 | `m_busy` | bool | A capture is accepted and has not ended |
-| `m_opCode`, `m_cmdSeq` | — | Command the capture answers |
 | `m_jpeg` | `PICTURE_MAX_SIZE` bytes | Encoded picture until it is copied into the container |
 | `m_completed`, `m_failed` | U32 | Counts behind `CapturesCompleted`, `CapturesFailed`; wrap to 0 after 4294967295 |
 | `m_channels` | 3 channel identifiers | Table 3 channels, set by `configure` |
@@ -181,7 +180,9 @@ Picture size, largest JPEG, longest wait for the frame, longest time from comman
 instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 5 stack size 1048576 priority 30
 ```
 
-`configure(temperatureChannel, attitudeChannel, locationChannel)` is called once before the component thread starts, with the identifiers of the Table 3 channels in the topology. It also publishes the three Table 2 channels with value 0.
+`configure(temperatureChannel, attitudeChannel, locationChannel)` is called once before the component thread starts, with the identifiers of the Table 3 channels in the topology.
+
+The component thread publishes the three Table 2 channels with value 0 when it starts, after the ports are connected.
 
 | Port | Connects to |
 |---|---|
@@ -202,13 +203,13 @@ The camera is reached through one interface class (`detect`, `open`, `configure`
 
 #### CAPTURE
 
-Under the guard: when `m_busy` is set it emits `CaptureFailed(BUSY, RECEIVE, 0)`, counts the failure, publishes `CapturesFailed` and responds `EXECUTION_ERROR`. Otherwise it sets `m_busy`, keeps the opcode and sequence number, emits `CaptureStarted` and sends `acquire`.
+Under the guard: when `m_busy` is set it emits `CaptureFailed(BUSY, RECEIVE, 0)`, counts the failure, publishes `CapturesFailed` and responds `EXECUTION_ERROR`. Otherwise it sets `m_busy`, emits `CaptureStarted` and sends `acquire` with the opcode and sequence number of the command.
 
 #### acquire
 
 It runs the steps below in order. The first step that fails closes the camera, emits `CaptureFailed` with its Table 1 reason and step, ends the capture and responds `EXECUTION_ERROR`; no later step runs.
 
-Ending a capture is one guarded section: count the success or failure, publish the changed channels, clear `m_busy`. The command response follows it, so a `CAPTURE` sent on receipt of the response is accepted.
+Ending a capture is one guarded section: count the success or failure, publish the changed channels, clear `m_busy`. The command response follows it, with the opcode and sequence number `acquire` carried, so a `CAPTURE` sent on receipt of the response is accepted and cannot change the response of the ended capture.
 
 1. Detect, open, configure and start the camera (`DETECT`, `OPEN`, `CONFIGURE`, `START`).
 2. Wait for the frame, at most `FRAME_TIMEOUT_MS` (`FRAME`). The camera interface discards `SETTLE_FRAMES` frames and hands over the next one; a frame reported in error or shorter than a full frame fails the step. The wait is measured on a monotonic clock, not on system time.
@@ -268,7 +269,7 @@ Container `Capture`, one per successful capture, default priority, no processing
 |---|---|---|---|
 | `CaptureStarted` | `ACTIVITY_LO` | — | A `CAPTURE` command is accepted; acquisition begins |
 | `CaptureCompleted` | `ACTIVITY_HI` | `bytes` | The container was sent; `bytes` is the JPEG size |
-| `CaptureFailed` | `WARNING_HI` | `reason`, `step`, `code` | A `CAPTURE` command failed; `code` is the library return code, the sample age in ms (capture time minus sample time) for `SENSOR_STALE`, else 0 |
+| `CaptureFailed` | `WARNING_HI` | `reason`, `step`, `code` | A `CAPTURE` command failed; `code` is the library return code, the sample age in ms (capture time minus sample time, limited to the I32 range, 0 for another time base) for `SENSOR_STALE`, else 0 |
 
 The component has no parameters.
 
@@ -308,7 +309,7 @@ A capture with the GPS receiver silent ends after step 4 with `CaptureFailed(SEN
 
 ## 8. Tests
 
-REQ-PiCamera-001, 002 and 009 are verified on the bench by the system tests of the project (`test/int/plan.json`, tests L2-3 to L2-6), which read the picture record of the downlinked product and the times of the command and its response. REQ-PiCamera-019 and 024 need a bench capture after a failure (camera held by another process, then freed) and after a restart during a capture. REQ-PiCamera-003 is verified by inspection of the build inputs and of the libraries the image links.
+REQ-PiCamera-001, 002 and 009 are verified on the bench by the system tests of the project (`test/int/plan.json`, tests L2-3 to L2-6), which read the picture record of the downlinked product and the times of the command and its response. REQ-PiCamera-016, 019 and 024 need bench captures: with no camera attached, after a failure (camera held by another process, then freed) and after a restart during a capture. REQ-PiCamera-003 is verified by inspection of the build inputs and of the libraries the image links.
 
 Unit tests substitute the camera interface, the telemetry store and the data product ports.
 
@@ -320,7 +321,7 @@ Unit tests substitute the camera interface, the telemetry store and the data pro
 | CaptureTime | The capture time in the record and the container time tag equal the time set when the substitute hands over the frame, not the command time. | REQ-PiCamera-007 |
 | SampleTimes | The three sample times in the record equal three different time tags in the store. | REQ-PiCamera-008 |
 | FrameTimeout | No frame: the wait is asked for `FRAME_TIMEOUT_MS` and the capture fails with `TIMEOUT` at `FRAME`. | REQ-PiCamera-023, REQ-PiCamera-015 |
-| StaleReading | For each channel: a time tag `METRIC_MAX_AGE_MS` from the capture time passes, 1 ms more fails with `SENSOR_STALE` and the age as code, earlier and later; another time base fails with code 0. | REQ-PiCamera-010, REQ-PiCamera-013 |
+| StaleReading | For each channel: a time tag `METRIC_MAX_AGE_MS` from the capture time passes, 1 ms more fails with `SENSOR_STALE` and the age as code, earlier and later; another time base fails with code 0; an age beyond the I32 range gives the range limit. | REQ-PiCamera-010, REQ-PiCamera-013 |
 | MissingReading | For each channel: invalid status, empty value and a value too short to decode fail with `SENSOR_NO_DATA` at its step. | REQ-PiCamera-011, REQ-PiCamera-013 |
 | InvalidMetric | NaN and infinity in each field, latitude ±90 passes and beyond fails, longitude ±180 passes and beyond fails, acceleration (0, 0, 0) fails, with `METRIC_INVALID`. | REQ-PiCamera-012, REQ-PiCamera-013 |
 | NoCamera | No camera listed fails with `NO_CAMERA` at `DETECT`. | REQ-PiCamera-016, REQ-PiCamera-015 |
@@ -331,7 +332,7 @@ Unit tests substitute the camera interface, the telemetry store and the data pro
 | BusyDuringCapture | A `CAPTURE` during a capture gets `BUSY` at `RECEIVE`, one `EXECUTION_ERROR` and one count in `CapturesFailed`; a `CAPTURE` sent on the earlier response is accepted; the capture in progress ends with the same container as without it. | REQ-PiCamera-018, REQ-PiCamera-014 |
 | RecoveryAfterFailure | After each failure reason, a capture with the cause removed succeeds. | REQ-PiCamera-019 |
 | Events | An accepted capture emits `CaptureStarted` once before the first camera call; a success emits `CaptureCompleted` with the JPEG size. | REQ-PiCamera-020, REQ-PiCamera-025 |
-| TelemetryOnChange | `configure` publishes the three channels as 0; each success and failure publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-021 |
+| TelemetryOnChange | The start of the component thread publishes the three channels as 0; each success and failure publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-021 |
 | Ping | A ping is echoed with its key. | REQ-PiCamera-022 |
 | RandomSequences | Random sequences of captures, busy commands and injected failures keep one response per command and the counts equal to the responses. | REQ-PiCamera-014, REQ-PiCamera-018, REQ-PiCamera-021 |
 
