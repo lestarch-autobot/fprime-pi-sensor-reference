@@ -61,6 +61,7 @@ register_fprime_ut(
         "${CMAKE_CURRENT_LIST_DIR}/test/ut/PiCameraTester.cpp"
     DEPENDS
         STest
+        Fw_Dp
     UT_AUTO_HELPERS
 )
 if (BUILD_TESTING AND PICAMERA_NO_CAMERA)
