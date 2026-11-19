@@ -52,3 +52,14 @@ if (NOT PICAMERA_NO_CAMERA)
     target_link_libraries(Components_PiCamera PUBLIC
         "${PICAMERA_LIBCAMERA_LIBRARY}" "${PICAMERA_LIBCAMERA_BASE_LIBRARY}" "${PICAMERA_JPEG_LIBRARY}")
 endif()
+
+register_fprime_ut(
+    AUTOCODER_INPUTS
+        "${CMAKE_CURRENT_LIST_DIR}/PiCamera.fpp"
+    SOURCES
+        "${CMAKE_CURRENT_LIST_DIR}/test/ut/PiCameraTestMain.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/test/ut/PiCameraTester.cpp"
+    DEPENDS
+        STest
+    UT_AUTO_HELPERS
+)
