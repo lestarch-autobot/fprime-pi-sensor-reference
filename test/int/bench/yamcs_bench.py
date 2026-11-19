@@ -209,7 +209,10 @@ def cmd_recorder(args) -> None:
         short = [short_name(args.deployment, e["name"]) for e in dictionary.get(kind, [])]
         twice = sorted({n for n in short if short.count(n) > 1})
         if twice:
-            raise SystemExit(f"recorder: {kind} that share a name once the subtopology is dropped: {twice}")
+            # Reported, not refused: the deployment has such instances; a plan must not judge these names
+            Path(args.logs).mkdir(parents=True, exist_ok=True)
+            with open(Path(args.logs) / "name-clash.log", "a", encoding="utf-8") as log:
+                log.write(f"{kind} that share a name once the subtopology is dropped: {twice}\n")
     out = Path(args.logs) / f"fprime-cli-{stamp()}"
     out.mkdir(parents=True, exist_ok=True)
     events = open(out / "event.log", "a", encoding="utf-8", buffering=1)
