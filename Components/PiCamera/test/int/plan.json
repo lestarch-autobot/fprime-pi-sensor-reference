@@ -39,7 +39,17 @@
  "coverage": {
   "ut": {
    "lines_min": 95
-  }
+  },
+  "system": {
+   "lines_min": 75
+  },
+  "not_covered_ack": [
+   "Failure paths of the temperature and the location readings (SENSOR_NO_DATA, SENSOR_STALE, METRIC_INVALID): the bench sensors are not disturbed; unit tests StaleReading, MissingReading, InvalidMetric.",
+   "Camera failures other than a camera held by another process (NO_CAMERA, TIMEOUT, errors at CONFIGURE, START, FRAME, ENCODE) and TOO_LARGE: unit tests NoCamera, FrameTimeout, CameraErrors, TooLarge.",
+   "NO_CONTAINER and BUSY: unit tests NoContainer, BusyDuringCapture.",
+   "The attitude path that is not the state of the bench MPU6050 on the day (present or silent): unit tests RollPitch, AttitudeUnavailable."
+  ],
+  "rationale": "System coverage is measured over Components/PiCamera of an image built with --coverage, counts copied off the Pi after the plan. The three bench tests run the nominal capture and one camera failure; the failure branches listed are unit-test ground."
  },
  "image_version": {
   "policy": "required"
