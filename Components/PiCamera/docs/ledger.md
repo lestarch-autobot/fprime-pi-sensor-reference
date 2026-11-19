@@ -178,3 +178,25 @@ Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53
   - C-1, C-2: the unit test asserts seconds and microseconds 0, and no warning when the capture fails.
   - C-3, C-4: `readAttitude` itself decides what is unavailable; its declaration sits with `readMetrics`.
   - The reviewer challenges the `METRIC_INVALID` decision above: an MPU6050 that still answers with zeros would fail every capture. Left as decided and reported to the project for the Captain.
+
+## Release (2026-11-19)
+
+Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598b85d7be1de217d20, the commit before this section.
+
+- Images, built on the workstation by `test/int/bench/build_image.sh` [V]: pure sha256 `4610f6d97f1680557823f0d7c875903a22479af2b8165ad970b01c5f1c7e7aa6`; built for coverage sha256 `a0ad4b71e275e8580ba09ccf5b21036ad63dd37321de7060105cd0cac39287ca`; dictionary sha256 `366969e5945592c34107d847cb20920b3387e83c66d7c39eb4ae00270aa8ef69`. `fth deliver` rebuilt the pure image and the dictionary from the pinned trees to the same hashes.
+- Bench runs, MPU6050 silent throughout (every capture stored its product with `AttitudeUnavailable(SENSOR_NO_DATA, 0)`) [V]:
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `2131628e…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `2c8c29f7…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `35cea039…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `8857deaf…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `f4a64f38…` |
+
+- `fth audit --unsealed --tests` on dry-1 to dry-4: runner and replay agree on every test. One step fails in each audit: `run-start markers … no manifest run-start marker for this manifest/run id`. fth reads run-start markers only from events named `*.Marker`; the marker of this project is `cmdDisp.NoOpStringReceived` (finding R-1 of the harness review).
+- Coverage: unit tests, lines 99.2% (242 of 244); on the target, over `Components/PiCamera/` of the coverage image, 284 count files copied off the Pi after a clean stop: lines 77.0% (415 of 539), functions 82.2% (37 of 45), branches 58.9% (308 of 523). Plan minimum: 95 and 75.
+- `fth dev-campaign --gcda-dir`: clean, no finding.
+- `fth deliver`: OK, 0 findings. `rfr-input.zip` sha256 `51ea1caa69fd7d550d02f7d221cd5803acdafd5d5fe9393a3907c11cd41430a2`, manifest sha256 `9a04d111facec33c1761b2de339ebf821a1cf870ed35110dfb481eb5f7d3b19e`, 33 pinned files.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: REFUSED on one preflight check of 30: `running fth is the pinned harness checkout: fth imports from …/campaign/harness, manifest pins harness at uut — run the pinned fth`. The other form, `--harness` = the fprime-testing-harness checkout, is refused by `fth deliver`: `VERSION: inputs/PiSensor.bin: describe string of ['harness'] not found in the image`. The tool expects the harness repository to be both the tree fth runs from and a tree whose version is built into the image; here the bench tests live in the project repository and the image holds no test code. Not worked around; reported to the project. No seed was requested and no run for record was made.
+- Hardware run for checklist row 5.3: not recorded as `docs/hardware-run.md`; the runs above are the evidence (Raspberry Pi 5 `soakee`, deployment `PiSensor`, commit 3e2290f, 2026-11-19).
