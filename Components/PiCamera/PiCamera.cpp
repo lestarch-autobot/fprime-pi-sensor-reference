@@ -170,20 +170,26 @@ PiCamera::StepResult PiCamera::checkAge(PiCamera_FailStep step, const Fw::Time& 
     return success();
 }
 
-PiCamera::StepResult PiCamera::readAttitude(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics) {
+PiCamera::StepResult PiCamera::readAttitude(const Fw::Time& captureTime,
+                                            PiCamera_CaptureMetrics& metrics,
+                                            StepResult& lack) {
     Fw::TlmBuffer value;
     Fw::Time sampleTime;
-    StepResult result = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, sampleTime, value);
-    if (!result.ok) {
-        return result;
-    }
     MpuImu::ImuData imu;
-    if (value.deserializeTo(imu) != Fw::FW_SERIALIZE_OK) {
-        return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::ATTITUDE, 0);
+    lack = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, sampleTime, value);
+    if (lack.ok && (value.deserializeTo(imu) != Fw::FW_SERIALIZE_OK)) {
+        lack = failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::ATTITUDE, 0);
     }
-    result = checkAge(PiCamera_FailStep::ATTITUDE, captureTime, sampleTime);
-    if (!result.ok) {
-        return result;
+    if (lack.ok) {
+        lack = checkAge(PiCamera_FailStep::ATTITUDE, captureTime, sampleTime);
+    }
+    if (!lack.ok) {
+        // No reading or a stale one: the capture goes on without roll and pitch
+        metrics.set_roll(std::numeric_limits<F32>::quiet_NaN());
+        metrics.set_pitch(std::numeric_limits<F32>::quiet_NaN());
+        metrics.set_attitudeTime(Fw::TimeValue());
+        metrics.set_attitudeValid(false);
+        return success();
     }
     const F32 ax = imu.get_acceleration().get_x();
     const F32 ay = imu.get_acceleration().get_y();
@@ -226,18 +232,10 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_temperatureTime(sampleTime.asTimeValue());
 
     // Attitude: a missing or stale reading does not fail the capture
-    result = this->readAttitude(captureTime, metrics);
+    StepResult attitudeLack = success();
+    result = this->readAttitude(captureTime, metrics, attitudeLack);
     if (!result.ok) {
-        const bool unavailable = (result.reason == PiCamera_FailReason::SENSOR_NO_DATA) ||
-                                 (result.reason == PiCamera_FailReason::SENSOR_STALE);
-        if (!unavailable) {
-            return result;
-        }
-        metrics.set_roll(std::numeric_limits<F32>::quiet_NaN());
-        metrics.set_pitch(std::numeric_limits<F32>::quiet_NaN());
-        metrics.set_attitudeTime(Fw::TimeValue());
-        metrics.set_attitudeValid(false);
-        this->log_WARNING_LO_AttitudeUnavailable(result.reason, result.code);
+        return result;
     }
 
     // Location
@@ -263,6 +261,10 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_latitude(latitude);
     metrics.set_longitude(longitude);
     metrics.set_locationTime(sampleTime.asTimeValue());
+    if (!attitudeLack.ok) {
+        // Reported once the metrics are complete: a capture that fails for another reading does not warn
+        this->log_WARNING_LO_AttitudeUnavailable(attitudeLack.reason, attitudeLack.code);
+    }
     return success();
 }
 

@@ -227,7 +227,8 @@ void PiCameraTester::assertSuccess(FwSizeType pictureSize, bool attitudeValid) {
     if (!attitudeValid) {
         ASSERT_TRUE(std::isnan(product.metrics.get_roll()));
         ASSERT_TRUE(std::isnan(product.metrics.get_pitch()));
-        ASSERT_EQ(product.metrics.get_attitudeTime(), Fw::TimeValue());
+        ASSERT_EQ(product.metrics.get_attitudeTime().get_seconds(), 0U);
+        ASSERT_EQ(product.metrics.get_attitudeTime().get_useconds(), 0U);
     } else {
         ASSERT_TRUE(std::isfinite(product.metrics.get_roll()));
         ASSERT_TRUE(std::isfinite(product.metrics.get_pitch()));
@@ -472,11 +473,14 @@ void PiCameraTester::testAttitudeUnavailable() {
     this->m_store[LOCATION].valid = Fw::TlmValid::INVALID;
     this->capture();
     this->assertFailure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::LOCATION, 0);
+    // A capture that fails does not warn of the attitude
+    ASSERT_EVENTS_AttitudeUnavailable_SIZE(0);
     this->setNominal();
     this->m_store[ATTITUDE].valid = Fw::TlmValid::INVALID;
     this->m_store[TEMPERATURE].time = this->timeAt(-5 * USEC_PER_SEC);
     this->capture();
     this->assertFailure(PiCamera_FailReason::SENSOR_STALE, PiCamera_FailStep::TEMPERATURE, 5000);
+    ASSERT_EVENTS_AttitudeUnavailable_SIZE(0);
 }
 
 void PiCameraTester::testInvalidMetric() {

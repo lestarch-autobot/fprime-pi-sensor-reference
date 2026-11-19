@@ -33,9 +33,9 @@ def test_row_times():
 
 
 def test_attitude_expected():
-    assert attitude_expected(100.0, [99.0]) is False
-    assert attitude_expected(100.0, [98.5, 101.0]) is False
-    assert attitude_expected(100.0, []) is True
-    assert attitude_expected(100.0, [90.0]) is True
-    assert attitude_expected(100.0, [101.0]) is True
-    assert attitude_expected(100.0, [97.0]) is None
+    assert attitude_expected(100.0, 101.0, [99.0, 100.0]) is False
+    assert attitude_expected(100.0, 101.0, [99.5]) is False
+    assert attitude_expected(100.0, 101.0, []) is True
+    assert attitude_expected(100.0, 101.0, [90.0]) is None
+    assert attitude_expected(100.0, 101.0, [100.5]) is None
+    assert attitude_expected(100.0, 101.0, [99.0, 105.0]) is None

@@ -87,8 +87,8 @@
     "C-2",
     "C-3"
    ],
-   "verification": "C-1, C-2, C-3 (a capture completes whatever the MPU6050 does; no warning while its telemetry is fresh), unit test AttitudeUnavailable (record content, warning when the reading is missing or stale)",
-   "note": "The bench does not read the stored record, and a gap in the recorded MPU6050 telemetry does not prove the unit had no reading (channel samples are lost on the downlink): the bench checks one direction only."
+   "verification": "C-1, C-2, C-3 (a capture completes whatever the MPU6050 does; it warns when the window holds no MPU6050 sample, and does not warn when the samples are fresh around it), unit test AttitudeUnavailable (record content)",
+   "note": "The bench does not read the stored record. A capture with some MPU6050 samples in the window but none fresh around it is not judged: channel samples are lost on the downlink, so a gap in the record does not show the unit had no reading."
   }
  },
  "scope": [

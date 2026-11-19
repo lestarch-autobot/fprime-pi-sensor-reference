@@ -169,7 +169,12 @@ Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53
 - Decision: the warning is `WARNING_LO`, because the command succeeds; `CaptureFailed` stays `WARNING_HI`.
 - No MPU6050 data is substituted on the bench, in the image or in the harness.
 - System level: REQ-PiSensor-014 as written fails a capture for any stale metric; the exception for the attitude is the project's to record.
-- Unit tests: 22 pass (new `AttitudeUnavailable`; `StaleReading`, `MissingReading`, `RecoveryAfterFailure` and `RandomSequences` adapted). Coverage: lines 99.2% (244 of 246), branches 84.6% (319 of 377), functions 93.8% (30 of 32).
+- Unit tests: 22 pass (new `AttitudeUnavailable`; `StaleReading`, `MissingReading`, `RecoveryAfterFailure` and `RandomSequences` adapted). Coverage after the review fixes: lines 99.2% (242 of 244), branches 84.3% (323 of 383), functions 93.8% (30 of 32).
 - Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
-- Bench plan: the bracket channel is `bmpManager.Reading`; REQ-PiCamera-026 is covered by C-1 to C-3 in one direction only (no warning while MPU6050 telemetry is fresh), because recorded channel samples have gaps the unit did not have (21 of 34 expected MPU6050 samples in one window of the run of 2026-11-18 21:34, during which every capture read a fresh acceleration).
-- Review: one focused pass of this change (development review of the diff), as the project instructed; no further rounds.
+- Bench plan: the bracket channel is `bmpManager.Reading`; REQ-PiCamera-026 is covered by C-1 to C-3 only where the record is conclusive (see the review item below), because recorded channel samples have gaps the unit did not have (21 of 34 expected MPU6050 samples in one window of the run of 2026-11-18 21:34, during which every capture read a fresh acceleration).
+- Review: one focused pass of this change (development review of commit 18c7f70, child session f9824ceb), as the project instructed; no further rounds. Result: 0 must fix, 3 suggestions, 4 could fix; all seven applied.
+  - S-1: `AttitudeUnavailable` is emitted once the three readings are complete, so a capture that fails at `LOCATION` does not claim a stored NaN.
+  - S-2, S-3: the bench check `attitude warning agrees with the MPU6050 telemetry` expects no warning only with a fresh sample before both `CaptureStarted` and `CaptureCompleted`, and expects the warning when the window holds no MPU6050 sample at all; anything between is not judged.
+  - C-1, C-2: the unit test asserts seconds and microseconds 0, and no warning when the capture fails.
+  - C-3, C-4: `readAttitude` itself decides what is unavailable; its declaration sits with `readMetrics`.
+  - The reviewer challenges the `METRIC_INVALID` decision above: an MPU6050 that still answers with zeros would fail every capture. Left as decided and reported to the project for the Captain.
