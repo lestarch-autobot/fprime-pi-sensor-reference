@@ -17,6 +17,7 @@ one ``bench.json`` line:
             unit does not report as dispatched is sent again (resend.log)
   action    bench actions on the Pi: fsw-restart, camera-hold, camera-release
   stop      stop the image on the Pi (bench release)
+  collect-gcda  copy the coverage counts of a stopped image built for coverage
 
 Names: the dictionary qualifies instances with their subtopology
 (``CdhCore.cmdDisp.OpCodeCompleted``); plans use ``cmdDisp.OpCodeCompleted`` and
@@ -40,6 +41,7 @@ import urllib.request
 from pathlib import Path
 
 PI_PID = "fsw.pid"
+GCDA_DIR = "gcda"
 HOLD_PID = "camera-hold.pid"
 
 
@@ -95,7 +97,7 @@ def stop_recorded(args, pid_file: str, executable: str) -> None:
     ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} 2>/dev/null || exit 0; [ -f {pid_file} ] || exit 0; "
                  f"pid=$(cat {pid_file}); want=$(readlink -f {shlex.quote(executable)}); "
                  f"if [ -n \"$want\" ] && [ \"$(readlink /proc/$pid/exe 2>/dev/null)\" = \"$want\" ]; then "
-                 f"kill $pid; for i in 1 2 3 4 5 6; do kill -0 $pid 2>/dev/null || break; sleep 0.5; done; "
+                 f"kill $pid; for i in $(seq 20); do kill -0 $pid 2>/dev/null || break; sleep 0.5; done; "
                  f"if kill -0 $pid 2>/dev/null && [ \"$(readlink /proc/$pid/exe 2>/dev/null)\" = \"$want\" ]; "
                  f"then kill -9 $pid; fi; fi; rm -f {pid_file}")
 
@@ -111,7 +113,9 @@ def pi_stop(args) -> None:
 
 
 def pi_start(args) -> None:
-    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && mkdir -p run && cd run && "
+    # An image built for coverage writes its counts under gcda/ when it ends (flash --gcov)
+    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && mkdir -p run && "
+                 f"if [ -d {GCDA_DIR} ]; then export GCOV_PREFIX=$PWD/{GCDA_DIR}; fi; cd run && "
                  f"(nohup ../PiSensor >> fsw.log 2>&1 < /dev/null & echo $! > ../{PI_PID}); sleep 1")
     confirm_running(args, PI_PID, "the image")
 
@@ -119,7 +123,7 @@ def pi_start(args) -> None:
 def cmd_flash(args) -> None:
     ssh(args.pi, f"mkdir -p {shlex.quote(args.pi_dir)}")
     pi_stop(args)
-    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && rm -rf run PiSensor")
+    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && rm -rf run PiSensor {GCDA_DIR}" + (f" && mkdir {GCDA_DIR}" if args.gcov else ""))
     subprocess.run(["scp", "-q", "-o", "BatchMode=yes", args.image, f"{args.pi}:{args.pi_dir}/PiSensor"], check=True,
                    timeout=300)
     ssh(args.pi, f"chmod +x {shlex.quote(args.pi_dir)}/PiSensor")
@@ -134,6 +138,19 @@ def cmd_dump(args) -> None:
                    check=True, timeout=300)
     serial = ssh(args.pi, "awk '/^Serial/ {print $3}' /proc/cpuinfo").strip()
     print(f"Serial# = {serial}")
+
+
+def cmd_collect_gcda(args) -> None:
+    """Copy the coverage counts of a stopped image off the Pi, paths kept."""
+    alive = ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && [ -f {PI_PID} ] && echo alive; true")
+    if "alive" in alive:
+        raise SystemExit("collect-gcda: stop the image first (the counts are written when it ends)")
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    pack = subprocess.run(["ssh", "-o", "BatchMode=yes", args.pi, f"cd {shlex.quote(args.pi_dir)}/{GCDA_DIR} && tar cf - ."],
+                          check=True, capture_output=True, timeout=300)
+    subprocess.run(["tar", "xf", "-", "-C", str(out)], input=pack.stdout, check=True)
+    print(f"{len(list(out.rglob('*.gcda')))} .gcda files -> {out}")
 
 
 def cmd_stop(args) -> None:
@@ -340,6 +357,8 @@ def main() -> None:
     parser.add_argument("--space-system", default="PiSensor_PiSensor")
     sub = parser.add_subparsers(dest="sub", required=True)
     p = sub.add_parser("flash"); p.add_argument("image"); p.set_defaults(fn=cmd_flash)
+    p.add_argument("--gcov", action="store_true", help="image built for coverage: keep its counts on the Pi")
+    p = sub.add_parser("collect-gcda"); p.add_argument("out"); p.set_defaults(fn=cmd_collect_gcda)
     p = sub.add_parser("dump"); p.add_argument("readback"); p.set_defaults(fn=cmd_dump)
     p = sub.add_parser("stop"); p.set_defaults(fn=cmd_stop)
     p = sub.add_parser("action"); p.add_argument("name"); p.add_argument("--seconds", default=120)

@@ -62,3 +62,17 @@ python test/int/bench/yamcs_bench.py stop
 
 `fth run` stops the ground system it started. The image on the Pi keeps
 running until the next run or this command.
+
+## Coverage on the target
+
+The image as flown has no coverage dump command. An image built with
+`--coverage` writes its counts when it ends:
+
+```bash
+fprime-util generate -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage \
+    -DCMAKE_EXE_LINKER_FLAGS=--coverage      # keep this build tree: it holds the .gcno files
+fth run --unsealed ... --bench bench-coverage.json   # flash --gcov: counts stay on the Pi under gcda/
+python3 uut/test/int/bench/yamcs_bench.py stop       # the image ends and writes the counts
+python3 uut/test/int/bench/yamcs_bench.py collect-gcda <dir>
+fth dev-campaign ... --gcda-dir <dir> --gcno-root <build tree> --gcov gcov
+```

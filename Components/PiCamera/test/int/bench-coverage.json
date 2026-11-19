@@ -1,0 +1,37 @@
+{
+ "deployment": "PiSensor",
+ "dictionary": "inputs/PiSensorTopologyDictionary.json",
+ "serial": "81493bc1e640bea9",
+ "notes": "Raspberry Pi 5 soakee behind the RFM69 link; ground is fprime-yamcs on the workstation. The unit has no debugger: flash copies the image over ssh and starts it, and the serial is the Pi serial number of /proc/cpuinfo. Run fth from the campaign root on the workstation: `uut` is the checkout of this repository, `yamcs-config` the YAMCS configuration directory of ground/README.md, and python3 (with yamcs-client and pyserial) and fprime-yamcs are on PATH. This recipe is for an image built for coverage: its counts stay on the Pi under gcda/ and are copied off with `collect-gcda` after `stop`.",
+ "vars": {
+  "python": "python3",
+  "adapter": "uut/test/int/bench/yamcs_bench.py",
+  "bridge": "uut/ground/feather_bridge.py",
+  "yamcs_config": "yamcs-config",
+  "uart": "/dev/ttyACM0"
+ },
+ "flash": "{python} {adapter} flash --gcov {image}",
+ "dump": "{python} {adapter} dump {readback}",
+ "gds": "{python} {adapter} gds --dictionary {dictionary} --logs {logs} --bridge {bridge} --uart {uart} --yamcs-config {yamcs_config}",
+ "recorder": "{python} {adapter} recorder --dictionary {dictionary} --logs {logs}",
+ "send": "{python} {adapter} send --dictionary {dictionary} --logs {logs} {command} {args}",
+ "actions": {
+  "camera_hold": "{python} {adapter} action camera-hold --seconds 120",
+  "camera_release": "{python} {adapter} action camera-release",
+  "fsw_restart": "{python} {adapter} action fsw-restart",
+  "bench_release": "{python} {adapter} stop"
+ },
+ "provenance": {
+  "serial_re": "Serial# = (\\S+)"
+ },
+ "timeouts": {
+  "flash_s": 300,
+  "gds_start_s": 60,
+  "recorder_start_s": 20,
+  "send_s": 60,
+  "command_s": 30,
+  "camera_hold_s": 60,
+  "camera_release_s": 60,
+  "fsw_restart_s": 60
+ }
+}
