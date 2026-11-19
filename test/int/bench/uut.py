@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-"""Bench lines of bench.json that reach the unit under test (the Pi) over ssh: `flash`, `dump`, actions.
+"""Bench actions of bench.json that read the unit under test (the Pi) over ssh.
 
-  deploy    copy the image to the Pi, stop the instance this script started before (by its recorded pid),
-            start the new one; prints `Serial# = <Pi serial>` (fth's provenance line)
-  readback  copy the image on the Pi back (fth compares its sha256 with the manifest image)
-  stop      stop the instance started by `deploy`
   action    one named bench action; its start, end and output go to <logs>/actions/<n>-<name>.json and
             one line to <logs>/bench-actions.log
 
-Nothing here needs sudo; only `<remote-dir>` on the Pi is written.
+The image is copied, started and stopped by yamcs_bench.py (`<remote-dir>/PiSensor`, `fsw.pid`, working
+directory `run/`). Nothing here needs sudo; only `<remote-dir>` on the Pi is written.
 """
 import argparse
 import datetime
@@ -22,54 +19,15 @@ from pathlib import Path
 PLATFORM = ("echo MODEL=$(tr -d '\\0' </proc/device-tree/model); echo '--- os-release'; cat /etc/os-release; "
             "echo '--- rpi-issue'; cat /etc/rpi-issue; echo '--- long-bit'; getconf LONG_BIT")
 # sockets and open character devices of the deployment process (its own user: no sudo needed)
-SOCKETS = ("pid=$(cat {d}/pid); echo PID=$pid; echo EXE=$(readlink /proc/$pid/exe); echo '--- sockets'; "
+SOCKETS = ("pid=$(cat {d}/fsw.pid); echo PID=$pid; echo EXE=$(readlink /proc/$pid/exe); echo '--- sockets'; "
            "ss -H -tuanp | grep \"pid=$pid,\" || true; echo '--- devices'; "
            "for f in /proc/$pid/fd/*; do t=$(readlink $f); [ -c \"$t\" ] && echo \"$t\"; done | sort -u")
-CLEAN = "rm -f {d}/DpCat/*.fdp; ls -A {d}/DpCat | wc -l"
-FINAL = "cd {d} && sha256sum DpCat/*.fdp"
+CLEAN = "rm -f {d}/run/DpCat/*.fdp; ls -A {d}/run/DpCat | wc -l"
+FINAL = "cd {d}/run && sha256sum DpCat/*.fdp"
 
 
 def ssh(host: str, command: str, timeout: float = 60) -> subprocess.CompletedProcess:
     return subprocess.run(["ssh", "-o", "BatchMode=yes", host, command], capture_output=True, text=True, timeout=timeout)
-
-
-def must(r: subprocess.CompletedProcess, what: str) -> str:
-    if r.returncode != 0:
-        raise SystemExit(f"uut: {what} failed (exit {r.returncode}): {r.stderr.strip()}")
-    return r.stdout
-
-
-def stop_cmd(d: str) -> str:
-    """Stop only the process whose pid we recorded AND whose executable is still our image."""
-    return (f"if [ -f {d}/pid ]; then p=$(cat {d}/pid); "
-            f"if [ \"$(readlink /proc/$p/exe 2>/dev/null)\" = \"$(readlink -f {d}/PiSensor)\" ]; then kill $p; "
-            f"for i in $(seq 50); do kill -0 $p 2>/dev/null || break; sleep 0.1; done; "
-            f"kill -0 $p 2>/dev/null && kill -9 $p; echo stopped $p; else echo not-running; fi; rm -f {d}/pid; fi")
-
-
-def deploy(a) -> int:
-    d = shlex.quote(a.remote_dir)
-    print(must(ssh(a.ssh, f"mkdir -p {d} && {stop_cmd(d)}"), "stop previous instance").strip())
-    r = subprocess.run(["scp", "-o", "BatchMode=yes", a.image, f"{a.ssh}:{a.remote_dir}/PiSensor.new"], capture_output=True, text=True, timeout=120)
-    must(r, "scp image")
-    out = must(ssh(a.ssh, f"cd {d} && mv PiSensor.new PiSensor && chmod +x PiSensor && "
-                          f"(nohup ./PiSensor >fsw.log 2>&1 </dev/null & echo $! >pid) && sleep {a.settle} && "
-                          f"p=$(cat pid) && kill -0 $p && echo started $p && sha256sum PiSensor && "
-                          "echo \"Serial# = $(awk '/^Serial/ {print $3}' /proc/cpuinfo)\""), "start")
-    print(out.strip())
-    return 0
-
-
-def readback(a) -> int:
-    r = subprocess.run(["scp", "-o", "BatchMode=yes", f"{a.ssh}:{a.remote_dir}/PiSensor", a.readback], capture_output=True, text=True, timeout=120)
-    must(r, "scp read-back")
-    print(must(ssh(a.ssh, "echo \"Serial# = $(awk '/^Serial/ {print $3}' /proc/cpuinfo)\""), "serial").strip())
-    return 0
-
-
-def stop(a) -> int:
-    print(must(ssh(a.ssh, stop_cmd(shlex.quote(a.remote_dir))), "stop").strip())
-    return 0
 
 
 def clock(a) -> tuple:
@@ -135,22 +93,15 @@ def action(a) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="verb", required=True)
-    for verb in ("deploy", "readback", "stop", "action"):
-        s = sub.add_parser(verb)
-        s.add_argument("--ssh", required=True, help="ssh host alias of the Pi")
-        s.add_argument("--remote-dir", required=True, help="campaign directory on the Pi (only place written)")
-        if verb == "deploy":
-            s.add_argument("--image", required=True)
-            s.add_argument("--settle", type=float, default=5.0)
-        if verb == "readback":
-            s.add_argument("--readback", required=True)
-        if verb == "action":
-            s.add_argument("name", choices=("platform", "sockets", "clock", "clean_products", "final_state", "wait_cfdp"))
-            s.add_argument("--logs", required=True)
-            s.add_argument("--timeout", type=float, default=600.0)
-            s.add_argument("--quiet", type=float, default=3.0)
+    s = sub.add_parser("action")
+    s.add_argument("--ssh", required=True, help="ssh host alias of the Pi")
+    s.add_argument("--remote-dir", required=True, help="directory on the Pi owned by yamcs_bench.py")
+    s.add_argument("name", choices=("platform", "sockets", "clock", "clean_products", "final_state", "wait_cfdp"))
+    s.add_argument("--logs", required=True)
+    s.add_argument("--timeout", type=float, default=600.0)
+    s.add_argument("--quiet", type=float, default=3.0)
     a = ap.parse_args(argv)
-    return {"deploy": deploy, "readback": readback, "stop": stop, "action": action}[a.verb](a)
+    return action(a)
 
 
 if __name__ == "__main__":

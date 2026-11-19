@@ -15,8 +15,8 @@ import pisensor_record as rec
 R = lambda *n: [f"REQ-PiSensor-{i:03d}" for i in n]
 DP_DIR = "./DpCat"  # DataProductsConfig.Paths.dpDir
 DEVICES = re.compile(r"^/dev/(spidev\d+\.\d+|i2c-\d+|ttyACM\d+|ttyAMA\d+|video\d+|media\d+|dma_heap/\S+|null|urandom)$")
-G, DEG = 9.80665, math.pi / 180  # imuManager.Reading is in g and deg/s; the plan bounds are m/s^2 and rad/s
-BENCH_POSITION = None  # (latitude, longitude) of the surveyed bench position, degrees: set at bench entry
+BENCH_POSITION = (34.130442, -118.058840)  # surveyed bench position (latitude, longitude), degrees: docs/ledger.md 2026-11-19
+DISPATCH = "commands sent, marker commands apart, == count of cmdDisp.OpCodeDispatched events of other opcodes (resends logged by the bench allowed for)"
 
 
 # ---------------------------------------------------------------- declarations shared by the tests
@@ -25,12 +25,11 @@ def std(require, plan):
     for text in plan.raw["std_complete"]:
         if "OpCodeError" in text:
             require(text, no_error_but_capture)
-        elif text.startswith("commands_sent"):
-            require(text, every_command_dispatched)
         elif "frame count" in text:
             require(text, lambda h: rec.frame_gaps(rec.frames(h.window)))
         else:
             require(text)
+    require(DISPATCH, every_command_dispatched)
 
 
 def absent(check):
@@ -53,18 +52,18 @@ def metrics(w, plan, test_id, check, require):
 
 
 def every_command_dispatched(h):
-    """commands_sent == count(event cmdDisp.OpCodeDispatched), over the commands of the window, markers included.
-
-    fth cuts a window at the START marker event. The marker is an asynchronous command of the dispatcher
-    itself, so its OpCodeDispatched is logged before its NoOpStringReceived and falls outside the cut; it is
-    counted here when the row before the START marker is that event (see README, fth gaps)."""
-    w, rows = h.window, h.record.events
-    count = len(w.events("cmdDisp.OpCodeDispatched"))
-    marker_op = lambda e: e.short == "cmdDisp.OpCodeDispatched" and int(rec.OPCODE.search(e.text).group(1), 16) == w.cmds[0].opcode
-    if w.cmds and w.start_marker.idx >= 2 and marker_op(rows[w.start_marker.idx - 2]):
-        after = [e for e in w.ev if e.idx > w.end_marker.idx and e.short == "cmdDisp.OpCodeDispatched"]
-        count += 1 - len(after)  # ours before START; never the next window's after END
-    return w.commands_sent == count and count > 0, f"commands_sent={w.commands_sent}, cmdDisp.OpCodeDispatched count={count}"
+    """Commands of the window against their dispatch events, marker commands left out on both sides: the
+    dispatch event of the START marker carries the time of the marker event and can sort before it, outside
+    the window; a lost marker tears the window. The uplink has no retransmission, so the bench sends a
+    command again (at most twice) when no dispatch is reported; each resend is in cmd/resend.log, and with r
+    resends in the window the count may be up to r higher."""
+    w = h.window
+    marker = w.cmds[0].opcode
+    sent = len([c for c in w.cmds if c.opcode != marker])
+    count = len([e for e in w.events("cmdDisp.OpCodeDispatched") if w.start_marker.idx < e.idx < w.end_marker.idx
+                 and int(rec.OPCODE.search(e.text).group(1), 16) != marker])
+    again = rec.resends(w, marker)
+    return sent <= count <= sent + again, f"sent {sent}, dispatched {count}, resends logged {again}"
 
 
 def no_error_but_capture(h):
@@ -155,20 +154,32 @@ def versions(h):
 
 
 def sensors_plausible(h):
-    w, seen = h.window, []
+    """BMP280 temperature and GPS position of the window."""
+    w = h.window
     temps = [rec.value(r)["temperature"] for r in w.channel("bmpManager.Reading")]
-    imu = [rec.value(r) for r in w.channel("imuManager.Reading")]
     gps = [rec.value(r) for r in w.channel("gpsManager.Reading")]
-    assert temps and imu and gps, f"samples: bmp {len(temps)}, imu {len(imu)}, gps {len(gps)}"
-    norm = lambda v: math.sqrt(v["x"] ** 2 + v["y"] ** 2 + v["z"] ** 2)
-    ok = all(-20 <= t <= 60 for t in temps)
-    seen.append(f"temperature {min(temps):.2f}..{max(temps):.2f} degC")
-    acc, rate = [norm(s["acceleration"]) * G for s in imu], [norm(s["rotation"]) * DEG for s in imu]
-    ok = ok and all(8 <= a <= 12 for a in acc) and all(r <= 0.5 for r in rate)
-    seen.append(f"acceleration {min(acc):.2f}..{max(acc):.2f} m/s^2, rate <= {max(rate):.3f} rad/s")
-    assert BENCH_POSITION is not None, "; ".join(seen) + "; bench position not set"
+    assert temps and gps, f"samples: bmp {len(temps)}, gps {len(gps)}"
     far = max(_distance_km(s["latitude"], s["longitude"], *BENCH_POSITION) for s in gps)
-    return ok and far <= 1.0, "; ".join(seen) + f"; GPS within {far:.3f} km"
+    return all(-20 <= t <= 60 for t in temps) and far <= 1.0, \
+        f"temperature {min(temps):.2f}..{max(temps):.2f} degC; GPS within {far:.3f} km of the bench position"
+
+
+def imu_plausible(h):
+    """MPU6050 acceleration and rate of the window, bench at rest; the channel is in g and deg/s."""
+    imu = [rec.value(r) for r in h.window.channel("imuManager.Reading")]
+    assert imu, "no imuManager.Reading sample in the window"
+    norm = lambda v: math.sqrt(v["x"] ** 2 + v["y"] ** 2 + v["z"] ** 2)
+    acc, rate = [norm(s["acceleration"]) for s in imu], [norm(s["rotation"]) for s in imu]
+    return all(0.82 <= a <= 1.22 for a in acc) and all(r <= 28.6 for r in rate), \
+        f"acceleration {min(acc):.3f}..{max(acc):.3f} g, rate <= {max(rate):.2f} deg/s"
+
+
+def attitude_valid(h):
+    """Roll and pitch of every ground file of the window are marked valid (REQ-PiSensor-005)."""
+    files = rec.arrived(h.window)
+    assert files, "no file arrived"
+    bad = [n for n, d in sorted(files.items()) if not rec.decode_product(d)["metrics"]["attitudeValid"]]
+    return not bad, f"{len(files)} product(s), roll and pitch not valid in: {bad or 'none'}"
 
 
 def _distance_km(lat1, lon1, lat2, lon2):
@@ -189,7 +200,7 @@ def radio_only(h):
         f"PacketsTransmitted +{rise}, PacketsReceived +{rxs[-1].value - rxs[0].value}, {n} TM frames"
 
 
-def metrics_match_telemetry(h):
+def metrics_match_telemetry(h, which):
     """Each metric of the product against the telemetry samples of its channel around its sample time."""
     files = rec.arrived(h.window)
     assert len(files) == 1, f"{len(files)} file(s) arrived"
@@ -201,7 +212,7 @@ def metrics_match_telemetry(h):
              ("latitude", "locationTime", "gpsManager.Reading", lambda s: s["latitude"], 0.0001, 0.0),
              ("longitude", "locationTime", "gpsManager.Reading", lambda s: s["longitude"], 0.0001, 0.0))
     bad = []
-    for name, tkey, channel, get, widen, exact in items:
+    for name, tkey, channel, get, widen, exact in (i for i in items if (i[2] == "imuManager.Reading") == (which == "attitude")):
         rows, t = h.window.channel(channel), m[tkey]["t"]
         same = [r for r in rows if abs(r.fsw - t) < 0.001]  # the record keeps FSW time to the millisecond
         before, after = [r for r in rows if r.fsw <= t], [r for r in rows if r.fsw >= t]
@@ -245,7 +256,7 @@ def test_L0_1(window, send, bench, check, require, fth_plan):
         bench.action("clock")
         send("version.VERSION", ["ALL"])
         bench.action("platform")
-        bench.wait_samples("imuManager.Reading", 2)
+        bench.wait_samples("bmpManager.Reading", 2)
         bench.action("sockets")
         absent(check)
         check("Version events equal the manifest describe strings", versions)
@@ -269,7 +280,7 @@ def no_test_command(h):
 def test_L0_2(window, send, bench, check, require, fth_plan):
     with window(20, 21):
         std(require, fth_plan)
-        bench.wait_samples("imuManager.Reading", 2)
+        bench.wait_samples("bmpManager.Reading", 2)
         send("cmdDisp.CMD_NO_OP_STRING", [42405])
         bench.action("platform")
         absent(check)
@@ -287,7 +298,8 @@ def test_L2_1(window, send, bench, check, require, fth_plan):
         metrics(w, fth_plan, "L2-1", check, require)
         bench.wait(60)
         absent(check)
-        check("sensor readings plausible for a bench at rest", sensors_plausible)
+        check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
+        check("MPU6050 readings plausible for a bench at rest", imu_plausible)
 
 
 @pytest.mark.req(*R(1, 2, 3, 11))
@@ -300,7 +312,8 @@ def test_L2_2(window, send, bench, check, require, fth_plan):
             send("cmdDisp.CMD_NO_OP", [])
             bench.wait(10)
         absent(check)
-        check("sensor readings plausible for a bench at rest", sensors_plausible)
+        check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
+        check("MPU6050 readings plausible for a bench at rest", imu_plausible)
         check("event cmdDisp.NoOpReceived count == 3")
 
 
@@ -317,6 +330,7 @@ def test_L2_3(window, send, bench, check, require, fth_plan):
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+        check("roll and pitch of each ground file are marked valid", attitude_valid)
         p = capture(send, bench, 40, 1)
         send("fileManager.CalculateCrc", [p])
         downlink(send, bench)
@@ -337,6 +351,7 @@ def test_L2_4(window, send, bench, check, require, fth_plan):
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+        check("roll and pitch of each ground file are marked valid", attitude_valid)
         p1 = capture(send, bench, 42, 1)
         bench.wait(5)
         p2 = capture(send, bench, 42, 2)
@@ -372,7 +387,11 @@ def test_L2_5(window, send, bench, check, require, fth_plan):
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("exactly one file arrived", files_arrived(1))
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
-        check("each metric of the product equals, or lies between, the telemetry samples around its sample time", metrics_match_telemetry)
+        check("roll and pitch of each ground file are marked valid", attitude_valid)
+        check("temperature, latitude and longitude of the product equal, or lie between, the telemetry samples around their sample times",
+              lambda h: metrics_match_telemetry(h, "other"))
+        check("roll and pitch of the product equal, or lie between, the telemetry samples around their sample time",
+              lambda h: metrics_match_telemetry(h, "attitude"))
         bench.wait(10)
         capture(send, bench, 44, 1)
         bench.wait(10)
@@ -461,6 +480,7 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
             check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1", completed(1))
             check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
             check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+            check("roll and pitch of each ground file are marked valid", attitude_valid)
             check("the directory listing names P only", listing_names_product)
             check("no CFDP transaction starts after the second START_XMIT_CATALOG", no_second_downlink)
             send("cfdpManager.FileInDefaultKeep_PRM_SET", ["KEEP"])

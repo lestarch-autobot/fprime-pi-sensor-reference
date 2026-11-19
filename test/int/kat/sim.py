@@ -2,13 +2,14 @@
 
 `build(commands, raw_dir, knobs)` plays the command list of a dry run of the stimulus against a model of
 the deployment, as the SSDD and the piCamera SDD describe it, and writes record/raw exactly as the bench
-adapters would: sender logs (yamcs_send.log_line), recorder logs (yamcs_recorder.event_line /
+adapters would: sender logs (the layout of yamcs_bench.py send), recorder logs (yamcs_recorder.event_line /
 channel_line), cfdp.json, frames.json, files/, actions/, dictionary.json. Knobs break one behaviour each.
 """
 import datetime
 import hashlib
 import io
 import json
+import re
 import struct
 import sys
 import zlib
@@ -17,9 +18,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "bench"))
 import yamcs_recorder as recorder  # noqa: E402
-import yamcs_send as sender  # noqa: E402
 
 ROOT = "/PiSensor_PiSensor/"
+DEPLOYMENT = "PiSensor"
 T0 = 1_800_000_000.0
 LAT, LON = 34.2000, -118.1700
 COMMANDS = {"cmdDisp.CMD_NO_OP": 0x1000, "cmdDisp.CMD_NO_OP_STRING": 0x1001, "version.VERSION": 0x2000,
@@ -50,7 +51,7 @@ def product(t: float, sample_t: float, acc: dict, temperature: float, picture: b
     import math
     roll = math.degrees(math.atan2(acc["y"], acc["z"]))
     pitch = math.degrees(math.atan2(-acc["x"], math.sqrt(acc["y"] ** 2 + acc["z"] ** 2)))
-    metrics = (_time(t) + struct.pack(">dd", LAT, LON) + _time(sample_t) + struct.pack(">ff", roll, pitch) + _time(sample_t)
+    metrics = (_time(t) + struct.pack(">dd", LAT, LON) + _time(sample_t) + struct.pack(">ff", roll, pitch) + _time(sample_t) + bytes([1])
                + struct.pack(">f", temperature) + _time(sample_t))
     body = struct.pack(">I", 0x10008000) + metrics + struct.pack(">IQ", 0x10008001, len(picture)) + picture
     head = struct.pack(">HII", 5, 0x10008000, 0) + _time(t) + bytes([0]) + bytes(32) + bytes([0]) + struct.pack(">Q", len(body))
@@ -104,7 +105,9 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
             state["t"] += 60
         t = state["t"]
         op = COMMANDS[name]
-        cmd_lines.append(sender.log_line(datetime.datetime.fromtimestamp(t, datetime.timezone.utc), f"sim-{len(cmd_lines)}", name, op, args))
+        shown = [int(a) if re.fullmatch(r"-?\d+", str(a)) else str(a) for a in args]
+        sent = datetime.datetime.fromtimestamp(t)  # local time without a zone, as the bench sender logs it
+        cmd_lines.append(f"{sent.isoformat()},(2(0)-{int(t)}:{sent.microsecond}),{DEPLOYMENT}.{name},{op},{json.dumps(shown)}")
         ev(t + 0.10, "CdhCore.cmdDisp.OpCodeDispatched", "COMMAND", f"Opcode 0x{op:x} dispatched to port 1")
         done = t + 0.2
         ok = True
@@ -206,8 +209,8 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
         tsec += 1.0
 
     events.sort(key=lambda e: e[0])
-    (raw / "fprime-cli-yamcs" / "event.log").write_text("".join(recorder.event_line(e, 1.0) + "\n" for _, e in events), encoding="utf-8")
-    (raw / "fprime-cli-yamcs" / "channel.log").write_text("".join(recorder.channel_line(s, ROOT, 1.0, {}) + "\n" for s in ch), encoding="utf-8")
+    (raw / "fprime-cli-yamcs" / "event.log").write_text("".join(recorder.event_line(e, 1.0, DEPLOYMENT) + "\n" for _, e in events), encoding="utf-8")
+    (raw / "fprime-cli-yamcs" / "channel.log").write_text("".join(recorder.channel_line(s, ROOT, 1.0, {}, DEPLOYMENT) + "\n" for s in ch), encoding="utf-8")
     for i, line in enumerate(cmd_lines):
         d = raw / "cmd" / f"fprime-cli-yamcs-{i:06d}"
         d.mkdir()

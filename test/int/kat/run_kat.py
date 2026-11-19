@@ -21,7 +21,6 @@ sys.path[:0] = [str(HERE), str(INT / "bench"), str(INT / "stimulus")]
 import sim  # noqa: E402
 import verify_stimulus  # noqa: E402
 import yamcs_recorder as recorder  # noqa: E402
-import yamcs_send as sender  # noqa: E402
 import pisensor_record as rec  # noqa: E402
 
 BASE = ["-p", "fth.pytest_plugin", "-p", "no:cacheprovider", "-q", "--fth-plan", str(INT / "plan.json"),
@@ -98,13 +97,6 @@ def units():
     known = recorder.merge_transfers(known, [{"id": 3, "state": "COMPLETED"}], 12.0)
     known = recorder.merge_transfers(known, [{"id": 3, "state": "COMPLETED"}], 14.0)
     yield "merge_transfers", (known["3"]["first_seen"], known["3"]["finished_seen"]) == (10.0, 12.0)
-    import datetime
-    line = sender.log_line(datetime.datetime(2026, 11, 18, 0, 0, 1, tzinfo=datetime.timezone.utc), "id-1", "CdhCore.cmdDisp.CMD_NO_OP_STRING", 4097, ["10"])
-    yield "log_line", line == '2026-11-18T00:00:01.000000,(id-1),CdhCore.cmdDisp.CMD_NO_OP_STRING,4097,[10]'
-    yield "log_line text", sender.log_line(datetime.datetime(2026, 1, 1), "x", "a.B", 1, ["NO_WAIT", "false", "./DpCat/a.fdp"]).endswith('["NO_WAIT", "false", "./DpCat/a.fdp"]')
-    d = {"commands": [{"name": "CdhCore.cmdDisp.CMD_NO_OP", "opcode": 1}, {"name": "CdhCore.cmdDisp.CMD_NO_OP_STRING", "opcode": 2}]}
-    yield "find_command", sender.find_command(d, "cmdDisp.CMD_NO_OP")["opcode"] == 1
-    yield "yamcs_name", sender.yamcs_name("/PiSensor_PiSensor", "CdhCore.cmdDisp.CMD_NO_OP") == "/PiSensor_PiSensor/CdhCore/cmdDisp/CMD_NO_OP"
     yield "crc", rec.crc(b"123456789") == 0xCBF43926
     data = sim.product(1000.25, 1000.0, {"x": 0.0, "y": 0.0, "z": 1.0}, 21.5, sim.jpeg(1))
     p = rec.decode_product(data)
