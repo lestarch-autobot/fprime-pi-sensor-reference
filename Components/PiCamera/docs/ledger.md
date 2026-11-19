@@ -207,3 +207,11 @@ Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598
 - `fth deliver --harness uut --tool harness`: OK, 0 findings. `rfr-input.zip` sha256 `0c5d5d3d6f647ed002bf0da8decdf850be6feadfd808cc9ac713f90105a22a2c`, manifest sha256 `0365b61603576970da27acd53f90bd8f25d8e93ba0e14ff2b4e2327a702fdd83`, 33 pinned files. Same UUT commit 3e2290f, images and dictionary as the first delivery; the manifest gains a `tool` pin (`harness`, 8dd2a5e, `v0.1.2-2-g8dd2a5e`, clean). This delivery supersedes the first.
 - Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK. 39 preflight checks, 12 command lines rendered, 47 path tokens checked; `rfr.log` sha256 `6aee4505a8f7927c864ad6451fb06a082080110444bdff917e35530c203e7ac9`. No seed was requested and no run for record was made.
 - Unsealed `fth audit` of dry-1 with 8dd2a5e: the run-start marker step still fails (`no manifest run-start marker for this manifest/run id`). The record does hold the markers (4294901761 followed by 3745703664 = 0xdf42e6f0, the manifest of the run), but the exported event has two arguments, `{"text": "Received a NO-OP string=4294901761", "nums": [4294901761]}`, and the tool reads the event only when it has one argument that is a decimal string. Reported to the project; the record was not changed.
+
+## Release, third delivery (2026-11-19)
+
+- Tooling: fprime-testing-harness `linux-host-coverage`@f57cce6182422e5dc2b8870cd85d80c748696f7f (marker events of `cmdDisp.NoOpStringReceived` are read), at `harness/` of the campaign root.
+- `fth deliver --harness uut --tool harness`: OK, 0 findings. `rfr-input.zip` sha256 `9905f78df4173826f629855319850ace68ce8059377073a534beefac8445573e`, manifest sha256 `7a2404010d5a52da24500b3cf65b0d299e90a637f4aaa495d1a74912a6c52154`, 33 pinned files; tool pin f57cce6 (`v0.1.2-3-gf57cce6`, clean). UUT commit 3e2290f, images and dictionary unchanged. This delivery supersedes the first two.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `206a68908c8b0c8ac3b5b41058e9b4e3ccfe84d4aa463367a7f1f720b734e512`.
+- `fth audit --unsealed --tests` of dry-1: ok, all 16 steps, the run-start marker step included.
+- No seed was requested and no run for record was made. The bench was not used after the coverage run.
