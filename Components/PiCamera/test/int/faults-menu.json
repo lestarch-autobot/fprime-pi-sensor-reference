@@ -1,0 +1,55 @@
+{
+  "max_count": 2,
+  "knobs": [
+    {
+      "name": "c1_second_capture",
+      "class": "stimulus",
+      "applies_to": [
+        "C-1"
+      ],
+      "fails": {
+        "C-1": [
+          "event piCamera.CaptureCompleted count == 1"
+        ]
+      },
+      "mechanism": "a second CAPTURE is sent before the one of the test",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "c2_capture_before_hold",
+      "class": "stimulus",
+      "applies_to": [
+        "C-2"
+      ],
+      "fails": {
+        "C-2": [
+          "event piCamera.CaptureFailed count == 1"
+        ]
+      },
+      "mechanism": "a second CAPTURE is sent while the camera is held",
+      "kind": "insert",
+      "ripples_to": {}
+    },
+    {
+      "name": "c3_capture_after_restart",
+      "class": "stimulus",
+      "applies_to": [
+        "C-3"
+      ],
+      "fails": {
+        "C-3": [
+          "last(piCamera.CapturesCompleted) == 1"
+        ]
+      },
+      "mechanism": "a second CAPTURE is sent after the restart",
+      "kind": "insert",
+      "ripples_to": {}
+    }
+  ],
+  "tests_covered": [
+    "C-1",
+    "C-2",
+    "C-3"
+  ]
+}

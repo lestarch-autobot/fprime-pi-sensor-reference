@@ -1,0 +1,29 @@
+{
+ "deployment": "PiSensor",
+ "dictionary": "inputs/PiSensorTopologyDictionary.json",
+ "serial": "81493bc1e640bea9",
+ "notes": "Raspberry Pi 5 soakee behind the RFM69 link; ground is fprime-yamcs on the workstation. The unit has no debugger: flash copies the image over ssh and starts it, and the serial is the Pi serial number of /proc/cpuinfo. Run from the workstation. vars.adapter is test/int/bench/yamcs_bench.py of the project repository.",
+ "vars": {
+  "python": "/home/devin/pisensor-campaign/picam-fth-venv/bin/python",
+  "adapter": "/home/devin/pisensor-campaign/picam-run/adapter/yamcs_bench.py",
+  "bridge": "/home/devin/pisensor-campaign/feather_bridge.py",
+  "bridge_python": "/home/devin/pisensor-campaign/venv/bin/python",
+  "fprime_yamcs": "/home/devin/pisensor-campaign/venv/bin/fprime-yamcs",
+  "yamcs_config": "/home/devin/pisensor-campaign/yamcs-config-rf",
+  "uart": "/dev/ttyACM0"
+ },
+ "flash": "{python} {adapter} flash {image}",
+ "dump": "{python} {adapter} dump {readback}",
+ "gds": "{python} {adapter} gds --dictionary {dictionary} --logs {logs} --bridge {bridge} --bridge-python {bridge_python} --uart {uart} --fprime-yamcs {fprime_yamcs} --yamcs-config {yamcs_config}",
+ "recorder": "{python} {adapter} recorder --dictionary {dictionary} --logs {logs}",
+ "send": "{python} {adapter} send --dictionary {dictionary} --logs {logs} {command} {args}",
+ "actions": {
+  "camera_hold": "{python} {adapter} action camera-hold --seconds 120",
+  "camera_release": "{python} {adapter} action camera-release",
+  "fsw_restart": "{python} {adapter} action fsw-restart",
+  "bench_release": "{python} {adapter} stop"
+ },
+ "provenance": {"serial_re": "Serial# = (\\S+)"},
+ "timeouts": {"flash_s": 300, "gds_start_s": 60, "recorder_start_s": 20, "send_s": 60, "command_s": 30,
+  "camera_hold_s": 60, "camera_release_s": 60, "fsw_restart_s": 60}
+}

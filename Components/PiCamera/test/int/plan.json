@@ -1,0 +1,200 @@
+{
+ "name": "PiCamera component bench plan",
+ "uut": "PiSensor.PiCamera in the PiSensor deployment (Components/PiCamera/docs/sdd.md)",
+ "deployment": "PiSensor full system deployment, as flown: no test component",
+ "markers": {
+  "command": "cmdDisp.CMD_NO_OP_STRING",
+  "event": "cmdDisp.NoOpStringReceived",
+  "arg": "arg1",
+  "reserved_min": 4294901760
+ },
+ "event_patterns": {
+  "cmdDisp.NoOpStringReceived": "Received a NO-OP string=(?P<arg1>\\d+)$",
+  "piCamera.CaptureCompleted": "Capture stored a picture of (?P<bytes>\\d+) bytes$",
+  "piCamera.CaptureFailed": "Capture failed: (?P<reason>\\w+) \\(\\d+\\) at (?P<step>\\w+) \\(\\d+\\) code (?P<code>-?\\d+)$",
+  "dpWriter.FileWritten": "Wrote (?P<bytes>\\d+) bytes to file (?P<file>\\S+)$"
+ },
+ "packets": {
+  "Heartbeat": [
+   "imuManager.Reading"
+  ]
+ },
+ "std_complete": [
+  "both markers present",
+  "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+  "Heartbeat samples >= 2"
+ ],
+ "abs": {
+  "ABS": [
+   "event piCamera.CaptureFailed count == 0"
+  ]
+ },
+ "helpers_module": "planted_faults.py",
+ "helpers": [],
+ "coverage": {
+  "ut": {
+   "lines_min": 95
+  }
+ },
+ "image_version": {
+  "policy": "required"
+ },
+ "requirements": {
+  "REQ-PiCamera-009": {
+   "tests": [
+    "C-1",
+    "C-2"
+   ],
+   "verification": "C-1, C-2",
+   "note": "Response bound CAPTURE_MAX_MS on the target."
+  },
+  "REQ-PiCamera-016": {
+   "tests": [
+    "C-2"
+   ],
+   "verification": "C-2",
+   "note": "Camera held by another process."
+  },
+  "REQ-PiCamera-019": {
+   "tests": [
+    "C-2"
+   ],
+   "verification": "C-2",
+   "note": "Capture after the camera is freed."
+  },
+  "REQ-PiCamera-020": {
+   "tests": [
+    "C-1"
+   ],
+   "verification": "C-1",
+   "note": ""
+  },
+  "REQ-PiCamera-024": {
+   "tests": [
+    "C-3"
+   ],
+   "verification": "C-3",
+   "note": "Capture after a restart of the deployment."
+  }
+ },
+ "scope": [
+  "Bench behaviour of `piCamera` that unit tests cannot show: the real camera, the response time on the target, a camera held by another process, a restart. Product content and downlink are judged by the project plan (`test/int/plan.json`, L2-3 to L2-6).",
+  "C-1 and the second half of C-2 and C-3 need a GPS fix: without one every capture fails with `SENSOR_STALE` or `SENSOR_NO_DATA` at `LOCATION` and the tests FAIL."
+ ],
+ "not_covered": [
+  "- No camera attached (REQ-PiCamera-016, `NO_CAMERA`): needs the cable removed; unit test `NoCamera`.",
+  "- Restart during a capture: the restart of C-3 comes after a completed capture; a capture lasts under 1 s on the bench and the bench action takes longer."
+ ],
+ "tests": [
+  {
+   "id": "C-1",
+   "title": "Capture on the target",
+   "purpose": "Proves one capture command stores one product through the real camera within the response bound.",
+   "covers": [
+    "REQ-PiCamera-009",
+    "REQ-PiCamera-020"
+   ],
+   "setup": "Deployment running on the Raspberry Pi 5, camera free, GPS fix, RFM69 link up.",
+   "procedure": [
+    "MARK(10)",
+    "bracket (2 Heartbeat samples)",
+    "piCamera.CAPTURE()",
+    "wait event dpWriter.FileWritten",
+    "bracket (2 Heartbeat samples)",
+    "MARK(11)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 10,
+     "end_id": 11,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    "t(event piCamera.CaptureCompleted) - t(piCamera.CAPTURE sent) <= 15 s"
+   ],
+   "rationale": [],
+   "knobs": [
+    "c1_second_capture"
+   ]
+  },
+  {
+   "id": "C-2",
+   "title": "Camera held by another process, then freed",
+   "purpose": "Proves a capture fails cleanly while another process holds the camera and succeeds once it is freed.",
+   "covers": [
+    "REQ-PiCamera-009",
+    "REQ-PiCamera-016",
+    "REQ-PiCamera-019"
+   ],
+   "setup": "As C-1. The bench action `camera_hold` starts `rpicam-hello` on the Pi, which opens the camera.",
+   "procedure": [
+    "MARK(20)",
+    "bracket (2 Heartbeat samples)",
+    "action: camera_hold",
+    "piCamera.CAPTURE()",
+    "wait event cmdDisp.OpCodeError",
+    "action: camera_release",
+    "piCamera.CAPTURE()",
+    "wait event dpWriter.FileWritten",
+    "bracket (2 Heartbeat samples)",
+    "MARK(21)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 20,
+     "end_id": 21,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    "t(event piCamera.CaptureFailed) - t(piCamera.CAPTURE sent) <= 15 s"
+   ],
+   "rationale": [],
+   "knobs": [
+    "c2_capture_before_hold"
+   ]
+  },
+  {
+   "id": "C-3",
+   "title": "Capture after a restart",
+   "purpose": "Proves the component captures again after the deployment is stopped and started.",
+   "covers": [
+    "REQ-PiCamera-024"
+   ],
+   "setup": "As C-1. The bench action `fsw_restart` stops the deployment process on the Pi and starts it again.",
+   "procedure": [
+    "MARK(30)",
+    "bracket (2 Heartbeat samples)",
+    "piCamera.CAPTURE()",
+    "wait event dpWriter.FileWritten",
+    "action: fsw_restart",
+    "wait 20 s",
+    "piCamera.CAPTURE()",
+    "wait event dpWriter.FileWritten",
+    "bracket (2 Heartbeat samples)",
+    "MARK(31)"
+   ],
+   "windows": [
+    {
+     "name": "W",
+     "start_id": 30,
+     "end_id": 31,
+     "reset": false
+    }
+   ],
+   "metrics": [],
+   "rationale": [
+    {
+     "pred": "last(piCamera.CapturesCompleted) == 1",
+     "text": "The deployment clock is the Pi wall clock, so a restart is no clock restart and the window is not a reset window. The count is since start: 1 after the second capture shows the process restarted between the two captures."
+    }
+   ],
+   "knobs": [
+    "c3_capture_after_restart"
+   ]
+  }
+ ]
+}
