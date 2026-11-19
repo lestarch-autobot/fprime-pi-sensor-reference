@@ -88,7 +88,8 @@ def files_arrived(n, *names):
 
 
 def crc_matches(h):
-    """CRC of each ground file == the value in the CalculateCrcSucceeded event of that product (whole test)."""
+    """Every product whose CRC the UUT reported arrived, and the CRC of its ground file is that value (whole
+    test). How many files arrived is a check of its own."""
     onboard = {}
     for w in h.windows.values():
         for e in w.events("fileManager.CalculateCrcSucceeded"):
@@ -97,7 +98,7 @@ def crc_matches(h):
                 onboard[m.group(1).rsplit("/", 1)[-1]] = int(m.group(2), 16)
     files = {k: v for w in h.windows.values() for k, v in rec.arrived(w).items()}
     same = [n for n in onboard if n in files and rec.crc(files[n]) == onboard[n]]
-    return bool(onboard) and len(same) == len(onboard) and set(files) <= set(onboard), \
+    return bool(onboard) and len(same) == len(onboard), \
         f"{len(onboard)} on-board CRC, {len(files)} ground file(s), {len(same)} equal"
 
 
@@ -351,10 +352,13 @@ def two_names(h):
 
 
 def two_differ(h):
-    prods = sorted((rec.decode_product(d) for d in rec.arrived(h.window).values()), key=lambda p: p["metrics"]["captureTime"]["t"])
-    assert len(prods) == 2, f"{len(prods)} product(s) arrived"
-    return prods[0]["metrics"]["captureTime"]["t"] < prods[1]["metrics"]["captureTime"]["t"] and prods[0]["jpeg"] != prods[1]["jpeg"], \
-        f"capture times {prods[0]['metrics']['captureTime']['t']:.3f}, {prods[1]['metrics']['captureTime']['t']:.3f}"
+    """P1 and P2 are the first two products the window wrote, by their FileWritten events."""
+    names = [e.text.rsplit("/", 1)[-1] for e in h.window.events("dpWriter.FileWritten")][:2]
+    files = rec.arrived(h.window)
+    assert len(names) == 2 and all(n in files for n in names), f"written {names}, arrived {sorted(files)}"
+    p1, p2 = (rec.decode_product(files[n]) for n in names)
+    t1, t2 = p1["metrics"]["captureTime"]["t"], p2["metrics"]["captureTime"]["t"]
+    return t1 < t2 and p1["jpeg"] != p2["jpeg"], f"capture times {t1:.3f}, {t2:.3f}"
 
 
 @pytest.mark.req(*R(5, 6, 14, 8))

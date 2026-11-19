@@ -87,15 +87,15 @@ def bounds(w):
 
 
 def snapshot(name, after):
-    """record/raw/<name> (cfdp.json, frames.json); live, waits until the recorder wrote it after `after`."""
+    """record/raw/<name> (cfdp.json, frames.json) as the recorder last wrote it; it must have been written
+    after `after` (the window's END marker), else the recorder stopped and the file cannot judge the window."""
     path = raw_dir() / name
     end = time.monotonic() + (15 if live() else 0)
     while True:
         data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
         if data is not None and data.get("updated", 0) > after:
             return data
-        if time.monotonic() >= end:
-            return data
+        assert time.monotonic() < end, f"record/raw/{name} was not written after the window closed"
         time.sleep(0.2)
 
 
@@ -142,7 +142,7 @@ def products(start_id, count):
 def transfers(w):
     """YAMCS downlink transfer records that started between the window's markers (ground time)."""
     t0, t1 = bounds(w)
-    data = snapshot("cfdp.json", t1) or {"transfers": []}
+    data = snapshot("cfdp.json", t1)
     return [t for t in data["transfers"] if t.get("direction") == "DOWNLOAD" and t0 <= epoch(t["startTime"]) <= t1]
 
 
@@ -158,7 +158,7 @@ def arrived(w):
 
 def frames(w):
     t0, t1 = bounds(w)
-    data = snapshot("frames.json", t1) or {"frames": []}
+    data = snapshot("frames.json", t1)
     return [f for f in data["frames"] if t0 <= f["rx"] <= t1]
 
 

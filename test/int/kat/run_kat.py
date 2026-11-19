@@ -163,8 +163,9 @@ def main() -> int:
             answer(f"broken ({knob}): {test_id} does not pass, naming `{needle}`", needle in text, text[:600])
         for fault, test_id, cmds, fails in planted(commands):
             text = replay(cmds, {}, tmp, f"{fault}-{test_id}")[test_id]
-            missing = [f for f in fails if f"check failed: {f} —" not in text]
-            answer(f"planted fault {fault} on {test_id}: its {len(fails)} `fails` check(s) fail", not missing, f"not failed: {missing}\n{text[:800]}")
+            failed = sorted(re.findall(r"check failed: (.*?) — seen", text))
+            answer(f"planted fault {fault} on {test_id}: exactly its {len(fails)} `fails` check(s) fail, nothing is unverified",
+                   failed == sorted(fails) and "Incomplete" not in text, f"failed: {failed}\n{text[:800]}")
     print(f"known-answer tests: {'ok' if not bad else f'{bad} WRONG'}")
     return 1 if bad else 0
 
