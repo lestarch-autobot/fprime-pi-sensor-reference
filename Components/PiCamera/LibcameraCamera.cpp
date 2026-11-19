@@ -46,7 +46,9 @@ struct JpegDestination {
     jpeg_destination_mgr base;
     JOCTET* buffer;
     size_t capacity;
-    bool overflow;
+    bool full;            //!< The destination was filled
+    bool overflow;        //!< The scratch area was filled too
+    JOCTET scratch[256];  //!< Receives the bytes beyond the destination
 };
 
 void jpegInitDestination(j_compress_ptr cinfo) {
@@ -56,11 +58,15 @@ void jpegInitDestination(j_compress_ptr cinfo) {
 }
 
 boolean jpegEmptyOutputBuffer(j_compress_ptr cinfo) {
-    // The buffer is full: remember it and start over, the result is discarded
+    // libjpeg calls this when the buffer is full, also when the JPEG ends exactly there.
+    // Later bytes go to a scratch area; one that receives a byte is the overflow.
     JpegDestination* dest = reinterpret_cast<JpegDestination*>(cinfo->dest);
-    dest->overflow = true;
-    dest->base.next_output_byte = dest->buffer;
-    dest->base.free_in_buffer = dest->capacity;
+    if (dest->full) {
+        dest->overflow = true;
+    }
+    dest->full = true;
+    dest->base.next_output_byte = dest->scratch;
+    dest->base.free_in_buffer = sizeof(dest->scratch);
     return TRUE;
 }
 
@@ -117,7 +123,9 @@ class LibcameraCamera final : public Camera {
         }
         const auto cameras = this->m_manager->cameras();
         if (cameras.empty()) {
-            return Status::NO_CAMERA;
+            // The camera detect listed is gone: an error of this step, NO_CAMERA belongs to detect
+            code = -ENODEV;
+            return Status::ERROR;
         }
         this->m_camera = cameras[0];
         const int ret = this->m_camera->acquire();
@@ -391,6 +399,7 @@ class LibcameraCamera final : public Camera {
         dest.base.term_destination = jpegTermDestination;
         dest.buffer = dst;
         dest.capacity = static_cast<size_t>(capacity);
+        dest.full = false;
         dest.overflow = false;
         cinfo.dest = &dest.base;
 
@@ -427,9 +436,11 @@ class LibcameraCamera final : public Camera {
             static_cast<void>(jpeg_write_raw_data(&cinfo, rows, MCU_LUMA_ROWS));
         }
         jpeg_finish_compress(&cinfo);
-        const size_t written = dest.capacity - dest.base.free_in_buffer;
+        // Once full, free_in_buffer counts the scratch area
+        const bool beyond = dest.overflow || (dest.full && (dest.base.free_in_buffer != sizeof(dest.scratch)));
+        const size_t written = dest.full ? dest.capacity : (dest.capacity - dest.base.free_in_buffer);
         jpeg_destroy_compress(&cinfo);
-        if (dest.overflow) {
+        if (beyond) {
             return Status::TOO_LARGE;
         }
         size = static_cast<FwSizeType>(written);

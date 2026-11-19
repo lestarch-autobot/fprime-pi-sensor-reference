@@ -48,6 +48,7 @@ void PiCamera::configure(Camera& camera,
 }
 
 void PiCamera::preamble() {
+    FW_ASSERT(this->m_camera != nullptr);
     this->lock();
     this->tlmWrite_CapturesCompleted(this->m_completed);
     this->tlmWrite_CapturesFailed(this->m_failed);
@@ -141,7 +142,6 @@ PiCamera::StepResult PiCamera::acquireFrame() {
 
 PiCamera::StepResult PiCamera::readChannel(FwChanIdType channel,
                                            PiCamera_FailStep step,
-                                           const Fw::Time& captureTime,
                                            Fw::Time& sampleTime,
                                            Fw::TlmBuffer& value) {
     value.resetSer();
@@ -149,6 +149,10 @@ PiCamera::StepResult PiCamera::readChannel(FwChanIdType channel,
     if ((valid != Fw::TlmValid::VALID) || (value.getSize() == 0)) {
         return failure(PiCamera_FailReason::SENSOR_NO_DATA, step, 0);
     }
+    return success();
+}
+
+PiCamera::StepResult PiCamera::checkAge(PiCamera_FailStep step, const Fw::Time& captureTime, const Fw::Time& sampleTime) {
     if (sampleTime.getTimeBase() != captureTime.getTimeBase()) {
         return failure(PiCamera_FailReason::SENSOR_STALE, step, 0);
     }
@@ -173,13 +177,17 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
 
     // Temperature
     StepResult result =
-        this->readChannel(this->m_temperatureChannel, PiCamera_FailStep::TEMPERATURE, captureTime, sampleTime, value);
+        this->readChannel(this->m_temperatureChannel, PiCamera_FailStep::TEMPERATURE, sampleTime, value);
     if (!result.ok) {
         return result;
     }
     Bmp280::Bmp280Data bmp;
     if (value.deserializeTo(bmp) != Fw::FW_SERIALIZE_OK) {
         return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::TEMPERATURE, 0);
+    }
+    result = checkAge(PiCamera_FailStep::TEMPERATURE, captureTime, sampleTime);
+    if (!result.ok) {
+        return result;
     }
     if (!std::isfinite(bmp.get_temperature())) {
         return failure(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::TEMPERATURE, 0);
@@ -188,13 +196,17 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_temperatureTime(sampleTime.asTimeValue());
 
     // Attitude
-    result = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, captureTime, sampleTime, value);
+    result = this->readChannel(this->m_attitudeChannel, PiCamera_FailStep::ATTITUDE, sampleTime, value);
     if (!result.ok) {
         return result;
     }
     MpuImu::ImuData imu;
     if (value.deserializeTo(imu) != Fw::FW_SERIALIZE_OK) {
         return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::ATTITUDE, 0);
+    }
+    result = checkAge(PiCamera_FailStep::ATTITUDE, captureTime, sampleTime);
+    if (!result.ok) {
+        return result;
     }
     const F32 ax = imu.get_acceleration().get_x();
     const F32 ay = imu.get_acceleration().get_y();
@@ -209,13 +221,17 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_attitudeTime(sampleTime.asTimeValue());
 
     // Location
-    result = this->readChannel(this->m_locationChannel, PiCamera_FailStep::LOCATION, captureTime, sampleTime, value);
+    result = this->readChannel(this->m_locationChannel, PiCamera_FailStep::LOCATION, sampleTime, value);
     if (!result.ok) {
         return result;
     }
     NmeaGps::GpsData gps;
     if (value.deserializeTo(gps) != Fw::FW_SERIALIZE_OK) {
         return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::LOCATION, 0);
+    }
+    result = checkAge(PiCamera_FailStep::LOCATION, captureTime, sampleTime);
+    if (!result.ok) {
+        return result;
     }
     const F64 latitude = gps.get_latitude();
     const F64 longitude = gps.get_longitude();

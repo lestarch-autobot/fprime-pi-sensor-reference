@@ -80,6 +80,13 @@ Fw::Success::T PiCameraTester::productGet_handler(FwDpIdType id, FwSizeType data
     return Fw::Success::SUCCESS;
 }
 
+void PiCameraTester::cmdResponseIn(FwOpcodeType opCode, U32 cmdSeq, Fw::CmdResponse response) {
+    PiCameraGTestBase::cmdResponseIn(opCode, cmdSeq, response);
+    if (this->m_onResponse) {
+        this->m_onResponse();
+    }
+}
+
 // ----------------------------------------------------------------------
 // Helpers: set-up
 // ----------------------------------------------------------------------
@@ -533,10 +540,21 @@ void PiCameraTester::testBusyDuringCapture() {
     ASSERT_EQ(product.pictureSize, reference.pictureSize);
     ASSERT_EQ(product.timeTag, reference.timeTag);
 
-    // A command sent on the response of the earlier capture is accepted
+    // A command sent from inside the response of the earlier capture is accepted
     this->m_camera.onDetect = nullptr;
+    const U32 nextSeq = 8888;
+    this->m_onResponse = [this, nextSeq]() {
+        this->m_onResponse = nullptr;
+        this->sendCmd_CAPTURE(TEST_INSTANCE_ID, nextSeq);
+    };
     this->capture();
-    this->assertSuccess(this->m_camera.jpegSize);
+    ASSERT_CMD_RESPONSE_SIZE(2);
+    ASSERT_CMD_RESPONSE(0, PiCamera::OPCODE_CAPTURE, this->m_cmdSeq, Fw::CmdResponse::OK);
+    ASSERT_CMD_RESPONSE(1, PiCamera::OPCODE_CAPTURE, nextSeq, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_CaptureStarted_SIZE(2);
+    ASSERT_EVENTS_CaptureCompleted_SIZE(2);
+    ASSERT_EVENTS_CaptureFailed_SIZE(0);
+    ASSERT_PRODUCT_SEND_SIZE(2);
 }
 
 void PiCameraTester::testRecoveryAfterFailure() {
@@ -741,7 +759,7 @@ void PiCameraTester::testRandomSequences() {
     ASSERT_EQ(steps, 1000U);
     // One response per command, and the counts equal the responses
     ASSERT_EQ(this->m_responses, this->m_commands);
-    ASSERT_EQ(this->m_expectedCompleted + this->m_expectedFailed, this->m_commands);
+    ASSERT_EQ(this->component.m_completed + this->component.m_failed, this->m_responses);
     ASSERT_EQ(this->component.m_completed, this->m_expectedCompleted);
     ASSERT_EQ(this->component.m_failed, this->m_expectedFailed);
 }

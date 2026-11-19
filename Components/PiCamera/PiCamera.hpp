@@ -17,7 +17,7 @@ class PiCamera final : public PiCameraComponentBase {
 
   public:
     //! Construct PiCamera object
-    PiCamera(const char* const compName  //!< The component name
+    explicit PiCamera(const char* const compName  //!< The component name
              );
 
     //! Destroy PiCamera object
@@ -67,12 +67,11 @@ class PiCamera final : public PiCameraComponentBase {
     //! Steps TEMPERATURE, ATTITUDE, LOCATION
     StepResult readMetrics(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics);
 
-    //! Read one channel and check that a value is present and fresh
-    StepResult readChannel(FwChanIdType channel,
-                           PiCamera_FailStep step,
-                           const Fw::Time& captureTime,
-                           Fw::Time& sampleTime,
-                           Fw::TlmBuffer& value);
+    //! Read one channel and check that a value is present
+    StepResult readChannel(FwChanIdType channel, PiCamera_FailStep step, Fw::Time& sampleTime, Fw::TlmBuffer& value);
+
+    //! Check that a sample time is within METRIC_MAX_AGE_MS of the capture time
+    static StepResult checkAge(PiCamera_FailStep step, const Fw::Time& captureTime, const Fw::Time& sampleTime);
 
     //! Step ENCODE
     StepResult encode(FwSizeType& size);

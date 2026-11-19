@@ -86,6 +86,7 @@ class PiCameraTester final : public PiCameraGTestBase {
                                         Fw::Time& timeTag,
                                         Fw::TlmBuffer& val) override;
     Fw::Success::T productGet_handler(FwDpIdType id, FwSizeType dataSize, Fw::Buffer& buffer) override;
+    void cmdResponseIn(FwOpcodeType opCode, U32 cmdSeq, Fw::CmdResponse response) override;
 
     // Helpers: set-up
     //! Camera, store and buffers as a capture that succeeds needs them
@@ -119,6 +120,7 @@ class PiCameraTester final : public PiCameraGTestBase {
     U32 m_cmdSeq;                       //!< Sequence number of the last command
     Fw::Time m_captureTime;             //!< Time set when the frame is handed over
     StoreEntry m_store[NUM_CHANNELS];   //!< The substitute telemetry store
+    std::function<void()> m_onResponse;  //!< Runs inside a command response
     bool m_bufferAvailable;             //!< productGet hands out a buffer
     FakeCamera m_camera;
     PiCamera component;
