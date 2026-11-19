@@ -92,3 +92,29 @@ Decisions (author's, for the gate):
 - 2026-11-18 redo review round 2 [V]: architecture 0 / 0, open list empty; design-review 0 must / 2 could plus the routed adjudication; design-principles 0 must / 2 could; requirements 2 must (device identity, held for the gate; 023 wording) / 3 could. No disagreement. Applied: 023 states what the unit test observes; 016 and 019 `Integration Test, Unit Test`; the `SENSOR_STALE` age is limited to the I32 range, 0 for another time base; `acquire` carries opcode and sequence number, so a command accepted after the busy flag clears cannot change the ended capture's response; the channels are published by the component thread at its start (the topology connects ports after `configure`).
 - 2026-11-18 redo review round 3 [V], loops closed at the bound: requirements 1 must (device identity: cannot close before the camera is attached; reviewer asks for conditional approval) / 0 could; architecture closed in round 2 with an empty open list; design-review 0 must / 1 could (#11, low confidence: which hook publishes the channels at thread start; left for DEVELOPMENT) plus the routed `design-needs-human-adjudication:PiCamera`; design-principles 0 / 0. No open disagreement.
 - 2026-11-18 checklist, design stage, regenerated for the redesign [V]: rows 1.1–1.6 YES by review; hand-off "Nothing to review at the design stage". After the tool's findings: Table 3 column renamed `Source`, container table with default priority 10 (the catalog sends lower numbers first; one container type, so the value orders nothing here), requirement references added in section 3. Rows left NO: 2.5, 2.6 (no implementation in this lane), 3.12 (container priority not commandable: one container type, no parameter added), 5.3 (no hardware run). clang-tidy plugin not built: static-analysis rows UNCHECKED until DEVELOPMENT.
+
+## Development (2026-11-18, branch `comp/picam` from `deploy/base`@c7953c9)
+
+- Skills source unchanged: `lestarch-autobot/fprime` `system-campaign-skills`@aa3ab03. Test configuration: nasa/fprime@83221ba, fprime-sensors@e5d83d1. Single pass (no iterative-development loop was approved).
+- Implementation [V]: `PiCamera.{hpp,cpp}`, camera interface `Camera.hpp`, `LibcameraCamera.cpp` (libcamera 0.7.2, YUV420 640x480, libjpeg62-turbo raw-data compression; compiled as C++17 because libcamera's API needs it), `NoCamera.cpp` (`PICAMERA_NO_CAMERA`), topology wiring, `PiSensor/project/config/DataProductsConfig.fpp` (`dpBufferStoreSize` 264192; a project configuration override, no inherited source changed).
+- Differences to the approved SDD, reported to the parent: `Camera::encode` in the interface (unit tests substitute the JPEG step); `configure` takes the camera interface as first argument; three channel members instead of `m_channels`; the sensors' `CHANNELID_READING` enumerators are protected, so the topology passes local identifier 0 as the constant `SENSOR_READING_CHANNEL`. SDD errata applied at 0d92871: camera identity (Camera Module 3, `imx708`), libcamera 0.7.2, the interface list, `configure` and the channel members.
+- Unit tests [V]: the 20 tests of SDD §8 pass; `PiCamera.cpp` line coverage 99% (197 of 199) before the review fixes.
+- Defect found by the unit tests [V]: camera error codes were lost because the code argument and the camera call were evaluated in one argument list; fixed.
+- Bench smoke over the RFM69 [V], image sha256 31a70108…bf1f487 (32b0c2d): `CAPTURE` → `CaptureCompleted` 24480 bytes, `dpWriter.FileWritten` 24639 bytes, picture decodes as JPEG 640x480; response in 0.85 s (bound `CAPTURE_MAX_MS` 15000). With `rpicam-hello` holding the camera: `CaptureFailed(CAMERA_ERROR, OPEN, -16)`, `EXECUTION_ERROR`; after release the next capture succeeds (24158 bytes). Measured JPEG size is about 9% of `PICTURE_MAX_SIZE`.
+- Development review, single pass, local, 32b0c2d [V]: 7 must fix / 10 suggestion / 16 could fix / 0 future work / 5 ruled. All ten lenses ran in one reviewer context.
+
+| Finding | Agent tag | Disposition | Reason | Who ruled |
+|---|---|---|---|---|
+| COR-1 exact-size JPEG fails `TOO_LARGE` | must fix | fixed e3b7217 | destination spills into a scratch area; overflow only when the scratch receives a byte | writer |
+| TQ-1 tautological assertion | must fix | fixed e3b7217 | compares component counters with responses | writer |
+| TQ-2 response order untested | must fix | fixed e3b7217 | `CAPTURE` sent from inside the `OK` response | writer |
+| DES-1 age checked before decode | must fix | fixed e3b7217, test 0d92871 | decode first, as SDD §3.5 step 4 | writer |
+| DES-2 `NO_CAMERA` at `OPEN` | must fix | fixed e3b7217 | `open` returns `ERROR` with `-ENODEV` | writer |
+| DOC-1 SDD interface list | must fix | fixed 0d92871 | SDD erratum, reported to the parent | writer |
+| DOC-2 SDD camera identity | must fix | fixed 0d92871 | SDD erratum, closes the open item | writer |
+| COR-2, CPP-B, CPP-C, CPP-D, CPP-E, CPP-F, DES-4, MNT-2 | suggestion | fixed e3b7217, 0d92871 | applied as proposed | writer |
+| DES-5 no check of the store size against `PICTURE_MAX_SIZE` | suggestion | not applied | the record sizes are protected members of the generated base; the configuration comment names the dependency | writer |
+| TQ-3 adapter encoder has no unit test | suggestion | not applied | needs the camera libraries on the unit-test host; the adapter is exercised on the bench | writer |
+| TQ-5 record count per identifier | could fix | fixed 0d92871 | one Metrics and one Picture record asserted | writer |
+| other could fix (15) | could fix | not applied | single pass | writer |
+- Unit-test coverage after the review fixes [V]: 21 tests pass (the 20 of SDD §8 plus `NoCameraBuild`, added so the `PICAMERA_NO_CAMERA` interface is run); lines 99.1% (227 of 229) over `PiCamera.cpp`, `NoCamera.cpp`, `Camera.hpp`; the project minimum is 95%. `LibcameraCamera.cpp` is not in the unit-test build (finding TQ-3); it runs on the bench.

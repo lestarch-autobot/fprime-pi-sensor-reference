@@ -3,6 +3,7 @@
 // \brief  cpp file for PiCamera component test main function
 // ======================================================================
 
+#include "Components/PiCamera/CameraFactory.hpp"
 #include "Fw/Test/UnitTest.hpp"
 #include "PiCameraTester.hpp"
 #include "STest/Random/Random.hpp"
@@ -35,6 +36,28 @@ PICAMERA_TEST(Events, "REQ-PiCamera-020, REQ-PiCamera-025", "CaptureStarted befo
 PICAMERA_TEST(TelemetryOnChange, "REQ-PiCamera-021", "Channels published at thread start and when they change")
 PICAMERA_TEST(Ping, "REQ-PiCamera-022", "A ping is echoed with its key")
 PICAMERA_TEST(RandomSequences, "REQ-PiCamera-014, REQ-PiCamera-018, REQ-PiCamera-021", "Random sequences keep one response per command and the counts equal to the responses")
+
+#ifdef PICAMERA_NO_CAMERA_BUILD
+TEST(PiCamera, NoCameraBuild) {
+    COMMENT("The camera of a PICAMERA_NO_CAMERA build reports no camera at every call");
+    REQUIREMENT("REQ-PiCamera-016");
+    PiSensor::Camera& camera = PiSensor::getCamera();
+    I32 code = 1;
+    U8 data[4] = {};
+    FwSizeType size = sizeof(data);
+    ASSERT_EQ(camera.detect(code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(code, 0);
+    ASSERT_EQ(camera.open(code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(camera.configure(640, 480, code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(camera.start(code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(camera.waitFrame(1, 0, code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(camera.encode(90, data, sizeof(data), size, code), PiSensor::Camera::Status::NO_CAMERA);
+    ASSERT_EQ(size, 0U);
+    camera.stop();
+    camera.close();
+    ASSERT_EQ(&camera, &PiSensor::getCamera());
+}
+#endif
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

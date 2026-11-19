@@ -63,3 +63,7 @@ register_fprime_ut(
         STest
     UT_AUTO_HELPERS
 )
+if (BUILD_TESTING AND PICAMERA_NO_CAMERA)
+    set_property(SOURCE "${CMAKE_CURRENT_LIST_DIR}/test/ut/PiCameraTestMain.cpp"
+        APPEND PROPERTY COMPILE_DEFINITIONS PICAMERA_NO_CAMERA_BUILD)
+endif()
