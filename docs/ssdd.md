@@ -10,7 +10,7 @@ fprime-yamcs.
 
 Colour key, used in the Overview diagram and every table: 🟩 F Prime (inherited from
 `nasa/fprime`), 🟦 library (inherited from an F Prime library or ground
-package), 🟨 bespoke (built by this project).
+package), 🟨 new (built by this project).
 
 ## Requirements
 
@@ -39,14 +39,14 @@ package), 🟨 bespoke (built by this project).
 flowchart LR
   classDef fprime fill:#b7e1a1,stroke:#2e7d32,color:#000
   classDef library fill:#a9cdf5,stroke:#1565c0,color:#000
-  classDef bespoke fill:#ffe680,stroke:#b58900,color:#000
+  classDef new fill:#ffe680,stroke:#b58900,color:#000
   classDef bench fill:#fff,stroke:#777,stroke-dasharray:4 3,color:#000
   subgraph Pi5[Raspberry Pi 5: PiSensor topology and configuration]
     bmp[Bmp280.Subtopology]:::library
     imu[MpuImu.Subtopology]:::library
     gps[NmeaGps.Subtopology]:::library
     cdh[CdhCore.Subtopology]:::fprime
-    cam[piCamera]:::bespoke
+    cam[piCamera]:::new
     dp[DataProducts.Subtopology]:::fprime
     fh[FileHandlingCfdp.Subtopology]:::fprime
     com[ComCcsds.FramingSubtopology, comRetry]:::fprime
@@ -153,20 +153,20 @@ One row per element: what it is, where it comes from, how it runs, what it
 serves and what is known to be wrong with it. Instances inside a
 subtopology are those of the subtopology as shipped.
 
-| Element | Class | Source | Function | Runs at | Boundary | Requirements (kind) | Verified by (observable) | Known defects |
-|---|---|---|---|---|---|---|---|---|
-| `PiSensor` topology and configuration | 🟨 bespoke | this project | Wires the elements; sets inherited configuration: TM frame and aggregate size to fit one 255-byte radio packet with packet spanning, device paths, ground YAMCS CFDP service | — | Raspberry Pi 5, 64-bit Raspberry Pi OS | 012 (system), 013 (system) | 012: largest gap between sensor telemetry packets at the ground during a catalog downlink. 013: `CdhCore.version` events for the image; `/proc/device-tree/model` and `/etc/os-release` read over ssh for the platform | platform: unverified with the radio |
-| `piCamera` | 🟨 bespoke | this project | On a capture command: acquires one JPEG, reads the latest sensor readings and their times from the telemetry store, derives roll and pitch from the acceleration reading, writes one product container | Own thread, one capture at a time | Pi Camera on CSI | 004 (component), 005, 006, 007, 014 (set) | 004: `piCamera` component tests and the picture record of the downlinked product. 005, 006, 014: metric and time records of the downlinked product, decoded on the ground with the F Prime data product decoder and the deployment dictionary, against telemetry samples. 007: `cmdDisp.OpCodeDispatched` of the capture command to `dpWriter.FileWritten` | Camera not yet on the bench |
-| `CdhCore.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 008, 011, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
-| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime `devel@83221ba` | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase; commands executed | A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified at `83221ba` and under the radio |
-| `DataProducts.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Product buffers, writer and catalog; the catalog downlinks products not yet sent | 1 Hz writer, manager, buffers | Pi 5 file system | 005, 007, 008 (set) | `dpWriter.FileWritten`, `dpCat.CatalogXmitCompleted` events | platform: unverified at `83221ba` |
-| `FileHandlingCfdp.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer. platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
-| `comRetry` | 🟩 F Prime | fprime `devel@83221ba` | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase | platform: unverified at `83221ba` |
-| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006, 014 (set) | Channel and product times | platform: unverified at `83221ba` |
-| `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280 on SPI; device and chip select not yet identified on the bench | 001, 005, 014 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified |
-| `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005, 014 (set) | `imuManager.Reading` | platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
-| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver sending one position per second; UART not yet identified on the bench | 003, 005, 014 (set) | `gpsManager.Reading` | platform: unverified |
-| `Rfm69.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Sends and receives one buffer of at most 255 bytes per radio packet | 1 kHz | RFM69 on SPI0 CE1 | 010 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase | platform: unverified |
+| Element | Class | Source | Function | Runs at | Boundary | Requirements (kind) | Verified by (observable) | Known defects | SDD |
+|---|---|---|---|---|---|---|---|---|---|
+| `PiSensor` topology and configuration | 🟨 new (topology) | this project | Wires the elements; sets inherited configuration: TM frame and aggregate size to fit one 255-byte radio packet with packet spanning, device paths, ground YAMCS CFDP service | — | Raspberry Pi 5, 64-bit Raspberry Pi OS | 012 (system), 013 (system) | 012: largest gap between sensor telemetry packets at the ground during a catalog downlink. 013: `CdhCore.version` events for the image; `/proc/device-tree/model` and `/etc/os-release` read over ssh for the platform | platform: unverified with the radio | — |
+| `piCamera` | 🟨 new | this project | On a capture command: acquires one JPEG, reads the latest sensor readings and their times from the telemetry store, derives roll and pitch from the acceleration reading, writes one product container | Own thread, one capture at a time | Pi Camera on CSI | 004 (component), 005, 006, 007, 014 (set) | 004: `piCamera` component tests and the picture record of the downlinked product. 005, 006, 014: metric and time records of the downlinked product, decoded on the ground with the F Prime data product decoder and the deployment dictionary, against telemetry samples. 007: `cmdDisp.OpCodeDispatched` of the capture command to `dpWriter.FileWritten` | Camera not yet on the bench | [SDD](../Components/PiCamera/docs/sdd.md) |
+| `CdhCore.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 008, 011, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | platform: unverified at `83221ba` (ran on the Pi at v4.4.2) | — |
+| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime `devel@83221ba` | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase; commands executed | A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified at `83221ba` and under the radio | — |
+| `DataProducts.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Product buffers, writer and catalog; the catalog downlinks products not yet sent | 1 Hz writer, manager, buffers | Pi 5 file system | 005, 007, 008 (set) | `dpWriter.FileWritten`, `dpCat.CatalogXmitCompleted` events | platform: unverified at `83221ba` | — |
+| `FileHandlingCfdp.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer. platform: unverified at `83221ba` (ran on the Pi at v4.4.2) | — |
+| `comRetry` | 🟩 F Prime | fprime `devel@83221ba` | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase | platform: unverified at `83221ba` | — |
+| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006, 014 (set) | Channel and product times | platform: unverified at `83221ba` | — |
+| `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280 on SPI; device and chip select not yet identified on the bench | 001, 005, 014 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified | — |
+| `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005, 014 (set) | `imuManager.Reading` | platform: unverified at `83221ba` (ran on the Pi at v4.4.2) | — |
+| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver sending one position per second; UART not yet identified on the bench | 003, 005, 014 (set) | `gpsManager.Reading` | platform: unverified | — |
+| `Rfm69.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Sends and receives one buffer of at most 255 bytes per radio packet | 1 kHz | RFM69 on SPI0 CE1 | 010 (set) | Over a window, TM frames received by YAMCS do not exceed the `rfm69Manager.PacketsTransmitted` increase and commands executed do not exceed the `PacketsReceived` increase | platform: unverified | — |
 | fprime-yamcs | 🟦 library | fprime-yamcs `f6f0e19` | Ground commanding, telemetry, events, CFDP entity | — | Ground host | 008, 009, 011 (set) | Decoded parameters, events, transfer records and files | No CFDP service configured as shipped; needs `fprime-yamcs-bundle` 5.13.7.0, which is not on PyPI |
 
 All 🟩 rows are built from [`nasa/fprime@83221ba`](https://github.com/nasa/fprime/commit/83221ba82a) (`devel`, v4.4.0-98),
