@@ -1,20 +1,61 @@
 module PiSensor {
 
-  @ Pi Camera manager: acquires one JPEG per request
+  @ Pi Camera: on a capture command acquires one JPEG, reads the latest
+  @ sensor readings from the telemetry store and writes one product container
   active component PiCamera {
 
-    @ Step of a capture at which a failure is found
-    enum CaptureStep : U8 {
-      RECEIVE = 0 @< Receipt of the request: an earlier request has no reply
-      RETURN = 1 @< Receipt of the request: the last picture is not returned
-      DETECT = 2 @< Camera detection
-      OPEN = 3 @< Camera acquisition for exclusive use
-      CONFIGURE = 4 @< Camera configuration
-      START = 5 @< Camera start
-      FRAME = 6 @< Frame completion
-      ALLOCATE = 7 @< Picture buffer allocation
-      ENCODE = 8 @< JPEG encoding
-      TICKS = 9 @< Tick count of the capture timeout
+    # ----------------------------------------------------------------------
+    # Types and constants
+    # ----------------------------------------------------------------------
+
+    @ Why a capture command failed
+    enum FailReason : U8 {
+      BUSY = 0 @< An earlier capture has not ended
+      NO_CAMERA = 1 @< The camera library lists no camera
+      CAMERA_ERROR = 2 @< A camera or JPEG library call failed
+      TIMEOUT = 3 @< No frame arrived within FRAME_TIMEOUT_MS
+      TOO_LARGE = 4 @< The JPEG exceeds PICTURE_MAX_SIZE
+      SENSOR_NO_DATA = 5 @< The telemetry store holds no usable reading
+      SENSOR_STALE = 6 @< A reading is older or newer than METRIC_MAX_AGE_MS
+      METRIC_INVALID = 7 @< A reading holds a value outside its range
+      NO_CONTAINER = 8 @< No product container buffer was obtained
+    }
+
+    @ Where a capture command failed
+    enum FailStep : U8 {
+      RECEIVE = 0
+      DETECT = 1
+      OPEN = 2
+      CONFIGURE = 3
+      START = 4
+      FRAME = 5
+      TEMPERATURE = 6
+      ATTITUDE = 7
+      LOCATION = 8
+      ENCODE = 9
+      CONTAINER = 10
+    }
+
+    @ Metrics stored with a picture
+    struct CaptureMetrics {
+      @ Time the frame was acquired
+      captureTime: Fw.TimeValue
+      @ Latitude in degrees, north positive
+      latitude: F64
+      @ Longitude in degrees, east positive
+      longitude: F64
+      @ Sample time of latitude and longitude
+      locationTime: Fw.TimeValue
+      @ Roll in degrees
+      roll: F32
+      @ Pitch in degrees
+      pitch: F32
+      @ Sample time of the acceleration behind roll and pitch
+      attitudeTime: Fw.TimeValue
+      @ Temperature in degrees Celsius
+      temperature: F32
+      @ Sample time of the temperature
+      temperatureTime: Fw.TimeValue
     }
 
     @ Picture width in pixels
@@ -23,32 +64,24 @@ module PiSensor {
     @ Picture height in pixels
     constant PICTURE_HEIGHT = 480
 
-    @ Size in bytes of the picture buffer requested per capture
-    constant PICTURE_BUFFER_SIZE = 262144
+    @ Largest JPEG stored, in bytes
+    constant PICTURE_MAX_SIZE = 262144
 
-    @ Ticks of the run port from receipt of a request to its reply
-    constant CAPTURE_TIMEOUT_TICKS = 10
+    @ Longest wait for the frame, in milliseconds
+    constant FRAME_TIMEOUT_MS = 10000
 
-    @ Frames discarded before the delivered frame, for exposure to settle
+    @ Frames discarded while exposure settles
     constant SETTLE_FRAMES = 10
 
-    @ Capture request, decided in the caller's thread
-    guarded input port captureIn: CaptureRequest
+    @ Largest difference between a sample time and the capture time, in milliseconds
+    constant METRIC_MAX_AGE_MS = 2000
 
-    @ Reply to each capture request; connect to an async input
-    output port imageOut: CaptureReply
+    # ----------------------------------------------------------------------
+    # Ports
+    # ----------------------------------------------------------------------
 
-    @ Picture buffer returned by the requester
-    guarded input port imageReturnIn: Fw.BufferSend
-
-    @ Tick that counts the capture timeout, 1 Hz
-    guarded input port run: Svc.Sched
-
-    @ Picture buffer allocation
-    output port allocate: Fw.BufferGet
-
-    @ Picture buffer release
-    output port deallocate: Fw.BufferSend
+    @ Reads the latest value and time of a telemetry channel
+    output port tlmGetOut: Fw.TlmGet
 
     @ Health ping
     async input port pingIn: Svc.Ping drop
@@ -56,71 +89,66 @@ module PiSensor {
     @ Health ping reply
     output port pingOut: Svc.Ping
 
-    @ Detect the camera once at start
-    internal port detect drop
+    @ Work of one capture, on the component thread
+    internal port acquire drop
 
-    @ Open, configure and start the camera for a capture
-    internal port acquire(
-      capture: U32 @< Number of the capture
-    ) drop
-
-    @ Close the camera of a capture that timed out
-    internal port abort(
-      capture: U32 @< Number of the capture
-    ) drop
-
-    @ The camera library reports the frame of a capture, from its own thread
-    internal port frameDone(
-      capture: U32 @< Number of the capture the frame belongs to
-      ok: bool @< The frame is complete
-      acquired: Fw.Time @< System time read when the frame arrived
-    ) drop
-
+    product get port productGetOut
+    product send port productSendOut
+    command recv port cmdIn
+    command reg port cmdRegOut
+    command resp port cmdResponseOut
     event port eventOut
     text event port textEventOut
     telemetry port tlmOut
     time get port timeGetOut
 
-    @ Acquisition of a picture begins
-    event CaptureStarted(
-      context: U32 @< Context of the request
-    ) severity activity low format "Capture {} started"
+    # ----------------------------------------------------------------------
+    # Commands
+    # ----------------------------------------------------------------------
 
-    @ A capture request failed
+    @ Acquire one picture and store it with the latest metrics as one data product
+    guarded command CAPTURE
+
+    # ----------------------------------------------------------------------
+    # Events
+    # ----------------------------------------------------------------------
+
+    event CaptureStarted severity activity low format "Capture started"
+
+    event CaptureCompleted(
+      bytes: U32 @< Size of the JPEG in bytes
+    ) severity activity high format "Capture stored a picture of {} bytes"
+
     event CaptureFailed(
-      context: U32 @< Context of the request
-      reason: CaptureStatus @< Failure reason
-      step: CaptureStep @< Step at which the failure was found
-      code: I32 @< Return code of the camera or JPEG library at that step, else 0
-    ) severity warning low format "Capture {} failed: {} at {} code {}"
+      reason: FailReason
+      step: FailStep
+      code: I32 @< Return code of the failing library call, else 0
+    ) severity warning high format "Capture failed: {} at {} code {}"
 
-    @ A returned buffer was not released: it is not the delivered picture
-    event ReturnRejected(
-      bytes: FwSizeType @< Size in bytes of the returned buffer
-    ) severity warning low format "Returned buffer of {} bytes rejected"
+    # ----------------------------------------------------------------------
+    # Telemetry
+    # ----------------------------------------------------------------------
 
-    @ A camera is detected at start
-    event CameraFound(
-      camera: string size 80 @< Identification the camera library gives
-    ) severity activity low format "Camera found: {}"
-
-    @ No camera is detected at start
-    event CameraNotFound severity warning low format "No camera found"
-
-    @ Count of success replies since start
+    @ Captures that stored a product since start
     telemetry CapturesCompleted: U32
 
-    @ Count of failure replies since start
+    @ Capture commands that failed since start
     telemetry CapturesFailed: U32
 
-    @ Size in bytes of the last delivered JPEG
+    @ Size in bytes of the last stored JPEG
     telemetry LastPictureSize: U32
 
-    @ A camera was detected at the last detection
-    telemetry CameraPresent: bool
+    # ----------------------------------------------------------------------
+    # Data products
+    # ----------------------------------------------------------------------
 
-    @ A delivered picture is not yet returned
-    telemetry PictureOutstanding: bool
+    @ Metrics of one capture
+    product record Metrics: CaptureMetrics
 
+    @ JPEG picture of one capture
+    product record Picture: U8 array
+
+    @ One capture: metrics and picture
+    product container Capture
   }
 }

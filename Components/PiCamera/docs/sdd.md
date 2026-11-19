@@ -3,88 +3,77 @@
 ## 1. Introduction
 
 `PiCamera` manages the Raspberry Pi Camera attached to the CSI port of a
-Raspberry Pi 5. On each capture request it acquires one still picture, encodes
-it as a JPEG, stamps it with the time the frame was acquired and hands it to
-the requester, or reports why it could not. It uses the camera library packaged
-with Raspberry Pi OS and no OpenCV. The camera module is not yet attached to the
-bench: its model, datasheet and identification reply are recorded on arrival.
+Raspberry Pi 5. On a capture command it acquires one picture, encodes it as a
+JPEG, reads the latest temperature, acceleration and location readings with
+their sample times from the telemetry store, derives roll and pitch from the
+acceleration, and writes the picture and the metrics as one data product
+container. Storage and downlink of the container belong to the data product
+components it hands the container to.
 
-Open: camera model, datasheet (title, revision) and identification reply. A camera
-that libcamera does not support reopens REQ-PiCamera-001, 002 and 017.
+Open: camera model, datasheet (title, revision) and the identification the
+camera library reports. The camera is not yet attached to the bench. A camera
+that libcamera does not support reopens REQ-PiCamera-001, 002 and 003.
 
 ## 2. Requirements
 
 | ID | Requirement | Traces to | Verification |
 |---|---|---|---|
-| REQ-PiCamera-001 | A success reply shall carry one picture acquired from the Pi Camera after its request. | REQ-PiSensor-004, REQ-PiSensor-005 | Integration Test |
-| REQ-PiCamera-002 | Each delivered picture shall be one JFIF file, SOI to EOI, `PICTURE_WIDTH` x `PICTURE_HEIGHT` pixels. | REQ-PiSensor-004 | Integration Test |
-| REQ-PiCamera-003 | Each delivered picture shall carry the system time read when its frame arrived. | REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008 | Unit Test |
-| REQ-PiCamera-004 | The component shall answer each capture request with exactly one reply. | REQ-PiSensor-005 | Unit Test |
-| REQ-PiCamera-005 | Each reply shall state success, or the Table 1 reason whose condition occurred. | REQ-PiSensor-005, REQ-PiSensor-028 | Unit Test |
-| REQ-PiCamera-006 | Each reply shall carry the context value of its request. | REQ-PiSensor-005 | Unit Test |
-| REQ-PiCamera-007 | The component shall emit `CaptureStarted` (`ACTIVITY_LO`) once per acquisition, before requesting the camera frame. | REQ-PiSensor-029 | Unit Test |
-| REQ-PiCamera-008 | The component shall reply within `CAPTURE_TIMEOUT_TICKS` ticks of receiving a request. | REQ-PiSensor-010 | Unit Test |
-| REQ-PiCamera-009 | A failure reply shall carry no picture. | REQ-PiSensor-028, REQ-PiSensor-029 | Unit Test |
-| REQ-PiCamera-010 | After a failure reply the component shall hold no picture buffer of that request. | REQ-PiSensor-029 | Unit Test |
-| REQ-PiCamera-011 | Each failure reply shall emit one `CaptureFailed` (`WARNING_LO`) naming its Table 1 reason. | REQ-PiSensor-028 | Unit Test |
-| REQ-PiCamera-012 | A request received before the reply to an earlier request shall get a `BUSY` reply. | Proposal | Unit Test |
-| REQ-PiCamera-013 | A capture shall end with the same reply whether or not requests arrive during it. | Proposal | Unit Test |
-| REQ-PiCamera-014 | A request made after a failure's cause has cleared shall succeed without a restart. | REQ-PiSensor-028 | Integration Test |
-| REQ-PiCamera-015 | The component shall publish each Table 2 channel whenever its value changes. | Proposal | Unit Test |
-| REQ-PiCamera-016 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | REQ-PiSensor-040 | Inspection, Integration Test |
-| REQ-PiCamera-017 | Camera use shall be compliant with the libcamera API of `libcamera-dev` 0.8.0. | REQ-PiSensor-040 | Integration Test |
-| REQ-PiCamera-018 | The component shall release each picture buffer when the requester returns it. | Proposal | Unit Test |
-| REQ-PiCamera-019 | After a restart during a capture, the first request shall succeed. | REQ-PiSensor-029 | Integration Test |
-| REQ-PiCamera-020 | The component shall release only picture buffers it delivered and has not yet released. | Proposal | Unit Test |
-| REQ-PiCamera-021 | A returned buffer the component does not release shall emit `ReturnRejected` (`WARNING_LO`). | Proposal | Unit Test |
-| REQ-PiCamera-022 | By its first `run` tick the component shall emit once `CameraFound` (`ACTIVITY_LO`) carrying the libcamera camera id, or `CameraNotFound` (`WARNING_LO`). | Proposal | Unit Test |
-| REQ-PiCamera-023 | Each `CaptureFailed` shall carry the Table 4 step of its failure and the failing library call's return code, 0 when none failed. | Proposal | Unit Test |
-| REQ-PiCamera-024 | The component shall publish every Table 2 channel once by its first `run` tick. | Proposal | Unit Test |
+| REQ-PiCamera-001 | For each accepted `CAPTURE` command the component shall acquire one picture from the Pi Camera after it receives the command. | REQ-PiSensor-004 | Integration Test |
+| REQ-PiCamera-002 | Each stored picture shall be one JFIF file, SOI to EOI, `PICTURE_WIDTH` x `PICTURE_HEIGHT` pixels. | REQ-PiSensor-004 | Integration Test |
+| REQ-PiCamera-003 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | REQ-PiSensor-004 | Inspection |
+| REQ-PiCamera-004 | Each successful capture shall send exactly one `Capture` container holding one `Picture` record and one `Metrics` record. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-005 | The `Metrics` record shall hold the latitude, longitude and temperature of the latest Table 3 readings, unchanged. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-006 | The `Metrics` record shall hold roll = atan2(ay, az) and pitch = atan2(-ax, sqrt(ay² + az²)) in degrees, from the latest acceleration reading (ax, ay, az). | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-007 | The capture time shall be the system time read when the frame arrives from the camera, stored in the `Metrics` record and as the container time tag. | REQ-PiSensor-006 | Unit Test |
+| REQ-PiCamera-008 | The `Metrics` record shall hold, for location, attitude and temperature, the time tag the telemetry store returns with the reading. | REQ-PiSensor-006 | Unit Test |
+| REQ-PiCamera-009 | The component shall end the wait for a frame `FRAME_TIMEOUT_MS` after the camera starts and fail the capture with `TIMEOUT`. | REQ-PiSensor-007 | Unit Test |
+| REQ-PiCamera-010 | A capture shall fail with `SENSOR_STALE` when a sample time differs from the capture time by more than `METRIC_MAX_AGE_MS` or has another time base. | REQ-PiSensor-014 | Unit Test |
+| REQ-PiCamera-011 | A capture shall fail with `SENSOR_NO_DATA` when the telemetry store returns no value for a Table 3 channel or a value that does not decode. | REQ-PiSensor-014 | Unit Test |
+| REQ-PiCamera-012 | A capture shall fail with `METRIC_INVALID` when a reading holds a non-finite value, a latitude outside ±90, a longitude outside ±180 or an acceleration of magnitude 0. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-013 | A failed capture shall send no container. | REQ-PiSensor-005, REQ-PiSensor-014 | Unit Test |
+| REQ-PiCamera-014 | Each `CAPTURE` command shall get exactly one command response: `OK` after the container is sent, `EXECUTION_ERROR` on failure. | Component | Unit Test |
+| REQ-PiCamera-015 | Each failed `CAPTURE` command shall emit one `CaptureFailed` (`WARNING_HI`) with the Table 1 reason and step of the failure and the failing library call's return code, 0 when none failed. | Component | Unit Test |
+| REQ-PiCamera-016 | A capture shall fail with `NO_CAMERA` when the camera library lists no camera, and with `CAMERA_ERROR` when a camera or JPEG library call fails. | Component | Unit Test |
+| REQ-PiCamera-017 | A capture shall fail with `TOO_LARGE` when the JPEG exceeds `PICTURE_MAX_SIZE` bytes, and with `NO_CONTAINER` when no container buffer is obtained. | Component | Unit Test |
+| REQ-PiCamera-018 | A `CAPTURE` command received before an earlier capture ended shall fail with `BUSY` and shall not change the earlier capture's result. | Component | Unit Test |
+| REQ-PiCamera-019 | After a failed capture, the next capture shall succeed without a restart once the cause is gone. | Component | Unit Test |
+| REQ-PiCamera-020 | Each accepted `CAPTURE` command shall emit one `CaptureStarted` (`ACTIVITY_LO`) before acquisition, and each successful capture one `CaptureCompleted` (`ACTIVITY_HI`) with the JPEG size. | Component | Unit Test |
+| REQ-PiCamera-021 | The component shall publish each Table 2 channel whenever its value changes. | Component | Unit Test |
+| REQ-PiCamera-022 | The component shall answer each health ping from its thread with the key it received. | Component | Unit Test |
 
-Every system requirement allocated to this component (REQ-PiSensor-004, 005, 006, 007, 008, 010, 028, 029, 040) is reached by a row. A `Proposal` row derives from no allocated system requirement; it is proposed by the writer and decided at the Approve SDD gate.
+`Traces to` names the system requirement a row derives from. `Component` marks
+fault, warning and reporting behaviour the system design assigns to this
+component without a system requirement.
 
-Table 1: failure reasons.
+Table 1: failure reasons and steps. `BUSY` is decided on receipt of the command, before any other reason; the others in the order of section 3.5.
 
-| Reason | Condition |
-|---|---|
-| `NO_CAMERA` | No camera is detected |
-| `CAMERA_ERROR` | The camera, its library or the JPEG encoding reports an error or yields no complete picture |
-| `TIMEOUT` | No picture was ready within `CAPTURE_TIMEOUT_TICKS` ticks of the request |
-| `NO_BUFFER` | No picture buffer is available |
-| `PICTURE_OUTSTANDING` | The last delivered picture is not yet returned |
-| `TOO_LARGE` | The JPEG does not fit the picture buffer |
-| `BUSY` | An earlier request has no reply yet |
-
-`BUSY` and `PICTURE_OUTSTANDING` are decided on receipt, before any other reason.
+| Reason | Meaning | Steps |
+|---|---|---|
+| `BUSY` | An earlier capture has not ended | `RECEIVE` |
+| `NO_CAMERA` | The camera library lists no camera | `DETECT` |
+| `CAMERA_ERROR` | A camera or JPEG library call failed | `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` |
+| `TIMEOUT` | No frame within `FRAME_TIMEOUT_MS` | `FRAME` |
+| `SENSOR_NO_DATA` | No usable reading in the telemetry store | `TEMPERATURE`, `ATTITUDE`, `LOCATION` |
+| `SENSOR_STALE` | Sample time too far from the capture time | `TEMPERATURE`, `ATTITUDE`, `LOCATION` |
+| `METRIC_INVALID` | A reading holds a value outside its range | `TEMPERATURE`, `ATTITUDE`, `LOCATION` |
+| `TOO_LARGE` | JPEG larger than `PICTURE_MAX_SIZE` | `ENCODE` |
+| `NO_CONTAINER` | No container buffer obtained | `CONTAINER` |
 
 Table 2: telemetry.
 
 | Channel | Content |
 |---|---|
-| `CapturesCompleted` | Count of success replies since start |
-| `CapturesFailed` | Count of failure replies since start |
-| `LastPictureSize` | Size in bytes of the last delivered JPEG, 0 before the first |
-| `CameraPresent` | A camera was detected at the last detection |
-| `PictureOutstanding` | A delivered picture is not yet returned |
+| `CapturesCompleted` | Captures that sent a container since start |
+| `CapturesFailed` | `CAPTURE` commands that failed since start |
+| `LastPictureSize` | Size in bytes of the last stored JPEG |
 
-Table 3: constants.
+Table 3: readings taken from the telemetry store.
 
-| Constant | Value | Meaning |
-|---|---|---|
-| `CAPTURE_TIMEOUT_TICKS` | 10 | Ticks of the `run` port from receipt of a request to its reply |
-| `PICTURE_WIDTH`, `PICTURE_HEIGHT` | 640, 480 | Picture size in pixels |
-
-Table 4: failure steps.
-
-| Reason | Steps |
-|---|---|
-| `BUSY` | `RECEIVE` |
-| `PICTURE_OUTSTANDING` | `RETURN` |
-| `NO_CAMERA` | `DETECT` |
-| `CAMERA_ERROR` | `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` |
-| `NO_BUFFER` | `ALLOCATE` |
-| `TOO_LARGE` | `ENCODE` |
-| `TIMEOUT` | `TICKS` |
+| Metric | Channel | Type | Fields used |
+|---|---|---|---|
+| Temperature | `Bmp280.bmpManager.Reading` | `Bmp280.Bmp280Data` | `temperature` (°C) |
+| Attitude | `MpuImu.imuManager.Reading` | `MpuImu.ImuData` | `acceleration` x, y, z |
+| Location | `NmeaGps.gpsManager.Reading` | `NmeaGps.GpsData` | `latitude`, `longitude` (degrees) |
 
 External References
 
@@ -93,6 +82,9 @@ External References
 | libcamera public API | `libcamera-dev` 0.8.0+rpt20261104-1, Raspberry Pi OS 13 (trixie) archive | Other | camera discovery, configuration, frame request |
 | libjpeg-turbo API | `libjpeg62-turbo-dev` 1:2.1.5-4, Debian 13 (trixie) main, as shipped by Raspberry Pi OS 13 | Other | JPEG compression calls |
 | JPEG File Interchange Format | JFIF 1.02; ITU-T T.81 | Standard | picture encoding |
+| F Prime data products | `nasa/fprime` `devel@83221ba`, `Fw/Dp`, `Svc/DpManager`, `Svc/DpWriter` | Other | container format, buffer and send ports |
+| F Prime telemetry store | `nasa/fprime` `devel@83221ba`, `Svc/TlmChan` port `TlmGet` | Other | latest channel value and time tag |
+| Sensor reading types | `fprime-community/fprime-sensors@e5d83d1`, `Bmp280`, `MpuImu`, `NmeaGps` `Types.fpp` | Other | layout and units of the Table 3 readings |
 
 ## 3. Design
 
@@ -100,15 +92,15 @@ External References
 
 ```
                            ┌────────────────────┐
-captureIn :               [ ]                  [ ] imageOut : PiSensor.CaptureReply
-PiSensor.CaptureRequest    │                    │
-imageReturnIn :           [ ]     PiCamera     [ ] allocate : Fw.BufferGet
-Fw.BufferSend              │      (active)      │
-run : Svc.Sched           [ ]                  [ ] deallocate : Fw.BufferSend
+cmdIn : Fw.Cmd            [ ]                  [ ] tlmGetOut : Fw.TlmGet
+                           │      PiCamera      │
+pingIn : Svc.Ping         [ ]     (active)     [ ] productGetOut : Fw.DpGet
                            │                    │
-pingIn : Svc.Ping         [ ]                  [ ] pingOut : Svc.Ping
+                           │                   [ ] productSendOut : Fw.DpSend
+                           │                    │
+                           │                   [ ] pingOut : Svc.Ping
                            └────────────────────┘
-  special ports: eventOut, textEventOut, tlmOut, timeGetOut
+  special ports: cmdRegOut, cmdResponseOut, eventOut, textEventOut, tlmOut, timeGetOut
 ```
 
 `PiCamera` is an active component: its thread makes the camera calls, which take seconds.
@@ -117,57 +109,41 @@ pingIn : Svc.Ping         [ ]                  [ ] pingOut : Svc.Ping
 
 | Name | Kind | Type | Purpose |
 |---|---|---|---|
-| `captureIn` | guarded input | `PiSensor.CaptureRequest` | Request for one picture |
-| `imageOut` | output | `PiSensor.CaptureReply` | One reply per request; connects to an async input |
-| `imageReturnIn` | guarded input | `Fw.BufferSend` | Delivered picture buffer comes back |
-| `run` | guarded input | `Svc.Sched` | 1 Hz tick that counts the capture timeout |
-| `allocate` | output | `Fw.BufferGet` | Gets the picture buffer |
-| `deallocate` | output | `Fw.BufferSend` | Releases the picture buffer |
+| `cmdIn` | command recv | `Fw.Cmd` | `CAPTURE`, a guarded command |
+| `tlmGetOut` | output | `Fw.TlmGet` | Latest value and time tag of a Table 3 channel |
+| `productGetOut` | product get | `Fw.DpGet` | Gets the container buffer, synchronously |
+| `productSendOut` | product send | `Fw.DpSend` | Sends the filled container |
 | `pingIn`, `pingOut` | async input (drop), output | `Svc.Ping` | Health ping of the component thread |
-| `detect` | internal, drop | — | Camera detection at start |
-| `acquire` | internal, drop | — | Camera work of one capture |
-| `abort` | internal, drop | — | Camera teardown of a capture that timed out |
-| `frameDone` | internal, drop | — | Camera library thread reports the frame |
+| `acquire` | internal, drop | — | Work of one capture, on the component thread |
 
-`CaptureStatus`, `CaptureRequest` and `CaptureReply` are in `Components/CapturePorts`, a library of their own, so a requester does not link the camera library.
-
-`CaptureReply` carries `context: U32`, `status: CaptureStatus`, `acquired: Fw.Time` and `picture: Fw.Buffer`; the size of `picture` is the JPEG length in bytes.
-
-Pattern: guarded front, worker thread. Requests, returns and the timeout are decided in the caller's thread under the guard; only camera-library calls run on the component thread, so a stuck library call cannot delay a reply.
-
-Three threads enter the component.
+Two threads enter the component.
 
 | Thread | Runs | Touches |
 |---|---|---|
-| Caller of a guarded port | `captureIn`, `imageReturnIn`, `run` | Table of 3.3, under the component guard |
-| Component thread | `detect`, `acquire`, `abort`, `frameDone`, `pingIn` | Camera interface, outside the guard; table of 3.3 and the encoder, under the guard |
-| Camera library thread | Frame callback of the camera interface | Reads the time, counts settle frames, sends `frameDone`; no member of 3.3 |
+| Command dispatcher | `CAPTURE` handler | `m_busy`, under the component guard |
+| Component thread | `acquire`, `pingIn` | Everything else; `m_busy` under the guard |
 
 ### 3.3 State
 
 | Member | Values | Meaning |
 |---|---|---|
-| `m_state` | `IDLE`, `ACQUIRING` | A request without a reply exists |
-| `m_context` | U32 | Context of the request in `ACQUIRING` |
-| `m_capture` | U32 | Number of the current capture; compared for equality only |
-| `m_ticks` | 0..`CAPTURE_TIMEOUT_TICKS` | Ticks since receipt of the request in `ACQUIRING` |
-| `m_delivered` | `Fw.Buffer` or invalid | The delivered picture not yet returned |
+| `m_busy` | bool | A capture is accepted and has not ended |
+| `m_opCode`, `m_cmdSeq` | — | Command the capture answers |
+| `m_jpeg` | `PICTURE_MAX_SIZE` bytes | Encoded picture until it is copied into the container |
 | `m_completed`, `m_failed` | U32 | Counts behind `CapturesCompleted`, `CapturesFailed`; wrap to 0 after 4294967295 |
-| `m_detected` | bool | `detect` was sent |
+| `m_channels` | 3 channel identifiers | Table 3 channels, set by `configure` |
 
-At start `m_state` is `IDLE`, `m_delivered` is invalid, the counts are 0 and the camera is closed, whatever an earlier run left.
+At start `m_busy` is false, the counts are 0 and the camera is closed. Nothing is kept across a restart.
 
-The camera interface is closed, open or started, and only the component thread changes it. It is left open or started only for the current capture, between its `acquire` and its `frameDone` or `abort`.
+The camera is closed outside `acquire`: every capture opens it and closes it again, on success and on failure.
 
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-    IDLE --> ACQUIRING: request
-    IDLE --> IDLE: request, picture outstanding (PICTURE_OUTSTANDING)
-    ACQUIRING --> ACQUIRING: request (BUSY)
-    ACQUIRING --> IDLE: picture encoded (OK)
-    ACQUIRING --> IDLE: camera step fails, no buffer, JPEG too large
-    ACQUIRING --> IDLE: tick CAPTURE_TIMEOUT_TICKS (TIMEOUT)
+    IDLE --> CAPTURING: CAPTURE
+    CAPTURING --> CAPTURING: CAPTURE (BUSY)
+    CAPTURING --> IDLE: container sent (OK)
+    CAPTURING --> IDLE: a step fails (Table 1)
 ```
 
 ### 3.4 Configuration and Setup
@@ -175,180 +151,162 @@ stateDiagram-v2
 ```fpp
 constant PICTURE_WIDTH = 640
 constant PICTURE_HEIGHT = 480
-constant PICTURE_BUFFER_SIZE = 262144
-constant CAPTURE_TIMEOUT_TICKS = 10
+constant PICTURE_MAX_SIZE = 262144
+constant FRAME_TIMEOUT_MS = 10000
 constant SETTLE_FRAMES = 10
+constant METRIC_MAX_AGE_MS = 2000
 ```
 
-Picture size, size of the buffer asked per capture, reply limit in ticks, and the frames discarded while exposure settles.
+Picture size, largest JPEG, longest wait for the frame, frames discarded while exposure settles, and the largest difference between a sample time and the capture time.
 
 ```fpp
-instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 10 stack size 1048576 priority 30
+instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 5 stack size 1048576 priority 30
 ```
 
-The instance of the system sketch with a larger queue and stack; `run` connects to the 1 Hz rate group.
+`configure(temperatureChannel, attitudeChannel, locationChannel)` is called once before the component thread starts, with the identifiers of the Table 3 channels in the topology.
 
-`allocate` and `deallocate` connect to one `Svc.BufferManager` that holds at least one buffer of `PICTURE_BUFFER_SIZE` bytes for this component; the component holds at most one.
+| Port | Connects to |
+|---|---|
+| `tlmGetOut` | `CdhCore.tlmSend.TlmGet` |
+| `productGetOut` | `DataProducts.Subtopology.productGetIn` |
+| `productSendOut` | `DataProducts.Subtopology.productSendIn` |
+| `pingIn`, `pingOut` | `CdhCore.$health` |
 
-The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `stop`, `close`, frame access) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
+The buffers of `DataProducts.Subtopology` hold at least one `Capture` container: `PICTURE_MAX_SIZE` bytes plus the `Metrics` record and the container overhead (`DataProductsConfig.BuffMgr.dpBufferStoreSize`).
 
-### 3.5 Port Handlers
+The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `waitFrame`, `stop`, `close`) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
 
-#### captureIn
+### 3.5 Handlers
 
-Admitted always. In `ACQUIRING` it replies `BUSY`; with a picture outstanding it replies `PICTURE_OUTSTANDING`. Otherwise it takes the next capture number, zeroes `m_ticks`, enters `ACQUIRING`, emits `CaptureStarted` and sends `acquire`.
+#### CAPTURE
+
+Under the guard: when `m_busy` is set it emits `CaptureFailed(BUSY, RECEIVE, 0)` and responds `EXECUTION_ERROR`. Otherwise it sets `m_busy`, keeps the opcode and sequence number, emits `CaptureStarted` and sends `acquire`.
 
 #### acquire
 
-It first closes a camera left open. Admitted further when its capture number is current: it detects, opens, configures and starts the camera outside the guard. A step that fails closes the camera and, when the capture is still current, replies `NO_CAMERA` or `CAMERA_ERROR`.
+It runs the steps below in order. The first step that fails closes the camera, emits `CaptureFailed` with its Table 1 reason and step, counts the failure, responds `EXECUTION_ERROR` and clears `m_busy`; no later step runs.
 
-#### frameDone
+1. Detect, open, configure and start the camera (`DETECT`, `OPEN`, `CONFIGURE`, `START`).
+2. Wait for the frame, at most `FRAME_TIMEOUT_MS` (`FRAME`). The camera interface discards `SETTLE_FRAMES` frames and hands over the next one.
+3. Read the system time: the capture time.
+4. Read the three Table 3 channels through `tlmGetOut` and check each one in the order `TEMPERATURE`, `ATTITUDE`, `LOCATION`: a value is present and decodes, its time tag is within `METRIC_MAX_AGE_MS` of the capture time, its fields are in range. Compute roll and pitch.
+5. Encode the frame as a JPEG into `m_jpeg` (`ENCODE`), then stop and close the camera.
+6. Get a `Capture` container buffer for the two records through `productGetOut` (`CONTAINER`).
+7. Write the `Metrics` record and the `Picture` record, set the container time tag to the capture time and send the container through `productSendOut`.
+8. Count the capture, publish the channels, emit `CaptureCompleted`, respond `OK` and clear `m_busy`.
 
-The camera interface discards `SETTLE_FRAMES` frames, reports the next one once and keeps its pixels unchanged until `close`.
+The readings are read after the frame arrives and before encoding, so their age does not include the encoding time.
 
-Admitted when its capture number is current; a report of another capture is discarded and touches nothing.
-
-The handler stops the camera. Under the guard, when its capture number is still current, it gets a buffer, encodes the frame into it and replies `OK` with the reported time, or releases the buffer and replies `CAMERA_ERROR`, `NO_BUFFER` or `TOO_LARGE`. It then closes the camera.
-
-The guard is held from allocation to reply, so a tick cannot end a capture whose buffer is in use. The hold is bounded by the encoding of one `PICTURE_WIDTH` x `PICTURE_HEIGHT` frame; no camera call and no wait happens under the guard, and guarded handlers make no camera call. The guard is held for at most 100 ms, measured on the target in DEVELOPMENT; a measurement above that moves encoding outside the guard behind an `ENCODING` state in which a tick does not end the capture.
-
-#### run
-
-The first tick sends `detect`. In `ACQUIRING` it counts a tick and at `CAPTURE_TIMEOUT_TICKS` replies `TIMEOUT`, enters `IDLE` and sends `abort`, also while the component thread is inside a camera call.
-
-#### abort
-
-It stops and closes the camera when the camera of its capture is still open.
-
-#### detect
-
-It detects the camera, emits `CameraFound` with the library's identification or `CameraNotFound`, and publishes every channel once.
-
-#### imageReturnIn
-
-Admitted when the buffer's data pointer is that of the delivered picture. It releases the buffer and forgets it; any other buffer is left alone and emits `ReturnRejected`.
+`m_busy` is set and cleared under the guard; no camera call, port call or wait happens while the guard is held.
 
 #### pingIn
 
 It echoes the key on `pingOut`.
 
-Every reply publishes the channels it changed. Every failure reply emits `CaptureFailed` with its reason, its step and the library return code; each reason and step pair of Table 4 has one emission site.
-
 ## 4. Data Product Format
 
-None; the picture leaves through `imageOut` and the requester builds the data product.
+Container `Capture`, one per successful capture, default priority, no processing. Its time tag is the capture time.
+
+| Record | Type | Content |
+|---|---|---|
+| `Metrics` | `CaptureMetrics` | Capture time, metrics and their sample times |
+| `Picture` | `U8` array | The JPEG, SOI to EOI; the array size is the JPEG length |
+
+`CaptureMetrics`, in serialization order:
+
+| Field | Type | Unit | Content |
+|---|---|---|---|
+| `captureTime` | `Fw.TimeValue` | — | Time the frame arrived |
+| `latitude` | F64 | degrees, north positive | From `NmeaGps.GpsData` |
+| `longitude` | F64 | degrees, east positive | From `NmeaGps.GpsData` |
+| `locationTime` | `Fw.TimeValue` | — | Sample time of latitude and longitude |
+| `roll` | F32 | degrees | Derived from the acceleration |
+| `pitch` | F32 | degrees | Derived from the acceleration |
+| `attitudeTime` | `Fw.TimeValue` | — | Sample time of the acceleration |
+| `temperature` | F32 | °C | From `Bmp280.Bmp280Data` |
+| `temperatureTime` | `Fw.TimeValue` | — | Sample time of the temperature |
 
 ## 5. Ground Interface
 
-The component has no commands and no parameters.
+| Command | Kind | Arguments | Action |
+|---|---|---|---|
+| `CAPTURE` | guarded | — | Acquire one picture and store it with the latest metrics as one data product |
 
 | Telemetry | Type | Content |
 |---|---|---|
-| `CapturesCompleted` | U32 | Count of success replies since start |
-| `CapturesFailed` | U32 | Count of failure replies since start |
-| `LastPictureSize` | U32 | Size in bytes of the last delivered JPEG |
-| `CameraPresent` | bool | A camera was detected at the last detection |
-| `PictureOutstanding` | bool | A delivered picture is not yet returned |
+| `CapturesCompleted` | U32 | Captures that sent a container since start |
+| `CapturesFailed` | U32 | `CAPTURE` commands that failed since start |
+| `LastPictureSize` | U32 | Size in bytes of the last stored JPEG |
 
 | Event | Severity | Arguments | Meaning |
 |---|---|---|---|
-| `CaptureStarted` | `ACTIVITY_LO` | `context` | Acquisition of a picture begins |
-| `CaptureFailed` | `WARNING_LO` | `context`, `reason`, `step`, `code` | A request got a failure reply |
-| `ReturnRejected` | `WARNING_LO` | `bytes` | A returned buffer was not released |
-| `CameraFound` | `ACTIVITY_LO` | `camera` | A camera is detected at start |
-| `CameraNotFound` | `WARNING_LO` | — | No camera is detected at start |
+| `CaptureStarted` | `ACTIVITY_LO` | — | A `CAPTURE` command is accepted; acquisition begins |
+| `CaptureCompleted` | `ACTIVITY_HI` | `bytes` | The container was sent; `bytes` is the JPEG size |
+| `CaptureFailed` | `WARNING_HI` | `reason`, `step`, `code` | A `CAPTURE` command failed |
+
+The component has no parameters.
 
 ## 6. Example Uses
 
 ```mermaid
 sequenceDiagram
-    participant R as Requester
-    participant C as PiCamera
-    participant B as Buffer provider
-    participant L as Camera library
-    R->>C: captureIn(context)
-    C-->>R: event CaptureStarted
+    participant G as cmdDisp
+    participant C as piCamera
+    participant L as camera library
+    participant T as tlmSend
+    participant D as dpMgr
+    G->>C: CAPTURE
+    C-->>G: event CaptureStarted
     C->>L: detect, open, configure, start
-    L-->>C: frameDone(capture, ok, acquired)
-    C->>L: stop
-    C->>B: allocate(PICTURE_BUFFER_SIZE)
-    C->>R: imageOut(context, OK, acquired, picture)
-    C->>L: close
-    R->>C: imageReturnIn(picture)
-    C->>B: deallocate(picture)
+    L-->>C: frame
+    C->>T: TlmGet x 3
+    T-->>C: readings and time tags
+    C->>L: stop, close
+    C->>D: productGetOut
+    D-->>C: container buffer
+    C->>D: productSendOut (Metrics, Picture)
+    C-->>G: event CaptureCompleted, response OK
 ```
+
+A capture with the GPS receiver silent ends after step 4 with `CaptureFailed(SENSOR_STALE, LOCATION, 0)` or, when the receiver never reported, `CaptureFailed(SENSOR_NO_DATA, LOCATION, 0)`, a command response `EXECUTION_ERROR` and no container.
 
 ## 7. Idiosyncrasies
 
-| Failure or limit | Owner |
-|---|---|
-| Camera model, sensor modes and identification reply | Recorded when the camera is attached; `CameraFound` reports it |
-| Requester never returns a picture: later requests get `PICTURE_OUTSTANDING` | Requester |
-| Component thread stuck in a camera call: requests get `TIMEOUT`, health ping fails | System health |
-| Longest camera call expected is under 2 s; the ping limits of `piCamera` are set above it | Topology |
-| Constants change by rebuild only | Deployment |
-| Guard held during encoding delays the 1 Hz rate group and the requester by the encoding time | Component (bound in 3.5) |
-| Picture content (exposure, focus, scene) | Not judged |
-| Command failure, `WARNING_HI` event and product removal after a failure reply | Requester |
-
-Differences from the system sketch:
-
-- `imageOut` is `PiSensor.CaptureReply`, so the reply carries status and acquisition time; the requester's input changes with it.
-- `captureIn` and `imageReturnIn` are guarded, so refusals and returns need no queue.
-- `run` joins the 1 Hz rate group, so the timeout is counted off the component thread.
-- `pingIn` and `pingOut` join the health pattern.
-- One delivered picture is outstanding at a time.
+- The command response `OK` means the container was handed to the data product components. The file is written later by `dpWriter`, which reports `FileWritten` or a write error with its own events; the component does not learn of a write failure.
+- `NmeaGps.GpsData` has no fix flag. Without a fix the receiver's channel is not updated, so a capture fails with `SENSOR_STALE` or `SENSOR_NO_DATA` at `LOCATION`.
+- Roll and pitch assume the sensor is at rest; under acceleration they are wrong by the angle between the measured acceleration and gravity. Yaw is not available.
+- A `CAPTURE` command is refused with `BUSY` from its acceptance until the earlier capture's response, at most `FRAME_TIMEOUT_MS` plus the camera start and encoding times.
+- A camera library call other than the frame wait that does not return blocks the component thread; the health ping then goes unanswered and later `CAPTURE` commands get `BUSY`.
+- `PICTURE_WIDTH`, `PICTURE_HEIGHT`, `PICTURE_MAX_SIZE`, `FRAME_TIMEOUT_MS`, `SETTLE_FRAMES` and `METRIC_MAX_AGE_MS` are compile-time constants; changing one needs a rebuild.
+- The picture is held twice during a capture: in `m_jpeg` and in the container.
 
 ## 8. Tests
 
-<!-- fth:tests:begin -->
-_Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the package renderer fails when this table and the plan disagree._
+REQ-PiCamera-001 and 002 are verified on the bench by the system tests of the project (`test/int/plan.json`, tests L2-3 to L2-6), which read the picture record of the downlinked product. REQ-PiCamera-003 is verified by inspection of the build inputs and of the libraries the image links.
 
-| Test | Purpose | Requirements |
+Unit tests substitute the camera interface, the telemetry store and the data product ports.
+
+| Unit test | Description | Requirements |
 |---|---|---|
-| L0-1 | Proves the running image is the manifest's image. | — |
-| L0-2 | Proves the image runs the packaged libcamera of the pinned version and links no OpenCV. | REQ-PiCamera-016, REQ-PiCamera-017 |
-| L0-3 | Proves the bench can make the camera unavailable and available without a process restart. | — |
-| L0-4 | Proves a capture lasts long enough for the bench to act between CaptureStarted and the reply. | — |
-| L0-5 | Proves the bench holder process owns the camera within the settle time the fault test uses. | — |
-| L2-1 | Proves a capture request delivers one 640x480 JFIF picture acquired after the request. | REQ-PiCamera-001, REQ-PiCamera-002, REQ-PiCamera-017 |
-| L2-2 | Proves each capture delivers a newly acquired 640x480 JFIF picture. | REQ-PiCamera-001, REQ-PiCamera-002, REQ-PiCamera-017 |
-| L3-1 | Proves the first capture after a process kill during a capture succeeds. | REQ-PiCamera-019 |
-| L3-2 | Proves the first capture after a service restart during a capture succeeds. | REQ-PiCamera-019 |
-| L5-1 | Proves an absent camera gives NO_CAMERA and the next capture succeeds without a restart. | REQ-PiCamera-014 |
-| L5-2 | Proves a camera in use elsewhere gives CAMERA_ERROR and the next capture succeeds without a restart. | REQ-PiCamera-014 |
-| L7-1 | Leaves the final-state record: the last picture on board is the 640x480 JFIF picture received at the ground. | REQ-PiCamera-001, REQ-PiCamera-002 |
-<!-- fth:tests:end -->
-
-### Unit-test list
-
-| Test | Description | Requirements |
-|---|---|---|
-| CaptureDeliversPicture | A request with a good frame gets one `OK` reply carrying the encoded picture. | REQ-PiCamera-004, REQ-PiCamera-005 |
-| AcquisitionTimeIsFrameTime | The reply carries the system time read when the frame arrived. | REQ-PiCamera-003 |
-| ReplyEchoesContext | Success and every failure reply carry the context of their request. | REQ-PiCamera-006 |
-| CaptureStartedOncePerAcquisition | `CaptureStarted` is emitted once, before the camera is asked for a frame. | REQ-PiCamera-007 |
-| NoCameraFails | No camera detected gives one `NO_CAMERA` reply, event and no buffer held. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
-| CameraErrorFails | Each camera step error and a bad frame give `CAMERA_ERROR`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
-| TimeoutFails | No frame gives `TIMEOUT` at tick `CAPTURE_TIMEOUT_TICKS`, not before. | REQ-PiCamera-005, REQ-PiCamera-008, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
-| TimeoutDuringCameraCall | A tick at `CAPTURE_TIMEOUT_TICKS` while `acquire` has not run replies `TIMEOUT`; the later camera result sends no reply and closes the camera. | REQ-PiCamera-004, REQ-PiCamera-008, REQ-PiCamera-010 |
-| LateFrameOfEarlierCaptureIgnored | A frame report of a timed-out capture does not answer the next request and does not stop its camera. | REQ-PiCamera-004, REQ-PiCamera-005, REQ-PiCamera-013 |
-| TimeoutClosesCamera | `TIMEOUT` while waiting for a frame closes the camera before the next capture opens it. | REQ-PiCamera-014 |
-| AbortDroppedStillCloses | With `abort` dropped, the next `acquire` closes the camera left open. | REQ-PiCamera-014 |
-| NoBufferFails | An invalid or short allocation gives `NO_BUFFER`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011 |
-| PictureOutstandingFails | A request before the delivered picture returns gives one `PICTURE_OUTSTANDING` reply with an invalid buffer and one `CaptureFailed(reason=PICTURE_OUTSTANDING)`. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011 |
-| TooLargeFails | A JPEG larger than the buffer gives `TOO_LARGE` and the buffer is released. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-010, REQ-PiCamera-011 |
-| BusyDuringCapture | A request during a capture gets one `BUSY` reply with an invalid buffer and one `CaptureFailed(reason=BUSY)`, and the capture ends with the same reply. | REQ-PiCamera-005, REQ-PiCamera-009, REQ-PiCamera-011, REQ-PiCamera-012, REQ-PiCamera-013 |
-| AcquireDroppedTimesOut | A request whose `acquire` finds the queue full gets `TIMEOUT`. | REQ-PiCamera-004, REQ-PiCamera-008 |
-| FailureStepAndCode | Each failure site emits its own step value and the library return code. | REQ-PiCamera-023 |
-| CameraReportedAtStart | The first tick gives `CameraFound` with the identification, or `CameraNotFound`, once, and every channel. | REQ-PiCamera-022, REQ-PiCamera-024 |
-| CameraClosedAfterEachCapture | Success and each failure leave the camera closed. | REQ-PiCamera-014 |
-| PingEchoed | A ping returns its key. | — |
-| TelemetryOnChange | Each reply, return and detection publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-015 |
-| ReturnReleasesPicture | Returning the delivered picture releases it once and allows the next capture. | REQ-PiCamera-018 |
-| UnknownReturnRejected | A buffer not delivered, or returned twice, is not released and emits `ReturnRejected`. | REQ-PiCamera-020, REQ-PiCamera-021 |
-| RunWhileIdle | Ticks in `IDLE` after the first send no reply, event or telemetry. | REQ-PiCamera-004 |
-| RandomRequestsAndFaults | Random requests, frames, ticks and returns keep one reply per request and no leaked buffer. | REQ-PiCamera-004, REQ-PiCamera-010, REQ-PiCamera-018 |
-| REQ-PiCamera-016 | No unit test: inspection of the build inputs; L0-2 judges the linked libraries. | REQ-PiCamera-016 |
+| NominalCapture | A capture sends one container with one `Metrics` and one `Picture` record holding the substitute's JPEG, and responds `OK` once. | REQ-PiCamera-004, REQ-PiCamera-014 |
+| MetricsCopied | Latitude, longitude and temperature in the record equal the readings in the store. | REQ-PiCamera-005 |
+| RollPitch | Roll and pitch equal the formula for accelerations along +x, -x, +y, -y, +z, -z and one oblique vector. | REQ-PiCamera-006 |
+| CaptureTime | The capture time in the record and the container time tag equal the time set when the substitute hands over the frame, not the command time. | REQ-PiCamera-007 |
+| SampleTimes | The three sample times in the record equal three different time tags in the store. | REQ-PiCamera-008 |
+| FrameTimeout | No frame: the wait is asked for `FRAME_TIMEOUT_MS` and the capture fails with `TIMEOUT` at `FRAME`. | REQ-PiCamera-009, REQ-PiCamera-015 |
+| StaleReading | For each channel: a time tag `METRIC_MAX_AGE_MS` from the capture time passes, 1 ms more fails with `SENSOR_STALE`, earlier and later; another time base fails. | REQ-PiCamera-010, REQ-PiCamera-013 |
+| MissingReading | For each channel: invalid status, empty value and a value too short to decode fail with `SENSOR_NO_DATA` at its step. | REQ-PiCamera-011, REQ-PiCamera-013 |
+| InvalidMetric | NaN and infinity in each field, latitude ±90 passes and beyond fails, longitude ±180 passes and beyond fails, acceleration (0, 0, 0) fails, with `METRIC_INVALID`. | REQ-PiCamera-012, REQ-PiCamera-013 |
+| NoCamera | No camera listed fails with `NO_CAMERA` at `DETECT`. | REQ-PiCamera-016, REQ-PiCamera-015 |
+| CameraErrors | A failure at each of `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` fails with `CAMERA_ERROR`, that step and the substitute's return code, and closes the camera. | REQ-PiCamera-016, REQ-PiCamera-015 |
+| TooLarge | A JPEG of `PICTURE_MAX_SIZE` bytes passes; one byte more fails with `TOO_LARGE`. | REQ-PiCamera-017 |
+| NoContainer | A failed container request fails with `NO_CONTAINER`; nothing is sent. | REQ-PiCamera-017, REQ-PiCamera-013 |
+| FailureResponse | Every failure above gives one `EXECUTION_ERROR` response, one `CaptureFailed`, no `CaptureCompleted` and no container. | REQ-PiCamera-013, REQ-PiCamera-014, REQ-PiCamera-015 |
+| BusyDuringCapture | A `CAPTURE` during a capture gets `BUSY` at `RECEIVE` and one `EXECUTION_ERROR`; the capture in progress ends with the same container as without it. | REQ-PiCamera-018, REQ-PiCamera-014 |
+| RecoveryAfterFailure | After each failure reason, a capture with the cause removed succeeds. | REQ-PiCamera-019 |
+| Events | An accepted capture emits `CaptureStarted` once before the first camera call; a success emits `CaptureCompleted` with the JPEG size. | REQ-PiCamera-020 |
+| TelemetryOnChange | Each success and failure publishes the Table 2 channels it changed, with their values. | REQ-PiCamera-021 |
+| Ping | A ping is echoed with its key. | REQ-PiCamera-022 |
+| RandomSequences | Random sequences of captures, busy commands and injected failures keep one response per command and the counts equal to the responses. | REQ-PiCamera-014, REQ-PiCamera-018, REQ-PiCamera-021 |
 
 Component Development Checklist: [checklist.md](checklist.md)
