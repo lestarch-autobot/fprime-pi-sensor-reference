@@ -13,7 +13,8 @@ one ``bench.json`` line:
   gds       run the RFM69 bridge and fprime-yamcs until terminated
   recorder  write the events and channels YAMCS receives as event.log and
             channel.log
-  send      send one command through YAMCS and write command.log
+  send      send one command through YAMCS and write command.log; a command the
+            unit does not report as dispatched is sent again (resend.log)
   action    bench actions on the Pi: fsw-restart, camera-hold, camera-release
   stop      stop the image on the Pi (bench release)
 
@@ -28,6 +29,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import shlex
 import signal
 import subprocess
@@ -85,15 +87,33 @@ def time_fields(iso: str) -> str:
 # Unit under test on the Pi
 # ----------------------------------------------------------------------
 
+def stop_recorded(args, pid_file: str, executable: str) -> None:
+    """Stop the process a pid file of this adapter names, only while it still runs ``executable``.
+
+    A pid file can outlive its process, and the number can be reused by another user of the Pi.
+    """
+    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} 2>/dev/null || exit 0; [ -f {pid_file} ] || exit 0; "
+                 f"pid=$(cat {pid_file}); want=$(readlink -f {shlex.quote(executable)}); "
+                 f"if [ -n \"$want\" ] && [ \"$(readlink /proc/$pid/exe 2>/dev/null)\" = \"$want\" ]; then "
+                 f"kill $pid; for i in 1 2 3 4 5 6; do kill -0 $pid 2>/dev/null || break; sleep 0.5; done; "
+                 f"if kill -0 $pid 2>/dev/null && [ \"$(readlink /proc/$pid/exe 2>/dev/null)\" = \"$want\" ]; "
+                 f"then kill -9 $pid; fi; fi; rm -f {pid_file}")
+
+
+def confirm_running(args, pid_file: str, what: str) -> None:
+    alive = ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && kill -0 $(cat {pid_file}) 2>/dev/null && echo alive; true")
+    if "alive" not in alive:
+        raise SystemExit(f"{what} is not running on {args.pi}")
+
+
 def pi_stop(args) -> None:
-    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} 2>/dev/null || exit 0; "
-                 f"if [ -f {PI_PID} ]; then kill $(cat {PI_PID}) 2>/dev/null; sleep 2; "
-                 f"kill -9 $(cat {PI_PID}) 2>/dev/null; rm -f {PI_PID}; fi; true")
+    stop_recorded(args, PI_PID, "PiSensor")
 
 
 def pi_start(args) -> None:
     ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && mkdir -p run && cd run && "
-                 f"(nohup ../PiSensor >> fsw.log 2>&1 < /dev/null & echo $! > ../{PI_PID})")
+                 f"(nohup ../PiSensor >> fsw.log 2>&1 < /dev/null & echo $! > ../{PI_PID}); sleep 1")
+    confirm_running(args, PI_PID, "the image")
 
 
 def cmd_flash(args) -> None:
@@ -130,6 +150,7 @@ def cmd_action(args) -> None:
         ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && "
                      f"(nohup rpicam-hello -n -t {int(args.seconds) * 1000} > camera-hold.log 2>&1 < /dev/null & "
                      f"echo $! > {HOLD_PID}); sleep 3")
+        confirm_running(args, HOLD_PID, "the process that holds the camera")
     elif args.name == "camera-release":
         cmd_action_release(args)
     else:
@@ -137,8 +158,8 @@ def cmd_action(args) -> None:
 
 
 def cmd_action_release(args) -> None:
-    ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} 2>/dev/null || exit 0; "
-                 f"if [ -f {HOLD_PID} ]; then kill $(cat {HOLD_PID}) 2>/dev/null; rm -f {HOLD_PID}; sleep 2; fi; true")
+    stop_recorded(args, HOLD_PID, "$(command -v rpicam-hello)")
+    ssh(args.pi, "sleep 2")
 
 
 # ----------------------------------------------------------------------
@@ -161,7 +182,8 @@ def cmd_gds(args) -> None:
     signal.signal(signal.SIGINT, stop)
     # fprime-yamcs starts its tools by name: they are beside it
     environment = dict(os.environ)
-    environment["PATH"] = str(Path(args.fprime_yamcs).resolve().parent) + os.pathsep + environment.get("PATH", "")
+    if os.sep in args.fprime_yamcs:
+        environment["PATH"] = str(Path(args.fprime_yamcs).resolve().parent) + os.pathsep + environment.get("PATH", "")
     # Same process group as this process: fth stops the group
     children.append(subprocess.Popen(
         [args.bridge_python, args.bridge, "--uart-device", args.uart, "--tm-port", str(args.tm_port), "--tc-port",
@@ -169,7 +191,7 @@ def cmd_gds(args) -> None:
         stdout=open(logs / "bridge.out", "wb"), stderr=subprocess.STDOUT))
     children.append(subprocess.Popen(
         [args.fprime_yamcs, "-n", "--dictionary", str(Path(args.dictionary).resolve()), "--communication-selection",
-         "udp", "--yamcs-config-dir", args.yamcs_config, "--yamcs-data-dir", str(data.resolve()),
+         "udp", "--yamcs-config-dir", str(Path(args.yamcs_config).resolve()), "--yamcs-data-dir", str(data.resolve()),
          "--udp-downlink-port", str(args.tm_port), "--udp-uplink-port", str(args.tc_port), "--udp-tm-inject-port",
          str(args.inject_port), "--skip-browser-open", "--logs", str((logs / "yamcs-logs").resolve())],
         stdout=open(logs / "ground.log", "wb"), stderr=subprocess.STDOUT, env=environment))
@@ -183,16 +205,25 @@ def cmd_recorder(args) -> None:
 
     dictionary = load_dictionary(args.dictionary)
     ids = {c["name"]: c["id"] for c in dictionary.get("telemetryChannels", [])}
+    for kind in ("telemetryChannels", "events"):
+        short = [short_name(args.deployment, e["name"]) for e in dictionary.get(kind, [])]
+        twice = sorted({n for n in short if short.count(n) > 1})
+        if twice:
+            raise SystemExit(f"recorder: {kind} that share a name once the subtopology is dropped: {twice}")
     out = Path(args.logs) / f"fprime-cli-{stamp()}"
     out.mkdir(parents=True, exist_ok=True)
     events = open(out / "event.log", "a", encoding="utf-8", buffering=1)
     channels = open(out / "channel.log", "a", encoding="utf-8", buffering=1)
+    ground = open(Path(args.logs) / "ground-events.log", "a", encoding="utf-8", buffering=1)
 
     def on_event(event) -> None:
         extra = getattr(event, "extra", None) or {}
         name = extra.get("fprime_event_name")
         if name is None:
-            return  # not an event of the unit under test
+            # Not an event of the unit under test: a ground event (link, packet sequence) kept beside the record
+            ground.write(f"{event.generation_time.isoformat()},{event.source},{event.event_type},"
+                         f"{getattr(event, 'severity', '')},{event.message}\n")
+            return
         text = event.message or ""
         prefix = f"[{name.split('.')[-1]}] "
         text = text[len(prefix):] if text.startswith(prefix) else text
@@ -229,6 +260,38 @@ def cmd_recorder(args) -> None:
         time.sleep(1)
 
 
+def post_command(url: str, body: dict, name: str) -> None:
+    request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"},
+                                     method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as reply:
+            reply.read()
+    except urllib.error.HTTPError as error:
+        raise SystemExit(f"send {name}: HTTP {error.code}: {error.read().decode(errors='replace')[:300]}")
+
+
+def watch_dispatch(args, opcode: int):
+    """Event set when the unit reports the dispatch of ``opcode``; None when resending is off."""
+    if args.resend <= 0:
+        return None
+    import threading
+
+    from yamcs.client import YamcsClient
+
+    seen = threading.Event()
+    text = f"Opcode 0x{opcode:x} dispatched"
+
+    def on_event(event) -> None:
+        name = (getattr(event, "extra", None) or {}).get("fprime_event_name", "")
+        if name.endswith("cmdDisp.OpCodeDispatched") and text in (event.message or ""):
+            seen.set()
+
+    client = YamcsClient(args.yamcs)
+    subscription = client.create_event_subscription(args.instance, on_event)
+    seen.close = lambda: (subscription.cancel(), client.close())
+    return seen
+
+
 def cmd_send(args) -> None:
     dictionary = load_dictionary(args.dictionary)
     entry = resolve(dictionary.get("commands", []), args.deployment, args.command)
@@ -238,20 +301,28 @@ def cmd_send(args) -> None:
     body = {"args": {p["name"]: a for p, a in zip(params, args.args)}}
     url = (f"http://{args.yamcs}/api/processors/{args.instance}/realtime/commands/{args.space_system}/"
            + entry["name"].replace(".", "/"))
-    request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"},
-                                     method="POST")
+    seen = watch_dispatch(args, entry["opcode"])
     sent = datetime.datetime.now()
-    try:
-        with urllib.request.urlopen(request, timeout=30) as reply:
-            reply.read()
-    except urllib.error.HTTPError as error:
-        raise SystemExit(f"send {args.command}: HTTP {error.code}: {error.read().decode(errors='replace')[:300]}")
+    resent = 0
+    while True:
+        post_command(url, body, args.command)
+        if seen is None or seen.wait(args.dispatch_s) or resent >= args.resend:
+            break
+        # The uplink has no retransmission: a command frame the unit did not report as dispatched is sent again
+        resent += 1
+        Path(args.logs).mkdir(parents=True, exist_ok=True)
+        with open(Path(args.logs) / "resend.log", "a", encoding="utf-8") as log:
+            log.write(f"{datetime.datetime.now().isoformat()},{args.command},{entry['opcode']},resend {resent}\n")
+    if seen is not None:
+        seen.close()
     out = Path(args.logs) / f"fprime-cli-{stamp()}"
     out.mkdir(parents=True, exist_ok=True)
     epoch = int(sent.timestamp())
+    # fth compares a marker argument as a number: a decimal argument is logged as one
+    logged = [int(a) if re.fullmatch(r"-?\d+", a) else a for a in args.args]
     (out / "command.log").write_text(
         f"{sent.isoformat()},(2(0)-{epoch}:{sent.microsecond}),{short_name(args.deployment, entry['name'])},"
-        f"{entry['opcode']},{json.dumps(list(args.args))}\n", encoding="utf-8")
+        f"{entry['opcode']},{json.dumps(logged)}\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -282,6 +353,8 @@ def main() -> None:
     p.set_defaults(fn=cmd_recorder)
     p = sub.add_parser("send")
     p.add_argument("--dictionary", required=True); p.add_argument("--logs", required=True)
+    p.add_argument("--resend", type=int, default=2, help="times a command not reported as dispatched is sent again")
+    p.add_argument("--dispatch-s", type=float, default=6.0, help="wait for the dispatch report before a resend")
     p.add_argument("command"); p.add_argument("args", nargs="*")
     p.set_defaults(fn=cmd_send)
     args = parser.parse_args()

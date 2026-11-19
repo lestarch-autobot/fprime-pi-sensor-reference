@@ -11,8 +11,11 @@
  "event_patterns": {
   "cmdDisp.NoOpStringReceived": "Received a NO-OP string=(?P<arg1>\\d+)$",
   "piCamera.CaptureCompleted": "Capture stored a picture of (?P<bytes>\\d+) bytes$",
-  "piCamera.CaptureFailed": "Capture failed: (?P<reason>\\w+) \\(\\d+\\) at (?P<step>\\w+) \\(\\d+\\) code (?P<code>-?\\d+)$",
-  "dpWriter.FileWritten": "Wrote (?P<bytes>\\d+) bytes to file (?P<file>\\S+)$"
+  "piCamera.CaptureFailed": "Capture failed: (?P<reason>\\w+) at (?P<step>\\w+) code (?P<code>-?\\d+)$",
+  "dpWriter.FileWritten": "Wrote (?P<bytes>\\d+) bytes to file (?P<file>\\S+)$",
+  "cmdDisp.OpCodeDispatched": "Opcode (?P<opCode>0x[0-9a-fA-F]+) dispatched to port \\d+$",
+  "cmdDisp.OpCodeCompleted": "Opcode (?P<opCode>0x[0-9a-fA-F]+) completed$",
+  "cmdDisp.OpCodeError": "Opcode (?P<opCode>0x[0-9a-fA-F]+) completed with error (?P<error>\\w+)$"
  },
  "packets": {
   "Heartbeat": [
@@ -21,7 +24,8 @@
  },
  "std_complete": [
   "both markers present",
-  "commands_sent == count(event cmdDisp.OpCodeDispatched)",
+  "event cmdDisp.TooManyCommands count == 0",
+  "event comQueue.QueueOverflow count == 0",
   "Heartbeat samples >= 2"
  ],
  "abs": {
@@ -73,8 +77,8 @@
    "tests": [
     "C-3"
    ],
-   "verification": "C-3",
-   "note": "Capture after a restart of the deployment."
+   "verification": "C-3 (restart after a capture), unit test RecoveryAfterFailure",
+   "note": "Not verified as written on the bench: the restart of C-3 follows a completed capture, not one in progress (not covered list)."
   }
  },
  "scope": [
@@ -135,6 +139,7 @@
     "action: camera_hold",
     "piCamera.CAPTURE()",
     "wait event cmdDisp.OpCodeError",
+    "bracket (2 Heartbeat samples)",
     "action: camera_release",
     "piCamera.CAPTURE()",
     "wait event dpWriter.FileWritten",
@@ -190,6 +195,10 @@
     {
      "pred": "last(piCamera.CapturesCompleted) == 1",
      "text": "The deployment clock is the Pi wall clock, so a restart is no clock restart and the window is not a reset window. The count is since start: 1 after the second capture shows the process restarted between the two captures."
+    },
+    {
+     "pred": "event version.ProjectVersion count == 1",
+     "text": "Second witness of the restart: the version events are emitted once at start."
     }
    ],
    "knobs": [

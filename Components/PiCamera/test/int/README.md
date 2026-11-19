@@ -9,8 +9,21 @@ The tests run with [fprime-testing-harness](https://github.com/LeStarch/fprime-t
 (`fth`) from the ground workstation. `bench.json` describes the bench: the
 image is copied to the Raspberry Pi over ssh and started there, the ground
 system is fprime-yamcs behind the RFM69 bridge. Every bench command line calls
-`test/int/bench/yamcs_bench.py` of this repository; set `vars` in `bench.json`
-to where it and the ground tools are installed.
+`test/int/bench/yamcs_bench.py` of this repository.
+
+Run `fth` from a campaign root on the workstation that holds:
+
+- `uut/`: the checkout of this repository;
+- `yamcs-config/`: the YAMCS configuration directory of `ground/README.md`;
+- `inputs/`: the image and its dictionary.
+
+`python3` (with `yamcs-client` and `pyserial`) and `fprime-yamcs` are on `PATH`.
+The Pi is the ssh host `pi`.
+
+The radio uplink has no retransmission. The sender sends a command again, at
+most twice, when the unit does not report its dispatch within 6 s, and writes
+each resend to `record/raw/cmd/resend.log`. Ground link events of YAMCS are
+kept in `record/raw/ground-events.log`.
 
 C-1, and the second capture of C-2 and C-3, need a GPS fix. Without one the
 capture fails at `LOCATION` and the test fails.
@@ -18,6 +31,7 @@ capture fails at `LOCATION` and the test fails.
 ## Check the plan and the stimulus (no bench)
 
 ```bash
+python -m pytest checks_kat.py     # known answers of the check functions
 PYTHONDONTWRITEBYTECODE=1 fth verify-plan plan.json --tests . --bench bench.json
 fth render-plan plan.json -o plan.md
 fth planted-faults-menu plan.json -o faults-menu.json --max-count 1

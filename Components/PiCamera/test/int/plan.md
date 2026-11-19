@@ -14,7 +14,7 @@ C-1 and the second half of C-2 and C-3 need a GPS fix: without one every capture
 
 Window rule: rows from the **last** `cmdDisp.NoOpStringReceived(id=START)` row that precedes the first `cmdDisp.NoOpStringReceived(id=END)` row following it, through that END row plus the END `cmdDisp.CMD_NO_OP_STRING` command's own `cmdDisp` rows (at most two), inclusive; ordering key `t = epoch·1e6 + fsw`, archive index on ties. Channel rows are those with `t` between the first and last window event. `commands_sent` = commands from the matching START sending (its last sending if re-sent) through the END sending, inclusive.
 
-Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); Heartbeat samples >= 2.
+Standard `complete` block (STD): both markers present; event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event piCamera.CaptureFailed count == 0.
 Packets (named channel sets for `<packet> samples >= n`): Heartbeat = imuManager.Reading.
 
@@ -34,7 +34,7 @@ Title:     Camera held by another process, then freed
 Purpose:   Proves a capture fails cleanly while another process holds the camera and succeeds once it is freed.
 Covers:    REQ-PiCamera-009, REQ-PiCamera-016, REQ-PiCamera-019
 Setup:     As C-1. The bench action `camera_hold` starts `rpicam-hello` on the Pi, which opens the camera.
-Procedure: MARK(20); bracket (2 Heartbeat samples); action: camera_hold; piCamera.CAPTURE(); wait event cmdDisp.OpCodeError; action: camera_release; piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(21).
+Procedure: MARK(20); bracket (2 Heartbeat samples); action: camera_hold; piCamera.CAPTURE(); wait event cmdDisp.OpCodeError; bracket (2 Heartbeat samples); action: camera_release; piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(21).
 Window:    Marker(id=20) … Marker(id=21)
 Pass rule: named checks declared in the integration test (test_C_2). metrics: t(event piCamera.CaptureFailed) - t(piCamera.CAPTURE sent) <= 15 s.
 Evidence:  
@@ -58,14 +58,14 @@ Planted faults:c3_capture_after_restart
 | REQ-PiCamera-016 | C-2 | Camera held by another process. |
 | REQ-PiCamera-019 | C-2 | Capture after the camera is freed. |
 | REQ-PiCamera-020 | C-1 |  |
-| REQ-PiCamera-024 | C-3 | Capture after a restart of the deployment. |
+| REQ-PiCamera-024 | C-3 (restart after a capture), unit test RecoveryAfterFailure | Not verified as written on the bench: the restart of C-3 follows a completed capture, not one in progress (not covered list). |
 
 ## 5 Metrics
 - C-1: t(event piCamera.CaptureCompleted) - t(piCamera.CAPTURE sent) <= 15 s
 - C-2: t(event piCamera.CaptureFailed) - t(piCamera.CAPTURE sent) <= 15 s
 
 ## 6 Fault menu
-Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): c1_second_capture (stimulus; C-1); c2_capture_before_hold (stimulus; C-2); c3_capture_after_restart (stimulus; C-3).
+Generated from `planted_faults.py` planted fault declarations (`fth planted-faults-menu`): c1_second_capture (stimulus; C-1); c2_capture_before_hold (stimulus; C-2); c3_capture_after_restart (uut-state; C-3).
 
 ## 7 Not covered
 - No camera attached (REQ-PiCamera-016, `NO_CAMERA`): needs the cable removed; unit test `NoCamera`.

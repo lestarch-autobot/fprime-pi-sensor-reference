@@ -9,9 +9,9 @@
       ],
       "fails": {
         "C-1": [
+          "event piCamera.CaptureStarted count == 1",
           "event piCamera.CaptureCompleted count == 1",
-          "event dpWriter.FileWritten count == 1",
-          "delta(piCamera.CapturesCompleted) == 1"
+          "event dpWriter.FileWritten count == 1"
         ]
       },
       "mechanism": "a second CAPTURE is sent before the one of the test",
@@ -26,7 +26,6 @@
       ],
       "fails": {
         "C-2": [
-          "event piCamera.CaptureFailed(reason=CAMERA_ERROR, step=OPEN) count == 1",
           "event piCamera.CaptureFailed count == 1",
           "event cmdDisp.OpCodeError count == 1"
         ]
