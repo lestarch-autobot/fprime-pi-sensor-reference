@@ -213,3 +213,254 @@ def downlink(send, bench, wait_s=30):
 def downlinked(bench):
     bench.wait_event("dpCat.CatalogXmitCompleted", 900)
     bench.action("wait_cfdp")
+
+
+# ---------------------------------------------------------------- the tests, in plan order
+@pytest.mark.req(*R(13, 10))
+def test_L0_1(window, send, bench, check, require, fth_plan):
+    with window(10, 11) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L0-1", check, require)
+        bench.action("clock")
+        send("version.VERSION", ["ALL"])
+        bench.action("platform")
+        bench.wait_samples("imuManager.Reading", 2)
+        bench.action("sockets")
+        absent(check)
+        check("Version events equal the manifest describe strings", versions)
+        check("platform is a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (trixie)", platform)
+        check("the process holds no TCP or UDP socket", lambda h: (not _sockets(h)[0], f"sockets: {_sockets(h)[0]}"))
+        check("character devices held by the process are a subset of the list in Scope",
+              lambda h: (all(DEVICES.match(d) for d in _sockets(h)[1]), f"devices: {_sockets(h)[1]}"))
+        check("LibraryVersions names fprime-sensors only",
+              lambda h: ([e.text.split("[")[1].split("@")[0] for e in h.window.events("version.LibraryVersions")] == ["fprime-sensors"],
+                         "; ".join(e.text for e in h.window.events("version.LibraryVersions"))))
+        check("the dictionary of the image holds no command of a test component", no_test_command)
+
+
+def no_test_command(h):
+    names = [c["name"] for c in json.loads((rec.raw_dir() / "dictionary.json").read_text(encoding="utf-8"))["commands"]]
+    extra = [n for n in names if re.search(r"(?i)test|harness", n.rsplit(".", 1)[0])]
+    return bool(names) and not extra, f"{len(names)} commands, of test components: {extra}"
+
+
+@pytest.mark.req(*R(13))
+def test_L0_2(window, send, bench, check, require, fth_plan):
+    with window(20, 21):
+        std(require, fth_plan)
+        bench.wait_samples("imuManager.Reading", 2)
+        send("cmdDisp.CMD_NO_OP_STRING", [42405])
+        bench.action("platform")
+        absent(check)
+        check("three NoOpStringReceived events in order, strings byte-exact",
+              lambda h: ([e.raw_args.get("arg1") for e in h.window.events("cmdDisp.NoOpStringReceived")] == ["20", "42405", "21"],
+                         str([e.text for e in h.window.events("cmdDisp.NoOpStringReceived")])))
+        check("platform is a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (trixie)", platform)
+
+
+@pytest.mark.req(*R(1, 2, 3, 11))
+def test_L2_1(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(30, 31) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-1", check, require)
+        bench.wait(60)
+        absent(check)
+        check("sensor readings plausible for a bench at rest", sensors_plausible)
+
+
+@pytest.mark.req(*R(1, 2, 3, 11))
+def test_L2_2(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(32, 33) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-2", check, require)
+        for _ in range(3):
+            send("cmdDisp.CMD_NO_OP", [])
+            bench.wait(10)
+        absent(check)
+        check("sensor readings plausible for a bench at rest", sensors_plausible)
+        check("event cmdDisp.NoOpReceived count == 3")
+
+
+@pytest.mark.req(*R(4, 5, 6, 7, 8, 9, 11, 14))
+def test_L2_3(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(40, 41) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-3", check, require)
+        absent(check)
+        check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1", completed(1))
+        check("event dpWriter.FileWritten count == 1")
+        check("exactly one file arrived", files_arrived(1))
+        check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
+        check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
+        check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+        p = capture(send, bench, 40, 1)
+        send("fileManager.CalculateCrc", [p])
+        downlink(send, bench)
+        downlinked(bench)
+
+
+@pytest.mark.req(*R(4, 5, 6, 7, 8, 9, 14))
+def test_L2_4(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(42, 43) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-4", check, require)
+        absent(check)
+        check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2", completed(2))
+        check("event dpWriter.FileWritten count == 2 with different names", two_names)
+        check("capture time of P2 later than that of P1; picture records of P1 and P2 differ", two_differ)
+        check("exactly two files arrived", files_arrived(2))
+        check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
+        check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
+        check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+        p1 = capture(send, bench, 42, 1)
+        bench.wait(5)
+        p2 = capture(send, bench, 42, 2)
+        send("fileManager.CalculateCrc", [p1])
+        send("fileManager.CalculateCrc", [p2])
+        downlink(send, bench)
+        downlinked(bench)
+
+
+def two_names(h):
+    names = [e.text.rsplit(" ", 1)[-1] for w in h.windows.values() for e in w.events("dpWriter.FileWritten")]
+    return len(names) == 2 and len(set(names)) == 2, f"FileWritten: {names}"
+
+
+def two_differ(h):
+    prods = sorted((rec.decode_product(d) for d in rec.arrived(h.window).values()), key=lambda p: p["metrics"]["captureTime"]["t"])
+    assert len(prods) == 2, f"{len(prods)} product(s) arrived"
+    return prods[0]["metrics"]["captureTime"]["t"] < prods[1]["metrics"]["captureTime"]["t"] and prods[0]["jpeg"] != prods[1]["jpeg"], \
+        f"capture times {prods[0]['metrics']['captureTime']['t']:.3f}, {prods[1]['metrics']['captureTime']['t']:.3f}"
+
+
+@pytest.mark.req(*R(5, 6, 14, 8))
+def test_L2_5(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(44, 45) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-5", check, require)
+        absent(check)
+        check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1", completed(1))
+        check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
+        check("exactly one file arrived", files_arrived(1))
+        check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+        check("each metric of the product equals, or lies between, the telemetry samples around its sample time", metrics_match_telemetry)
+        bench.wait(10)
+        capture(send, bench, 44, 1)
+        bench.wait(10)
+        downlink(send, bench)
+        downlinked(bench)
+
+
+@pytest.mark.req(*R(4, 7))
+def test_L2_6(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(46, 47) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-6", check, require)
+        absent(check)
+        check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 3", completed(3))
+        check("event dpWriter.FileWritten count == 3")
+        for k in (1, 2, 3):
+            capture(send, bench, 46, k)
+
+
+@pytest.mark.req(*R(12, 8, 9, 10, 11))
+def test_L2_7(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(50, 51) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-7", check, require)
+        absent(check)
+        check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2", completed(2))
+        p1 = capture(send, bench, 50, 1)
+        p2 = capture(send, bench, 50, 2)
+        send("fileManager.CalculateCrc", [p1])
+        send("fileManager.CalculateCrc", [p2])
+    with window(51, 52) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-7", check, require)
+        absent(check)
+        check("event dpWriter.FileWritten count == 2 over the whole test (Q and D)", two_names)
+        check("exactly two files arrived", files_arrived(2))
+        check("rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2", radio_only)
+        check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
+        check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
+        downlink(send, bench)
+        downlinked(bench)
+
+
+@pytest.mark.req(*R(12, 10))
+def test_L2_8(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(53, 54) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-8", check, require)
+        absent(check)
+        check("event dpWriter.FileWritten count == 2")
+        capture(send, bench, 53, 1)
+        capture(send, bench, 53, 2)
+    with window(54, 55) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-8", check, require)
+        absent(check)
+        check("event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted", noop_during_downlink)
+        check("exactly two files arrived", files_arrived(2))
+        check("rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2", radio_only)
+        check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
+        downlink(send, bench, wait_s=0)
+        bench.wait(15)
+        send("cmdDisp.CMD_NO_OP", [])
+        downlinked(bench)
+
+
+def noop_during_downlink(h):
+    ev = h.window.ev
+    a = [i for i, e in enumerate(ev) if e.short == "dpCat.CatalogXmitStarted"]
+    b = [i for i, e in enumerate(ev) if e.short == "dpCat.CatalogXmitCompleted"]
+    assert a and b, f"CatalogXmitStarted {len(a)}, CatalogXmitCompleted {len(b)}"
+    n = len([e for e in ev[a[0]:b[0]] if e.short == "cmdDisp.NoOpReceived"])
+    return n == 1, f"{n} NoOpReceived between them"
+
+
+@pytest.mark.req(*R(9, 5, 8))
+def test_L7_1(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    try:
+        with window(60, 61):
+            std(require, fth_plan)
+            absent(check)
+            check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1", completed(1))
+            check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
+            check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
+            check("the directory listing names P only", listing_names_product)
+            check("no CFDP transaction starts after the second START_XMIT_CATALOG", no_second_downlink)
+            send("cfdpManager.FileInDefaultKeep_PRM_SET", ["KEEP"])
+            p = capture(send, bench, 60, 1)
+            send("fileManager.CalculateCrc", [p])
+            downlink(send, bench)
+            downlinked(bench)
+            send("fileManager.ListDirectory", [DP_DIR])
+            downlink(send, bench, wait_s=0)
+            bench.wait(30)
+    finally:
+        bench.action("final_state")
+
+
+def listing_names_product(h):
+    listed = [m.group(1) for e in h.window.events("fileManager.DirectoryListing")
+              for m in [re.match(r"Directory \S+: (\S+) \(\d+ bytes\)$", e.text)] if m]
+    written = [e.text.rsplit("/", 1)[-1] for e in h.window.events("dpWriter.FileWritten")]
+    return len(written) == 1 and listed == written, f"listed {listed}, written {written}"
+
+
+def no_second_downlink(h):
+    ops = {c.opcode for c in h.window.cmds if c.short == "dpCat.START_XMIT_CATALOG"}
+    disp = [e for e in h.window.events("cmdDisp.OpCodeDispatched") if int(rec.OPCODE.search(e.text).group(1), 16) in ops]
+    assert len(disp) == 2, f"{len(disp)} START_XMIT_CATALOG dispatched"
+    late = [t["id"] for t in rec.transfers(h.window) if rec.epoch(t["startTime"]) > rec.rx(disp[1])]
+    return not late, f"transactions started after the second START_XMIT_CATALOG: {late}"
