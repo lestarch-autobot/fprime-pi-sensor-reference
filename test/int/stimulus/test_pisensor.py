@@ -25,6 +25,8 @@ def std(require, plan):
     for text in plan.raw["std_complete"]:
         if "OpCodeError" in text:
             require(text, no_error_but_capture)
+        elif text.startswith("commands_sent"):
+            require(text, every_command_dispatched)
         elif "frame count" in text:
             require(text, lambda h: rec.frame_gaps(rec.frames(h.window)))
         else:
@@ -40,11 +42,29 @@ def absent(check):
 def metrics(w, plan, test_id, check, require):
     """The plan's metrics of this window, by their plan text. fth 0.1.2 evaluates a plan metric only through
     its grammar, so the helper predicates the plan names are declared here instead (see README, fth gaps)."""
-    specs = [c for c in plan.test(test_id).checks if c.kind == "metrics" and c.window == w.name]
+    names = [x["name"] for x in plan.test(test_id).windows]
     w.metrics.clear()
-    for c in specs:
+    for c in (c for c in plan.test(test_id).checks if c.kind == "metrics"):
+        said = re.search(r" in ([A-Z])\b", c.text)  # fth files every metric under the first window; the text names its own
+        if (said.group(1) if said and said.group(1) in names else c.window) != w.name:
+            continue
         declare = require if "(require)" in c.text or "(require)" in c.rationale else check
         declare(c.text, lambda h, c=c: plan.registry.helpers[c.helper](h, **c.helper_args))
+
+
+def every_command_dispatched(h):
+    """commands_sent == count(event cmdDisp.OpCodeDispatched), over the commands of the window, markers included.
+
+    fth cuts a window at the START marker event. The marker is an asynchronous command of the dispatcher
+    itself, so its OpCodeDispatched is logged before its NoOpStringReceived and falls outside the cut; it is
+    counted here when the row before the START marker is that event (see README, fth gaps)."""
+    w, rows = h.window, h.record.events
+    count = len(w.events("cmdDisp.OpCodeDispatched"))
+    marker_op = lambda e: e.short == "cmdDisp.OpCodeDispatched" and int(rec.OPCODE.search(e.text).group(1), 16) == w.cmds[0].opcode
+    if w.cmds and w.start_marker.idx >= 2 and marker_op(rows[w.start_marker.idx - 2]):
+        after = [e for e in w.ev if e.idx > w.end_marker.idx and e.short == "cmdDisp.OpCodeDispatched"]
+        count += 1 - len(after)  # ours before START; never the next window's after END
+    return w.commands_sent == count and count > 0, f"commands_sent={w.commands_sent}, cmdDisp.OpCodeDispatched count={count}"
 
 
 def no_error_but_capture(h):

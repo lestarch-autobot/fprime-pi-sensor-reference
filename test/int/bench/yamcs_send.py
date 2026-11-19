@@ -11,6 +11,7 @@ exactly one command of the dictionary by its last dotted parts.
 import argparse
 import datetime
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -55,7 +56,9 @@ def yamcs_name(root: str, name: str) -> str:
 
 def log_line(sent: datetime.datetime, command_id: str, name: str, opcode: int, args: list) -> str:
     gen = str(command_id).replace(")", "_").replace(",", ";")
-    return f"{sent.strftime('%Y-%m-%dT%H:%M:%S.%f')},({gen}),{name},{opcode},{json.dumps([str(a) for a in args])}"
+    # decimal integers are logged as numbers (fth finds a marker by its integer argument), all else as text
+    shown = [int(a) if re.fullmatch(r"-?[0-9]+", str(a)) else str(a) for a in args]
+    return f"{sent.strftime('%Y-%m-%dT%H:%M:%S.%f')},({gen}),{name},{opcode},{json.dumps(shown)}"
 
 
 def write_log(logs: Path, line: str) -> Path:
