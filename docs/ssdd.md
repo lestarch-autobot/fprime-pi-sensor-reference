@@ -91,6 +91,20 @@ Sketch source: [`sketch/PiSensorSketch.fpp`](sketch/PiSensorSketch.fpp).
 
 > ![Topology ComCcsds.FramingSubtopology](img/ComCcsds.FramingSubtopology.svg)
 >
+> <details>
+> <summary>Subtopology <code>ComCcsds.SpacePacketFraming</code> (inside <code>ComCcsds.FramingSubtopology</code>)</summary>
+>
+> > ![Topology ComCcsds.SpacePacketFraming](img/ComCcsds.SpacePacketFraming.svg)
+> >
+> </details>
+>
+> <details>
+> <summary>Subtopology <code>ComCcsds.TmTcFraming</code> (inside <code>ComCcsds.FramingSubtopology</code>)</summary>
+>
+> > ![Topology ComCcsds.TmTcFraming](img/ComCcsds.TmTcFraming.svg)
+> >
+> </details>
+>
 </details>
 
 <details>
@@ -140,12 +154,12 @@ subtopology are those of the subtopology as shipped.
 |---|---|---|---|---|---|---|---|---|
 | `PiSensor` topology and configuration | 🟨 bespoke | this project | Wires the elements; sets inherited configuration: TM frame and aggregate size to fit one 255-byte radio packet with packet spanning, device paths, ground YAMCS CFDP service | — | Raspberry Pi 5, 64-bit Raspberry Pi OS; ground host | 012 (system), 013 (system) | 012: largest gap between sensor telemetry packets at the ground during a catalog downlink. 013: platform and image version read on the bench | platform: unverified with the radio |
 | `piCamera` | 🟨 bespoke | this project | On a capture command: acquires one JPEG, reads the latest sensor readings and their times from the telemetry store, derives roll and pitch from the acceleration reading, writes one product container | Own thread, one capture at a time | Pi Camera on CSI | 004 (component), 005, 006, 007, 014 (set) | 004: `piCamera` component tests and the picture record of the downlinked product. 005, 006, 014: metric and time records of the downlinked product against telemetry samples. 007: `cmdDisp.OpCodeDispatched` of the capture command to `dpWriter.FileWritten` | Camera not yet on the bench |
-| `CdhCore.Subtopology` | 🟩 F Prime | fprime v4.4.2 | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | Exports no port for `tlmSend.TlmGet`; this topology connects it |
-| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime v4.4.2 | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Frames received by YAMCS; commands executed | Exports only the five `Svc.Com` ports; this topology connects `comQueue`, `aggregator`, `fprimeRouter` and `commsBufferManager` directly. No CFDP ports though the CFDP documentation shows them; CFDP data uses the file queue and file uplink ports. A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified under the radio |
-| `DataProducts.Subtopology` | 🟩 F Prime | fprime v4.4.2 | Product buffers, writer and catalog; the catalog downlinks products not yet sent | 1 Hz writer, manager, buffers | Pi 5 file system | 005, 007, 008 (set) | `dpWriter.FileWritten`, `dpCat.CatalogXmitCompleted` events | platform: catalog downlink unverified |
-| `FileHandlingCfdp.Subtopology` | 🟩 F Prime modified | [`lestarch-autobot/fprime@4b2b6e0`](https://github.com/lestarch-autobot/fprime/commit/4b2b6e08c1) | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Does not compile as shipped (Red flags). Exports no ports; this topology connects `cfdpManager` directly. Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer |
-| `comRetry` | 🟩 F Prime | fprime v4.4.2 | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Frames received by YAMCS | platform: unverified |
-| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime v4.4.2 | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006 (set) | Channel and product times | platform: 1 kHz group unverified |
+| `CdhCore.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | Exports no port for `tlmSend.TlmGet`; this topology connects it |
+| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime `devel@83221ba` | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Frames received by YAMCS; commands executed | Exports only the five `Svc.Com` ports; this topology connects `comQueue`, `aggregator`, `fprimeRouter` and `commsBufferManager` directly. No CFDP ports though the CFDP documentation shows them; CFDP data uses the file queue and file uplink ports. A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified under the radio |
+| `DataProducts.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Product buffers, writer and catalog; the catalog downlinks products not yet sent | 1 Hz writer, manager, buffers | Pi 5 file system | 005, 007, 008 (set) | `dpWriter.FileWritten`, `dpCat.CatalogXmitCompleted` events | platform: catalog downlink unverified |
+| `FileHandlingCfdp.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Exports no ports; this topology connects `cfdpManager` directly. Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer |
+| `comRetry` | 🟩 F Prime | fprime `devel@83221ba` | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Frames received by YAMCS | platform: unverified |
+| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006 (set) | Channel and product times | platform: 1 kHz group unverified |
 | `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280; bus not yet identified on the bench | 001, 005 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified |
 | `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005 (set) | `imuManager.Reading` | — |
 | `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver; UART not yet identified on the bench | 003, 005 (set) | `gpsManager.Reading` | UART driver buffer ports are not connected and not exported; this topology connects them. platform: unverified |
@@ -154,8 +168,8 @@ subtopology are those of the subtopology as shipped.
 | `alpha-iii-yamcs` | 🟦 library | wheel `alpha_iii_yamcs-0.1.0-py3-none-any.whl`, sha-256 `efeecebe5981ed36ee098d12c3d9aa3fcc9cf0a77754f8f66f468d84b39f7607`; kept at `~/alpha_iii_yamcs-0.1.0-py3-none-any.whl` on the bench workstation; source repository not identified, not on PyPI | Joins the USB serial stream to fprime-yamcs: removes and adds the F Prime frame around TM and TC frames | — | Ground host USB serial | 010, 011 (set) | Frames received by YAMCS; commands executed | Used with the alpha-iii LoRa ground radio only. Documentation and tests: not known until the source is identified. platform: unverified with the Feather |
 | fprime-yamcs | 🟦 library | fprime-yamcs `f6f0e19` | Ground commanding, telemetry, events, CFDP entity | — | Ground host | 008, 009, 011 (set) | Decoded parameters, events, transfer records and files | No CFDP service configured as shipped; needs `fprime-yamcs-bundle` 5.13.7.0, which is not on PyPI |
 
-All 🟩 rows are built from `lestarch-autobot/fprime@4b2b6e0`: tag v4.4.2
-plus the one commit of the Red flags row. Kinds: `component`, one element decides it by its own tests; `set`, the
+All 🟩 rows are built from [`nasa/fprime@83221ba`](https://github.com/nasa/fprime/commit/83221ba82a) (`devel`, v4.4.0-98),
+unmodified. Kinds: `component`, one element decides it by its own tests; `set`, the
 rows citing it decide it together in a system test; `system`, a property
 of the whole deployment. Link rows carry 010 and 011
 only; the traffic of the other requirements passes through them.
@@ -177,11 +191,7 @@ Wiring this topology adds between the elements:
 
 ## Red flags
 
-| Element | Change to inherited source | Why | Route |
-|---|---|---|---|
-| `FileHandlingCfdp.Subtopology` | Its start-up call to `cfdpManager.configure` gains the file queue depth argument the component requires (new constant `FileHandlingCfdpConfig.CfdpConfig.fileQueueDepth`, 10) | The subtopology does not compile at v4.4.2, nor on `devel` | Fork [PR 453](https://github.com/lestarch-autobot/fprime/pull/453) against `devel`; this project pins the same commit on v4.4.2, `lestarch-autobot/fprime@4b2b6e0`. Upstream issue to file on nasa/fprime: "FileHandlingCfdp subtopology does not compile: cfdpManager.configure lacks fileQueueDepth". Re-qualification: the fork build and system tests L2-3, L2-4, L2-7 |
-
-No other inherited source is changed. Defects noted in the Elements table
+None. No inherited source is changed. Defects noted in the Elements table
 are recorded in the ledger for upstream reports.
 
 ## Tests
