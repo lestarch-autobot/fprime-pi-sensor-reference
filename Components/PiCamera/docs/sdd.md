@@ -74,7 +74,7 @@ Each channel is 0 at start.
 
 Table 3: readings taken from the telemetry store.
 
-| Metric | Channel | Type | Fields used |
+| Metric | Source | Type | Fields used |
 |---|---|---|---|
 | Temperature | `Bmp280.bmpManager.Reading` | `Bmp280.Bmp280Data` | `temperature` (°C) |
 | Attitude | `MpuImu.imuManager.Reading` | `MpuImu.ImuData` | `acceleration` x, y, z |
@@ -148,7 +148,7 @@ Three threads enter the component.
 | `m_completed`, `m_failed` | U32 | Counts behind `CapturesCompleted`, `CapturesFailed`; wrap to 0 after 4294967295 |
 | `m_channels` | 3 channel identifiers | Table 3 channels, set by `configure` |
 
-At start `m_busy` is false, the counts are 0 and the camera is closed. Nothing is kept across a restart.
+At start `m_busy` is false, the counts are 0 and the camera is closed. Nothing is kept across a restart (REQ-PiCamera-024).
 
 The camera is closed outside `acquire`: every capture opens it and closes it again, on success and on failure.
 
@@ -193,9 +193,9 @@ The component thread publishes the three Table 2 channels with value 0 when it s
 
 The buffers of `DataProducts.Subtopology` hold at least one `Capture` container: `PICTURE_MAX_SIZE` bytes plus the `Metrics` record and the container overhead (`DataProductsConfig.BuffMgr.dpBufferStoreSize`).
 
-The ping is not answered during a capture; its limits lie above `CAPTURE_MAX_MS`.
+The ping is not answered during a capture; its limits lie above `CAPTURE_MAX_MS`, the bound of REQ-PiCamera-009 on the steps of 3.5.
 
-The camera is asked for `PICTURE_WIDTH` x `PICTURE_HEIGHT` frames in a format libjpeg-turbo compresses without conversion (YUV420), encoded at `JPEG_QUALITY`.
+The camera is asked for `PICTURE_WIDTH` x `PICTURE_HEIGHT` frames in a format libjpeg-turbo compresses without conversion (YUV420), encoded at `JPEG_QUALITY` (REQ-PiCamera-002).
 
 The camera is reached through one interface class (`detect`, `open`, `configure`, `start`, `waitFrame`, `stop`, `close`) implemented with libcamera; JPEG encoding uses libjpeg-turbo. Both are Raspberry Pi OS packages. `stop` returns only after no frame callback can run; a frame that arrives after the wait timed out is discarded. Unit tests substitute the interface. The CMake option `PICAMERA_NO_CAMERA` selects an implementation that detects no camera; with the option off, a build that finds no libcamera fails.
 
@@ -232,7 +232,11 @@ It echoes the key on `pingOut`.
 
 ## 4. Data Product Format
 
-Container `Capture`, one per successful capture, default priority, no processing. Its time tag is the capture time.
+One container per successful capture, no processing. Its time tag is the capture time.
+
+| Container | Default priority | Records |
+|---|---|---|
+| `Capture` | 10 | `Metrics`, `Picture` |
 
 | Record | Type | Content |
 |---|---|---|

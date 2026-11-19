@@ -161,6 +161,6 @@ module PiSensor {
     product record Picture: U8 array
 
     @ One capture: metrics and picture
-    product container Capture
+    product container Capture default priority 10
   }
 }
