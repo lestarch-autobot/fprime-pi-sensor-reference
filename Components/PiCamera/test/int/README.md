@@ -72,7 +72,7 @@ The image as flown has no coverage dump command. An image built with
 `--coverage` writes its counts when it ends:
 
 ```bash
-fprime-util generate -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage \
+sh test/int/bench/build_image.sh -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage \
     -DCMAKE_EXE_LINKER_FLAGS=--coverage      # keep this build tree: it holds the .gcno files
 fth run --unsealed ... --bench bench-coverage.json   # flash --gcov: counts stay on the Pi under gcda/
 python3 uut/test/int/bench/yamcs_bench.py stop       # the image ends and writes the counts
