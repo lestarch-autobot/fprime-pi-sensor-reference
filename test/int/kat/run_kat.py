@@ -23,7 +23,7 @@ import verify_stimulus  # noqa: E402
 import yamcs_recorder as recorder  # noqa: E402
 import pisensor_record as rec  # noqa: E402
 
-BASE = ["-p", "fth.pytest_plugin", "-p", "no:cacheprovider", "-q", "--fth-plan", str(INT / "plan.json"),
+BASE = ["-p", "fth.pytest_plugin", "-p", "no:cacheprovider", "-q", "--fth-plan", str(INT / "stimulus" / "plan.json"),
         "--fth-bench", str(INT / "bench.json"), "--fth-dry-run"]
 MANIFEST = {"repos": [{"name": "fprime", "describe": "v4.1.0"}, {"name": "uut", "describe": "c7953c9"},
                       {"name": "fprime-sensors", "describe": "v0.3.0"}, {"name": "harness", "describe": "v0.1.2"}]}
@@ -114,7 +114,7 @@ def units():
 def planted(commands):
     """The plan's planted faults applied to the dry-run command list, each on one test it applies to."""
     from fth.plan import load_plan
-    plan = load_plan(INT / "plan.json")
+    plan = load_plan(INT / "stimulus" / "plan.json")
     window_of = {}
     for t in plan.tests:
         for w in t.windows:

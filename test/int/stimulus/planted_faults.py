@@ -15,7 +15,7 @@ def _is(command_name, short):
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "stimulus"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pisensor_record as rec  # noqa: E402
 
 

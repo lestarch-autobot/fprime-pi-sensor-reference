@@ -1,14 +1,14 @@
 # PiSensor system test harness
 
-The harness of the 11 tests of `plan.json` (approved with Gate 1). It runs on the bench workstation with
+The harness of the 11 tests of `stimulus/plan.json` (approved with Gate 1). It runs on the bench workstation with
 [fprime-testing-harness](https://github.com/LeStarch/fprime-testing-harness) (`fth`) v0.1.2; the ground
 system is fprime-yamcs and the ground radio is the Feather M0 RFM69. Nothing here is part of the flight
 deployment and there is no test component.
 
 | Path | What it is |
 |---|---|
-| `plan.json`, `plan.md`, `faults-menu.json`, `gen_plan.py` | the plan, revision 2 (changelog below) |
-| `planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
+| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 2 (changelog below) |
+| `stimulus/planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
 | `stimulus/test_pisensor.py` | the stimulus and the named checks, one function per plan test; the `--tests` directory |
 | `stimulus/pisensor_record.py` | record access for the checks: ground reception time, transfers, frames, product decoder |
 | `bench.json` | the bench: command lines of the ground side, the sender, the recorder, the UUT actions |
@@ -21,8 +21,8 @@ deployment and there is no test component.
 ## Offline checks (no bench)
 
 ```
-fth verify-plan test/int/plan.json --tests test/int/stimulus --bench test/int/bench.json
-python -B test/int/bench/verify_stimulus.py test/int/plan.json --tests test/int/stimulus --bench test/int/bench.json
+fth verify-plan test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
+python -B test/int/bench/verify_stimulus.py test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
 python -B test/int/kat/run_kat.py        # needs Pillow
 ```
 
@@ -107,3 +107,7 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
 - Telemetry age grows by about 0.1 s per second of run: `Rfm69Manager` holds 0.5 s after each frame
   (1.6 frames/s) and idle telemetry needs a little more. See `docs/ledger.md`.
 - The blind lint of fth refuses the word for the sending program in stimulus prose; it is not used there.
+- fth pins and replays the tests directory and wants the plan and its helper module in it, and its lint
+  refuses other Python there: the plan, its menu and `planted_faults.py` moved from `test/int/` to
+  `test/int/stimulus/` (content unchanged by the move). `fth run` passes no partial selection to pytest, so
+  L0 is the first two tests of a full run.

@@ -1,4 +1,4 @@
-"""Stimulus and named checks of the PiSensor system test plan (test/int/plan.json), one function per test.
+"""Stimulus and named checks of the PiSensor system test plan (plan.json beside this file), one function per test.
 
 Each body sends exactly the commands of the plan procedure, paces itself on the record, and declares its
 checks inside `with window(...)`; fth judges them over the record when the window closes and replays this

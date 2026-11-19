@@ -131,5 +131,5 @@ plan = {
                   "5. 2026-11-19 harness builder, revision 2 — see the changelog in `test/int/README.md`: per-channel telemetry period metrics, Heartbeat on `bmpManager.Reading`, command count with marker commands apart and logged resends, clock action in the L0-1 procedure, IMU bounds stated in the units of the channel, roll and pitch validity as a check of its own."],
  "tests": T,
 }
-json.dump(plan, open("plan.json", "w"), indent=1, ensure_ascii=False)
+json.dump(plan, open("stimulus/plan.json", "w"), indent=1, ensure_ascii=False)
 print(len(T), "tests")
