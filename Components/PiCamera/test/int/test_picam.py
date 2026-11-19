@@ -1,9 +1,12 @@
 """Stimulus and named checks of the PiCamera component bench plan (plan.json)."""
+import re
+
 import pytest
 
 CAPTURE = "piCamera.CAPTURE"
 PICTURE_MAX_SIZE = 262144
 CAPTURE_MAX_S = 15.0
+HEARTBEAT = "imuManager.Reading"
 RESPONSES = ("cmdDisp.OpCodeCompleted", "cmdDisp.OpCodeError")
 
 
@@ -28,18 +31,40 @@ def commands_dispatched(h):
     return dispatched == sent, f"commands sent, markers apart: {sent}; dispatched: {dispatched}"
 
 
-def complete(bench, require):
-    """Preconditions of a window, judged on the record at the time of the call: call it after the stimulus.
+ROW_TIME = re.compile(r"TB_PROC_TIME: (\d+\.\d+)s")
+CATCH_UP_S = 240
 
-    The wait lets the recorder write the samples the bracket counted.
+
+def row_times(lines, name=None):
+    """Unit times of recorder rows, of one name when given."""
+    found = (ROW_TIME.match(line) for line in lines if name is None or f".{name}," in line)
+    return [float(m.group(1)) for m in found if m]
+
+
+def wait_for_channels(bench):
+    """Wait until the recorded channel samples reach the time of the newest recorded event.
+
+    Channel samples reach the ground record tens of seconds after events of the same unit time
+    (measured on this bench). A window closed before they arrive has no bracket samples.
     """
-    bench.wait(3)
+    def lines(log):
+        return [line for f in bench._recorder_logs(log) for line in f.read_text(errors="replace").splitlines()]
+
+    events = row_times(lines("event.log"))
+    newest = max(events) if events else 0.0
+    bench._wait(f"{HEARTBEAT} samples up to the newest event",
+                lambda: any(t >= newest for t in row_times(lines("channel.log"), HEARTBEAT)), CATCH_UP_S)
+
+
+def complete(bench, require):
+    """Preconditions of a window; called after the stimulus, once the channel samples have arrived."""
+    wait_for_channels(bench)
     require("STD")
     require("every command sent in the window was dispatched", commands_dispatched)
 
 
 def bracket(bench):
-    bench.wait_samples("imuManager.Reading", 2, 30)
+    bench.wait_samples(HEARTBEAT, 2, 30)
 
 
 def picture_sizes_ok(sizes):
