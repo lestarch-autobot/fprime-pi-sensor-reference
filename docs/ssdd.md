@@ -184,7 +184,7 @@ subtopology exports no port for it.
 | From | To | Purpose |
 |---|---|---|
 | `piCamera` | `CdhCore.tlmSend.TlmGet` | Read the latest BMP280, MPU6050 and GPS readings with their times |
-| `piCamera` | `DataProducts.Subtopology` product request, send and response ports | Write the product container |
+| `piCamera` | `DataProducts.Subtopology` product get and send ports | Get the container buffer, synchronously; send the filled container |
 | `DataProducts.Subtopology.dpCatFileOut` | `FileHandlingCfdp.cfdpManager.fileIn` | Catalog sends each product by CFDP |
 | `FileHandlingCfdp.cfdpManager.fileDoneOut` | `DataProducts.Subtopology.dpCatFileDone` | Catalog learns each transfer ended |
 | `NmeaGps.driver` buffer ports | `NmeaGps.bufferManager` | Supply and return UART receive buffers |

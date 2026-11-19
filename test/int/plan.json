@@ -200,6 +200,7 @@
   "- CFDP as shipped deletes a file after sending it (`cfdpManager.FileInDefaultKeep`, default DELETE): the on-board CRC is taken before the downlink, and L7-1 sets KEEP.",
   "- Constants: temperature -20 to 60 degC and gravity 8 to 12 m/s^2 are plausibility bounds for an indoor bench at rest; 1 km is the GPS plausibility bound around the surveyed bench position; 0.1 deg is the rounding allowance of the roll and pitch computation; the L2-5 widening values (0.5 degC, 2 deg, 0.0001 deg) are noise allowances for a bench at rest [I], to be confirmed against the BMP280 and MPU6050 datasheets and the receiver accuracy at the bench refresh; `piCamera.CaptureFailed` is the name planned for the capture failure event, confirmed against the `piCamera` SDD at the same refresh; the 30 s downlink precondition is three times the 10 s bound; the file CRC is that of `Os::File::calculateCrc`; the product directory is `DataProductsConfig.Paths.dpDir`.",
   "- Open character devices allowed to the deployment process (device paths of the project configuration): the SPI devices of the RFM69 and the BMP280, the I2C bus of the MPU6050, the GPS UART, the camera devices, `/dev/null`, `/dev/urandom`.",
+  "- The 2 in the frame count checks of L2-7 and L2-8 allows one frame in flight at each `PacketsTransmitted` snapshot.",
   "- Out of scope: BMP280 pressure; yaw."
  ],
  "entry_gates": [
@@ -671,7 +672,7 @@
    "knobs": [
     "capture_before_xmit"
    ],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames received by YAMCS in D do not exceed the PacketsTransmitted increase; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
   },
   {
    "id": "L2-8",
@@ -737,7 +738,7 @@
    "knobs": [
     "extra_noop"
    ],
-   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames received by YAMCS in D do not exceed the PacketsTransmitted increase; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
   },
   {
    "id": "L7-1",

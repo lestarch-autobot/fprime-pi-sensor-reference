@@ -7,8 +7,9 @@ module PiSensor {
   @ sensor readings from the telemetry store and writes one product container
   active component PiCamera {
     output port tlmGetOut: Fw.TlmGet
-    product request port productRequestOut
-    async product recv port productRecvIn
+    product get port productGetOut
+    async input port pingIn: Svc.Ping
+    output port pingOut: Svc.Ping
     product send port productSendOut
     command recv port cmdIn
     command reg port cmdRegOut
@@ -80,8 +81,7 @@ module PiSensor {
     connections Products {
       # Latest BMP280, MPU6050 and GPS readings with their sample times.
       piCamera.tlmGetOut -> CdhCore.tlmSend.TlmGet
-      piCamera.productRequestOut -> DataProducts.Subtopology.productRequestIn
-      DataProducts.Subtopology.productResponseOut -> piCamera.productRecvIn
+      piCamera.productGetOut -> DataProducts.Subtopology.productGetIn
       piCamera.productSendOut -> DataProducts.Subtopology.productSendIn
       # The catalog downlinks stored products by CFDP.
       DataProducts.Subtopology.dpCatFileOut -> FileHandlingCfdp.cfdpManager.fileIn

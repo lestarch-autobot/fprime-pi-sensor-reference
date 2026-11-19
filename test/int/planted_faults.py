@@ -40,6 +40,8 @@ _served = set()
                       "L2-4": ["event dpWriter.FileWritten count == 2 with different names", "exactly two files arrived", "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"],
                       "L2-7": ["event dpWriter.FileWritten count == 2 over the whole test (Q and D)", "exactly two files arrived", "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"]})
 def capture_before_xmit(test_id, command_name, args):
+    if _is(command_name, "BUILD_CATALOG"):
+        _served.discard(test_id)
     if _is(command_name, "CalculateCrc") and test_id not in _served:
         _served.add(test_id)
         return [("piCamera.CAPTURE", []), (command_name, args)]
