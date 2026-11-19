@@ -1,0 +1,45 @@
+{
+  "deployment": "",
+  "dictionary": "uut/build-artifacts/aarch64-linux/PiSensor/dict/PiSensorTopologyDictionary.json",
+  "serial": "FILL-AT-BENCH-ENTRY",
+  "notes": "PiSensor system bench: Pi 5 `soakee` (ssh alias `pi`) <-RFM69-> Feather M0 ground radio on the workstation /dev/ttyACM0 -> ground/feather_bridge.py -> fprime-yamcs (HTTP 8190, instance fprime-project). Run fth from the campaign root that holds uut/ (this repository), harness/ (fprime-testing-harness), venv/ and yamcs-config-rf/. `deployment` is empty on purpose: commands are sent by the plan's short names and resolved against the dictionary by yamcs_send.py. `serial` is the Pi's /proc/cpuinfo serial.",
+  "flash": "{py} {bench}/uut.py deploy --ssh {uut_ssh} --remote-dir {uut_dir} --image {image}",
+  "dump": "{py} {bench}/uut.py readback --ssh {uut_ssh} --remote-dir {uut_dir} --readback {readback}",
+  "gds": "{py} {bench}/ground.py --dictionary {dictionary} --logs {logs} --yamcs-config-dir {yamcs_config} --bridge uut/ground/feather_bridge.py --uart {uart}",
+  "recorder": "{py} {bench}/yamcs_recorder.py --url {yamcs_url} --instance {yamcs_instance} --root {yamcs_root} --dictionary {dictionary} --logs {logs} --gen-offset {gen_offset}",
+  "send": "{py} {bench}/yamcs_send.py --url {yamcs_url} --instance {yamcs_instance} --root {yamcs_root} --dictionary {dictionary} --logs {logs} -- {command} {args}",
+  "actions": {
+    "platform": "{py} {bench}/uut.py action platform --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
+    "sockets": "{py} {bench}/uut.py action sockets --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
+    "clock": "{py} {bench}/uut.py action clock --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
+    "clean_products": "{py} {bench}/uut.py action clean_products --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
+    "final_state": "{py} {bench}/uut.py action final_state --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
+    "wait_cfdp": "{py} {bench}/uut.py action wait_cfdp --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs} --timeout 900"
+  },
+  "vars": {
+    "py": "venv/bin/python",
+    "bench": "uut/test/int/bench",
+    "uart": "/dev/ttyACM0",
+    "uut_ssh": "pi",
+    "uut_dir": "pisensor-campaign/sys",
+    "yamcs_url": "localhost:8190",
+    "yamcs_instance": "fprime-project",
+    "yamcs_root": "/PiSensor_PiSensor",
+    "yamcs_config": "yamcs-config-rf",
+    "gen_offset": "1.0"
+  },
+  "provenance": {"serial_re": "Serial# = (\\S+)"},
+  "timeouts": {
+    "flash_s": 180,
+    "gds_start_s": 45,
+    "recorder_start_s": 5,
+    "send_s": 30,
+    "command_s": 30,
+    "wait_cfdp_s": 960,
+    "platform_s": 60,
+    "sockets_s": 60,
+    "clock_s": 60,
+    "clean_products_s": 60,
+    "final_state_s": 60
+  }
+}
