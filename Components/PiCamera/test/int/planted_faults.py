@@ -48,6 +48,7 @@ def c2_capture_before_hold(test_id, command_name, args):
 @planted_fault("c3_capture_after_restart", applies_to=["C-3"],
                fails={"C-3": ["event piCamera.CaptureCompleted count == 2", "event dpWriter.FileWritten count == 2",
                                "last(piCamera.CapturesCompleted) == 1"]},
-               cls="stimulus", mechanism="a second CAPTURE is sent after the restart", kind="insert")
+               cls="uut-state", mechanism="the capture count of the unit is disturbed by a CAPTURE after the restart",
+               kind="insert")
 def c3_capture_after_restart(test_id, command_name, args):
     return _c3(test_id, command_name, args)

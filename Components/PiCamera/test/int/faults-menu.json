@@ -37,7 +37,7 @@
     },
     {
       "name": "c3_capture_after_restart",
-      "class": "stimulus",
+      "class": "uut-state",
       "applies_to": [
         "C-3"
       ],
@@ -48,7 +48,7 @@
           "last(piCamera.CapturesCompleted) == 1"
         ]
       },
-      "mechanism": "a second CAPTURE is sent after the restart",
+      "mechanism": "the capture count of the unit is disturbed by a CAPTURE after the restart",
       "kind": "insert",
       "ripples_to": {}
     }
