@@ -11,7 +11,7 @@ def t(id, title, purpose, covers, procedure, windows, metrics=(), knobs=(), evid
     T.append({"id": id, "title": title, "purpose": purpose, "covers": covers, "setup": setup or NOM,
               "procedure": list(procedure), "windows": windows, "metrics": list(metrics),
               "rationale": [{"pred": p, "text": x} for p, x in rationale], "knobs": list(knobs), "evidence": evidence})
-NOM = "Deployment running on the Raspberry Pi 5, RFM69 link up through the Feather ground station to fprime-yamcs, all four sensors answering, product directory empty."
+NOM = "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty."
 CAP30 = H("event_after_command_within", "t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)", command="piCamera.CAPTURE", event="dpWriter.FileWritten", bound_s=30)
 CRC = "check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"
 REC = ("checks on the ground file: it parses as an F Prime data product container; the picture record starts FFD8 and ends FFD9, SOF0 width >= 640 and height >= 480; "
@@ -95,7 +95,7 @@ plan = {
  "scope": ["L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(arg1)` -> event `cmdDisp.NoOpStringReceived`, the id sent as a decimal string. Link budget [I]: RFM69 at the catalog default data rate 19200 bit/s carries about 2400 byte/s; sensor telemetry at 1 Hz leaves the rest to CFDP, so a 100 kB product takes on the order of a minute.",
            "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS.",
            "- Test deployment: the deployment itself. No component is added for testing. Markers use `cmdDisp`, the on-board file check uses `fileManager.CalculateCrc`, the directory listing uses `fileManager.ListDirectory`, product names come from `dpWriter.FileWritten`, platform identity is a bench action over ssh.",
-           "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service), joined to the radio by `alpha-iii-yamcs` 0.1.0 (wheel pinned by sha-256 in the SSDD) and the RFM69 Feather ground station on USB serial.",
+           "- Ground system: fprime-yamcs at the ledger pin with the project YAMCS configuration directory (CFDP service), joined to the RFM69 link by the bench ground radio (bench setup, not part of the SSDD; it passes TM and TC frames unchanged and is recorded in the manifest).",
            "- Record content (`record/`): every exported row carries the ground reception time beside the FSW time; `record/raw/bench-actions.log` holds each bench action with its bench start and end time; every CFDP file received is copied to `record/raw/files/` before it is checked; CFDP class and outcome come from the YAMCS transfer record exported to `record/raw/cfdp.json`.",
            "- Completeness: every window requires STD; an overflowed queue makes the window UNVERIFIED, never a pass of an absence check.",
            "- Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 and must be under 0.5 s; tolerances that compare the two clocks use 2 s.",
@@ -110,13 +110,13 @@ plan = {
  "entry_gates": ["- Component campaign `picam` closed; its unit tests pass.",
                  "- Image built from the manifest SHAs; L0-1 and L0-2 pass on the bench.",
                  "- Product directory empty at the start of each test (bench teardown removes the products of the test over ssh; L7-1 has no teardown).",
-                 "- Bench recipe: BMP280, MPU6050, GPS receiver with a fix and Pi Camera attached to the Pi 5; Feather M0 RFM69HCW ground station on the ground host USB."],
+                 "- Bench recipe: BMP280, MPU6050, GPS receiver with a fix and Pi Camera attached to the Pi 5; RFM69 ground radio joined to fprime-yamcs on the ground host (supplied with the bench)."],
  "levels": ["L0 provenance and feasibility · L2 functional · L7 final state. No L3, L4, L5 or L6 test: no system requirement states restart, endurance, fault or rejection behaviour; those belong to the components."],
  "not_covered": ["- Fault, warning and rejection behaviour of `piCamera`: its component campaign.",
                  "- Fault and warning behaviour of inherited components: not required at system level; their own tests, where they exist, cover it.",
                  "- CFDP uplink, packet loss and retransmission: no system requirement.",
                  "- Radio interference and range: the RFM69 link is tested at bench range only.",
-                 "- Today's bench cannot run these tests: the BMP280 and GPS receiver do not answer, and the camera and the Feather ground station are absent."],
+                 "- Today's bench cannot run these tests: the BMP280 and GPS receiver do not answer, and the camera and the ground radio are absent."],
  "decision_log": ["1. 2026-11-18 designer — test deployment = the deployment as flown; no test component (human direction).",
                   "2. 2026-11-18 designer — product content is judged on the ground copy of the file; `fileManager.CalculateCrc` gives the on-board check and the bench `sha256sum` the independent final state.",
                   "3. 2026-11-18 designer — planted faults insert commands of existing components only; a grown or altered product file is not usable as a fault because `Svc.DpCatalog` refuses it (size check).",

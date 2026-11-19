@@ -10,7 +10,9 @@ fprime-yamcs.
 
 Colour key, used in every table and diagram: 🟩 F Prime (inherited from
 `nasa/fprime`), 🟦 library (inherited from an F Prime library or ground
-package), 🟨 bespoke (built by this project).
+package), 🟨 bespoke (built by this project). The ground radio that joins
+the RFM69 link to fprime-yamcs is bench equipment, not an element of this
+design.
 
 ## Requirements
 
@@ -40,6 +42,7 @@ flowchart LR
   classDef fprime fill:#b7e1a1,stroke:#2e7d32,color:#000
   classDef library fill:#a9cdf5,stroke:#1565c0,color:#000
   classDef bespoke fill:#ffe680,stroke:#b58900,color:#000
+  classDef bench fill:#fff,stroke:#777,stroke-dasharray:4 3,color:#000
   subgraph Pi5[Raspberry Pi 5: PiSensor topology and configuration]
     bmp[Bmp280.Subtopology]:::library
     imu[MpuImu.Subtopology]:::library
@@ -53,17 +56,16 @@ flowchart LR
     sched[time and rate groups]:::fprime
   end
   subgraph Ground
-    gs[RFM69 Feather ground station]:::library
-    bridge[alpha-iii-yamcs]:::library
     yamcs[fprime-yamcs]:::library
   end
+  gs([RFM69 ground radio: bench setup]):::bench
   bmp & imu & gps -- telemetry --> cdh
   cdh -- latest readings --> cam
   cam -- product container --> dp
   dp -- catalog file requests --> fh
   cdh & fh --> com --> radio
   radio <-. RFM69 .-> gs
-  gs <-- USB serial --> bridge <--> yamcs
+  gs <-- TM and TC frames --> yamcs
 ```
 
 ### Topology
@@ -162,10 +164,8 @@ subtopology are those of the subtopology as shipped.
 | `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006 (set) | Channel and product times | platform: 1 kHz group unverified |
 | `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280; bus not yet identified on the bench | 001, 005 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified |
 | `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005 (set) | `imuManager.Reading` | — |
-| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver; UART not yet identified on the bench | 003, 005 (set) | `gpsManager.Reading` | UART driver buffer ports are not connected and not exported; this topology connects them. platform: unverified |
+| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver; UART not yet identified on the bench | 003, 005 (set) | `gpsManager.Reading` | The default UART driver needs receive buffers; this topology owns the two wires from `driver` to `bufferManager`. platform: unverified |
 | `Rfm69.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Sends and receives one buffer of at most 255 bytes per radio packet | 1 kHz | RFM69 on SPI0 CE1 | 010 (set) | `rfm69Manager.PacketsTransmitted`, `PacketsReceived` | platform: unverified |
-| RFM69 Feather ground station | 🟦 library | fprime-rfm69-feather-groundstation `ee3c233` | Carries each radio packet between the radio and USB serial, wrapped in an F Prime frame | — | Feather M0 RFM69HCW on the ground host USB | 010, 011 (set) | Frames received by YAMCS | No SDD; one integration test; built against other fprime and fprime-sensors revisions. Documented for space packets, not transfer frames. Not on the bench. platform: unverified |
-| `alpha-iii-yamcs` | 🟦 library | wheel `alpha_iii_yamcs-0.1.0-py3-none-any.whl`, sha-256 `efeecebe5981ed36ee098d12c3d9aa3fcc9cf0a77754f8f66f468d84b39f7607`; kept at `~/alpha_iii_yamcs-0.1.0-py3-none-any.whl` on the bench workstation; source repository not identified, not on PyPI | Joins the USB serial stream to fprime-yamcs: removes and adds the F Prime frame around TM and TC frames | — | Ground host USB serial | 010, 011 (set) | Frames received by YAMCS; commands executed | Used with the alpha-iii LoRa ground radio only. Documentation and tests: not known until the source is identified. platform: unverified with the Feather |
 | fprime-yamcs | 🟦 library | fprime-yamcs `f6f0e19` | Ground commanding, telemetry, events, CFDP entity | — | Ground host | 008, 009, 011 (set) | Decoded parameters, events, transfer records and files | No CFDP service configured as shipped; needs `fprime-yamcs-bundle` 5.13.7.0, which is not on PyPI |
 
 All 🟩 rows are built from [`nasa/fprime@83221ba`](https://github.com/nasa/fprime/commit/83221ba82a) (`devel`, v4.4.0-98),
