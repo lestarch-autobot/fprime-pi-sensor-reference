@@ -13,4 +13,5 @@ register_fprime_module(
     Svc_PosixTime
     Svc_TlmPacketizer_config_TlmPacketizerConfig
     fprime-sensors_NmeaGps_Subtopology
+    Components_PiCamera
 )

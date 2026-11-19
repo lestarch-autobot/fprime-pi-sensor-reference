@@ -25,6 +25,7 @@ module PiSensor {
     instance rateGroup1Hz
     instance posixTime
     instance comRetry
+    instance piCamera
 
     command connections instance CdhCore.cmdDisp
     event connections instance CdhCore.events
@@ -83,6 +84,12 @@ module PiSensor {
     connections DataProducts {
       DataProducts.Subtopology.dpCatFileOut -> FileHandlingCfdp.cfdpManager.fileIn
       FileHandlingCfdp.cfdpManager.fileDoneOut -> DataProducts.Subtopology.dpCatFileDone
+    }
+
+    connections Camera {
+      piCamera.tlmGetOut -> CdhCore.tlmSend.TlmGet
+      piCamera.productGetOut -> DataProducts.Subtopology.productGetIn
+      piCamera.productSendOut -> DataProducts.Subtopology.productSendIn
     }
 
     connections Spine {

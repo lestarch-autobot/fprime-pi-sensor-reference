@@ -92,3 +92,118 @@ Decisions (author's, for the gate):
 - 2026-11-18 redo review round 2 [V]: architecture 0 / 0, open list empty; design-review 0 must / 2 could plus the routed adjudication; design-principles 0 must / 2 could; requirements 2 must (device identity, held for the gate; 023 wording) / 3 could. No disagreement. Applied: 023 states what the unit test observes; 016 and 019 `Integration Test, Unit Test`; the `SENSOR_STALE` age is limited to the I32 range, 0 for another time base; `acquire` carries opcode and sequence number, so a command accepted after the busy flag clears cannot change the ended capture's response; the channels are published by the component thread at its start (the topology connects ports after `configure`).
 - 2026-11-18 redo review round 3 [V], loops closed at the bound: requirements 1 must (device identity: cannot close before the camera is attached; reviewer asks for conditional approval) / 0 could; architecture closed in round 2 with an empty open list; design-review 0 must / 1 could (#11, low confidence: which hook publishes the channels at thread start; left for DEVELOPMENT) plus the routed `design-needs-human-adjudication:PiCamera`; design-principles 0 / 0. No open disagreement.
 - 2026-11-18 checklist, design stage, regenerated for the redesign [V]: rows 1.1–1.6 YES by review; hand-off "Nothing to review at the design stage". After the tool's findings: Table 3 column renamed `Source`, container table with default priority 10 (the catalog sends lower numbers first; one container type, so the value orders nothing here), requirement references added in section 3. Rows left NO: 2.5, 2.6 (no implementation in this lane), 3.12 (container priority not commandable: one container type, no parameter added), 5.3 (no hardware run). clang-tidy plugin not built: static-analysis rows UNCHECKED until DEVELOPMENT.
+
+## Development (2026-11-18, branch `comp/picam` from `deploy/base`@c7953c9)
+
+- Skills source unchanged: `lestarch-autobot/fprime` `system-campaign-skills`@aa3ab03. Test configuration: nasa/fprime@83221ba, fprime-sensors@e5d83d1. Single pass (no iterative-development loop was approved).
+- Implementation [V]: `PiCamera.{hpp,cpp}`, camera interface `Camera.hpp`, `LibcameraCamera.cpp` (libcamera 0.7.2, YUV420 640x480, libjpeg62-turbo raw-data compression; compiled as C++17 because libcamera's API needs it), `NoCamera.cpp` (`PICAMERA_NO_CAMERA`), topology wiring, `PiSensor/project/config/DataProductsConfig.fpp` (`dpBufferStoreSize` 264192; a project configuration override, no inherited source changed).
+- Differences to the approved SDD, reported to the parent: `Camera::encode` in the interface (unit tests substitute the JPEG step); `configure` takes the camera interface as first argument; three channel members instead of `m_channels`; the sensors' `CHANNELID_READING` enumerators are protected, so the topology passes local identifier 0 as the constant `SENSOR_READING_CHANNEL`. SDD errata applied at 0d92871: camera identity (Camera Module 3, `imx708`), libcamera 0.7.2, the interface list, `configure` and the channel members.
+- Unit tests [V]: the 20 tests of SDD §8 pass; `PiCamera.cpp` line coverage 99% (197 of 199) before the review fixes.
+- Defect found by the unit tests [V]: camera error codes were lost because the code argument and the camera call were evaluated in one argument list; fixed.
+- Bench smoke over the RFM69 [V], image sha256 31a70108…bf1f487 (32b0c2d): `CAPTURE` → `CaptureCompleted` 24480 bytes, `dpWriter.FileWritten` 24639 bytes, picture decodes as JPEG 640x480; response in 0.85 s (bound `CAPTURE_MAX_MS` 15000). With `rpicam-hello` holding the camera: `CaptureFailed(CAMERA_ERROR, OPEN, -16)`, `EXECUTION_ERROR`; after release the next capture succeeds (24158 bytes). Measured JPEG size is about 9% of `PICTURE_MAX_SIZE`.
+- Development review, single pass, local, 32b0c2d [V]: 7 must fix / 10 suggestion / 16 could fix / 0 future work / 5 ruled. All ten lenses ran in one reviewer context.
+
+| Finding | Agent tag | Disposition | Reason | Who ruled |
+|---|---|---|---|---|
+| COR-1 exact-size JPEG fails `TOO_LARGE` | must fix | fixed e3b7217 | destination spills into a scratch area; overflow only when the scratch receives a byte | writer |
+| TQ-1 tautological assertion | must fix | fixed e3b7217 | compares component counters with responses | writer |
+| TQ-2 response order untested | must fix | fixed e3b7217 | `CAPTURE` sent from inside the `OK` response | writer |
+| DES-1 age checked before decode | must fix | fixed e3b7217, test 0d92871 | decode first, as SDD §3.5 step 4 | writer |
+| DES-2 `NO_CAMERA` at `OPEN` | must fix | fixed e3b7217 | `open` returns `ERROR` with `-ENODEV` | writer |
+| DOC-1 SDD interface list | must fix | fixed 0d92871 | SDD erratum, reported to the parent | writer |
+| DOC-2 SDD camera identity | must fix | fixed 0d92871 | SDD erratum, closes the open item | writer |
+| COR-2, CPP-B, CPP-C, CPP-D, CPP-E, CPP-F, DES-4, MNT-2 | suggestion | fixed e3b7217, 0d92871 | applied as proposed | writer |
+| DES-5 no check of the store size against `PICTURE_MAX_SIZE` | suggestion | not applied | the record sizes are protected members of the generated base; the configuration comment names the dependency | writer |
+| TQ-3 adapter encoder has no unit test | suggestion | not applied | needs the camera libraries on the unit-test host; the adapter is exercised on the bench | writer |
+| TQ-5 record count per identifier | could fix | fixed 0d92871 | one Metrics and one Picture record asserted | writer |
+| other could fix (15) | could fix | not applied | single pass | writer |
+- Unit-test coverage after the review fixes [V]: 21 tests pass (the 20 of SDD §8 plus `NoCameraBuild`, added so the `PICAMERA_NO_CAMERA` interface is run); lines 99.1% (227 of 229) over `PiCamera.cpp`, `NoCamera.cpp`, `Camera.hpp`; the project minimum is 95%. `LibcameraCamera.cpp` is not in the unit-test build (finding TQ-3); it runs on the bench.
+- 2026-11-18 checklist, implementation stage [V]: hand-off empty. NO rows: 3.12 (container priority not commandable, as at design), 3.33 (the `CaptureMetrics` members carry units in annotations, not in names; approved model), 5.3 (hardware run record, written at close-out). 3.21 and 3.23 N/A (no interrupts). 4.2 audited YES (`TestUtils` is header-only, no CMake module). 38 rows UNCHECKED: the clang-tidy plugin is not installed on the development host (needs root).
+
+## Bench harness (2026-11-18)
+
+- Harness: `Components/PiCamera/test/int/` (plan C-1 to C-3, stimulus and named checks, three planted faults, bench recipe) and the bench adapter `test/int/bench/yamcs_bench.py`. No test component; marker `cmdDisp.CMD_NO_OP_STRING`.
+- Tool gaps of fth v0.1.2 [V]: no `verify-stimulus` subcommand; `verify-plan --sdd` rejects the heading `## 2. Requirements`; `require()` cannot expand a helper predicate of `std_complete`; `fth dev-campaign` and so `fth deliver` need a run with in-image `DUMP_COVERAGE` windows, which this Linux deployment as flown does not have.
+- `commands_sent == count(event cmdDisp.OpCodeDispatched)` is not usable with this marker [V]: the dispatch of the START marker carries the time tag of the marker event and can sort outside the window. The tests require instead that every command but the markers was dispatched.
+- The RFM69 uplink lost 2 of 17 command frames in one dry run [V]. The adapter sends a command again, at most twice, when the unit does not report its dispatch within 6 s, and logs each resend.
+- `require(...)` is judged on the live record at the time of the call [V]: the tests call it after the stimulus and a 3 s wait for the recorder.
+
+System-test review, Mode B, single pass (child session bd306eb3, `comp/picam`@53eda05): 10 must fix, 7 could fix, 1 ruled.
+
+| Finding | Disposition |
+|---|---|
+| M-1 arguments logged as strings | Fixed: decimal arguments are logged as numbers. |
+| M-2 `CaptureFailed` pattern | Fixed. |
+| M-3 REQ-PiCamera-009 unjudged | Fixed: dispatcher event patterns added; check function `every CAPTURE answered within CAPTURE_MAX_MS` fails when its operands are absent. |
+| M-4 `delta(CapturesCompleted)` in C-1 | Fixed: check removed. |
+| M-5 pacing of C-2 under its planted fault | Fixed: bracket before the camera is freed; the reason check is a function on the first failure and is out of `fails`. |
+| M-6 stale process id files | Fixed: a recorded process is signalled only while `/proc/<pid>/exe` is the program the adapter started. |
+| M-7 absolute paths in `bench.json` | Fixed for the adapter, bridge and interpreters (relative to the campaign root). Open: the YAMCS configuration directory is built by hand per `ground/README.md`, not by a pinned step. |
+| M-8 lost downlink frame not seen | Partly: the two overflow predicates are preconditions and the YAMCS link events are kept in `record/raw/ground-events.log`. Open: no precondition on a frame gap, because fth hands a check no raw ground data. |
+| M-9 REQ-PiCamera-024 | Plan states it is not verified as written on the bench (restart after a completed capture); unit test `RecoveryAfterFailure`. |
+| M-10 one `CaptureStarted` per command | Fixed. |
+| C-1 to C-7 | Applied: response timed, not the event; no start-up between failure and success; process confirmed after start and hold; clashing names reported in `record/raw/name-clash.log`; `checks_kat.py`; second restart witness. |
+| R-1 run-start markers read from `*.Marker` events only | Ruled (marker is binding). Tool gap to watch at unseal. |
+
+Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53eda05):
+
+- Run of 21:34: C-2 PASS, C-3 PASS; C-1 UNVERIFIED from the recorder timing above; the record replays as three PASS.
+- Run of 21:40: invalid. The MPU6050 stopped answering (`imuManager.I2cError`, `I2C_WRITE_ERR` on address 104) 55 s after the image start and stayed silent after a restart of the process. Bench fault reported to the project; not cleared here (no power-cycling, no sudo).
+
+## Bench harness, second day (2026-11-19)
+
+- Tooling: fprime-testing-harness branch `linux-host-coverage`@a37aa1b0062a7ae2f2c85e795db345891c000a8a (v0.1.2 plus one commit) replaces v0.1.2 on the workstation. It accepts coverage counts copied off a Linux target (`--gcda-dir`), per the ruling on the coverage evidence.
+- Coverage on the target: an image built with `--coverage` is started with `GCOV_PREFIX` by the adapter (`flash --gcov`, `bench-coverage.json`); the counts are written when the image ends on `SIGTERM` and are copied off with `collect-gcda`. No test code is in the image.
+- Correction to the note above: `require(...)` is judged when the window closes, not at the call.
+- Channel samples reach the ground record about 36 s after events of the same unit time, and the lag grew by about 0.13 s per second over 12 s [V]; `comQueue` depth read 0, the place of the queue is not located. A window shorter than the lag closed with no bracket samples. The tests wait, before the END marker, until the bracket channel has a sample as new as the newest event (240 s at most). Reported to the project as a system finding.
+- Clean dry run [V], `comp/picam`@fe0a442, image sha256 `b1980c96…809cf`: C-1, C-2, C-3 PASS (record `d68bc46b…`).
+- Planted-fault dry runs of the same morning: invalid. The MPU6050 fault returned (two `I2cError` during the clean run with no bench action, then `lost arbitration` and `SDA stuck at low` in the kernel log about 35 s after the next image start). Reported to the project.
+
+## Design change: capture without the MPU6050 (2026-11-19)
+
+- Ruling of the Captain, 2026-11-19 10:50 PST, verbatim: "You are just going to have to continue without it.  Put placeholder values in the data product and move on". Passed on by the project (project ledger, `deploy/base`@d3c1359) after the MPU6050 of the bench failed a third time. It is the authority for this change to the SDD approved at gate 1.
+- Change: a missing, undecodable or stale acceleration reading no longer fails a capture. The `Metrics` record gets `attitudeValid` (false), roll and pitch NaN and `attitudeTime` zero; the component emits `AttitudeUnavailable` (`WARNING_LO`) with the reason and the code a failure would have carried. New REQ-PiCamera-026; REQ-PiCamera-010 and 011 now name the temperature and the location only; REQ-PiCamera-006 holds when the reading is usable.
+- Unchanged: no GPS fix, a stale GPS reading and a missing or stale BMP280 reading fail the capture and store nothing.
+- Decision: an acceleration that is present and fresh but not finite or of magnitude 0 still fails with `METRIC_INVALID` at `ATTITUDE`. The ruling names a sensor that is absent; a present sensor that reports nonsense is a different fault and is not hidden behind a placeholder.
+- Decision: `attitudeTime` is zero when the flag is false, also for a stale reading, so that no field of an invalid attitude looks usable. The age of a stale reading is in the event.
+- Decision: the warning is `WARNING_LO`, because the command succeeds; `CaptureFailed` stays `WARNING_HI`.
+- No MPU6050 data is substituted on the bench, in the image or in the harness.
+- System level: REQ-PiSensor-014 as written fails a capture for any stale metric; the exception for the attitude is the project's to record.
+- Unit tests: 22 pass (new `AttitudeUnavailable`; `StaleReading`, `MissingReading`, `RecoveryAfterFailure` and `RandomSequences` adapted). Coverage after the review fixes: lines 99.2% (242 of 244), branches 84.3% (323 of 383), functions 93.8% (30 of 32).
+- Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
+- Bench plan: the bracket channel is `bmpManager.Reading`; REQ-PiCamera-026 is covered by C-1 to C-3 only where the record is conclusive (see the review item below), because recorded channel samples have gaps the unit did not have (21 of 34 expected MPU6050 samples in one window of the run of 2026-11-18 21:34, during which every capture read a fresh acceleration).
+- Review: one focused pass of this change (development review of commit 18c7f70, child session f9824ceb), as the project instructed; no further rounds. Result: 0 must fix, 3 suggestions, 4 could fix; all seven applied.
+  - S-1: `AttitudeUnavailable` is emitted once the three readings are complete, so a capture that fails at `LOCATION` does not claim a stored NaN.
+  - S-2, S-3: the bench check `attitude warning agrees with the MPU6050 telemetry` expects no warning only with a fresh sample before both `CaptureStarted` and `CaptureCompleted`, and expects the warning when the window holds no MPU6050 sample at all; anything between is not judged.
+  - C-1, C-2: the unit test asserts seconds and microseconds 0, and no warning when the capture fails.
+  - C-3, C-4: `readAttitude` itself decides what is unavailable; its declaration sits with `readMetrics`.
+  - The reviewer challenges the `METRIC_INVALID` decision above: an MPU6050 that still answers with zeros would fail every capture. Left as decided and reported to the project for the Captain.
+
+## Release (2026-11-19)
+
+Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598b85d7be1de217d20, the commit before this section.
+
+- Images, built on the workstation by `test/int/bench/build_image.sh` [V]: pure sha256 `4610f6d97f1680557823f0d7c875903a22479af2b8165ad970b01c5f1c7e7aa6`; built for coverage sha256 `a0ad4b71e275e8580ba09ccf5b21036ad63dd37321de7060105cd0cac39287ca`; dictionary sha256 `366969e5945592c34107d847cb20920b3387e83c66d7c39eb4ae00270aa8ef69`. `fth deliver` rebuilt the pure image and the dictionary from the pinned trees to the same hashes.
+- Bench runs, MPU6050 silent throughout (every capture stored its product with `AttitudeUnavailable(SENSOR_NO_DATA, 0)`) [V]:
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `2131628e…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `2c8c29f7…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `35cea039…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `8857deaf…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `f4a64f38…` |
+
+- `fth audit --unsealed --tests` on dry-1 to dry-4: runner and replay agree on every test. One step fails in each audit: `run-start markers … no manifest run-start marker for this manifest/run id`. fth reads run-start markers only from events named `*.Marker`; the marker of this project is `cmdDisp.NoOpStringReceived` (finding R-1 of the harness review).
+- Coverage: unit tests, lines 99.2% (242 of 244); on the target, over `Components/PiCamera/` of the coverage image, 284 count files copied off the Pi after a clean stop: lines 77.0% (415 of 539), functions 82.2% (37 of 45), branches 58.9% (308 of 523). Plan minimum: 95 and 75.
+- `fth dev-campaign --gcda-dir`: clean, no finding.
+- `fth deliver`: OK, 0 findings. `rfr-input.zip` sha256 `51ea1caa69fd7d550d02f7d221cd5803acdafd5d5fe9393a3907c11cd41430a2`, manifest sha256 `9a04d111facec33c1761b2de339ebf821a1cf870ed35110dfb481eb5f7d3b19e`, 33 pinned files.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: REFUSED on one preflight check of 30: `running fth is the pinned harness checkout: fth imports from …/campaign/harness, manifest pins harness at uut — run the pinned fth`. The other form, `--harness` = the fprime-testing-harness checkout, is refused by `fth deliver`: `VERSION: inputs/PiSensor.bin: describe string of ['harness'] not found in the image`. The tool expects the harness repository to be both the tree fth runs from and a tree whose version is built into the image; here the bench tests live in the project repository and the image holds no test code. Not worked around; reported to the project. No seed was requested and no run for record was made.
+- Hardware run for checklist row 5.3: not recorded as `docs/hardware-run.md`; the runs above are the evidence (Raspberry Pi 5 `soakee`, deployment `PiSensor`, commit 3e2290f, 2026-11-19).
+
+## Release, second delivery (2026-11-19)
+
+- Tooling: fprime-testing-harness `linux-host-coverage`@8dd2a5e007132f88719c53a367f1190216cf8b99 (the project's change for the two refusals above), checked out at `harness/` of the campaign root and installed from there.
+- `fth deliver --harness uut --tool harness`: OK, 0 findings. `rfr-input.zip` sha256 `0c5d5d3d6f647ed002bf0da8decdf850be6feadfd808cc9ac713f90105a22a2c`, manifest sha256 `0365b61603576970da27acd53f90bd8f25d8e93ba0e14ff2b4e2327a702fdd83`, 33 pinned files. Same UUT commit 3e2290f, images and dictionary as the first delivery; the manifest gains a `tool` pin (`harness`, 8dd2a5e, `v0.1.2-2-g8dd2a5e`, clean). This delivery supersedes the first.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK. 39 preflight checks, 12 command lines rendered, 47 path tokens checked; `rfr.log` sha256 `6aee4505a8f7927c864ad6451fb06a082080110444bdff917e35530c203e7ac9`. No seed was requested and no run for record was made.
+- Unsealed `fth audit` of dry-1 with 8dd2a5e: the run-start marker step still fails (`no manifest run-start marker for this manifest/run id`). The record does hold the markers (4294901761 followed by 3745703664 = 0xdf42e6f0, the manifest of the run), but the exported event has two arguments, `{"text": "Received a NO-OP string=4294901761", "nums": [4294901761]}`, and the tool reads the event only when it has one argument that is a decimal string. Reported to the project; the record was not changed.
