@@ -20,7 +20,7 @@ package), 🟨 new (built by this project).
 | REQ-PiSensor-002 | Outside a CFDP downlink, the system shall downlink MPU6050 acceleration and angular rate telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-003 | Outside a CFDP downlink and with a GPS fix, the system shall downlink NMEA GPS latitude and longitude telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-004 | A capture command shall produce one Pi Camera JPEG picture of at least 640x480 pixels. | Integration Test |
-| REQ-PiSensor-005 | Each capture shall store one data product holding the picture, latitude, longitude, roll, pitch and temperature. | Integration Test |
+| REQ-PiSensor-005 | Each capture shall store one data product holding the picture, latitude, longitude, roll, pitch and temperature. While the MPU6050 gives no reading within the bound of REQ-PiSensor-014, the product shall hold roll and pitch as placeholders marked not valid. | Integration Test |
 | REQ-PiSensor-006 | Each data product shall carry its capture time and the sample time of each metric. | Integration Test |
 | REQ-PiSensor-007 | The system shall store the data product within 30 s of receiving a capture command. | Integration Test |
 | REQ-PiSensor-008 | On command, the system shall downlink every stored data product not yet downlinked, by CFDP class 2. | Integration Test |
@@ -29,7 +29,7 @@ package), 🟨 new (built by this project).
 | REQ-PiSensor-011 | Commands sent from fprime-yamcs shall execute, and telemetry, events and CFDP files shall arrive decoded in fprime-yamcs. | Integration Test |
 | REQ-PiSensor-012 | During a CFDP downlink and with a GPS fix, the system shall downlink each telemetry item of REQ-PiSensor-001 to -003 at least once every 10 s. | Integration Test |
 | REQ-PiSensor-013 | The system shall meet REQ-PiSensor-001 to -012 and -014 on a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (Trixie). | Integration Test |
-| REQ-PiSensor-014 | While REQ-PiSensor-001 to -003 are met, each metric in a data product shall have a sample time within 2 s of the capture time. | Integration Test |
+| REQ-PiSensor-014 | While REQ-PiSensor-001 to -003 are met, each metric in a data product that is marked valid shall have a sample time within 2 s of the capture time. | Integration Test |
 
 ## Architecture
 
