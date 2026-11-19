@@ -7,6 +7,7 @@ same file over the record at audit. Check names are constants: they are the iden
 import json
 import math
 import re
+import time
 
 import pytest
 
@@ -228,6 +229,19 @@ def metrics_match_telemetry(h, which):
     return not bad, f"metrics not matching the telemetry: {bad or 'none'}"
 
 
+def settle(bench, limit_s=900):
+    """Last step of every window: wait until the telemetry sampled up to now has reached the ground. The
+    radio downlink carries telemetry later than events, and later the longer the unit runs; fth judges a
+    window right after its END marker over the samples whose unit time lies in it."""
+    if not rec.live():
+        return
+    now = time.time()
+    for _ in range(limit_s):
+        if rec.caught_up("bmpManager.Reading", now):
+            return
+        bench.wait(1)
+
+
 def capture(send, bench, start_id, k):
     """piCamera.CAPTURE(), wait for its dpWriter.FileWritten; returns the name of the k-th product of the window."""
     send("piCamera.CAPTURE", [])
@@ -268,6 +282,7 @@ def test_L0_1(window, send, bench, check, require, fth_plan):
               lambda h: ([e.text.split("[")[1].split("@")[0] for e in h.window.events("version.LibraryVersions")] == ["fprime-sensors"],
                          "; ".join(e.text for e in h.window.events("version.LibraryVersions"))))
         check("the dictionary of the image holds no command of a test component", no_test_command)
+        settle(bench)
 
 
 def no_test_command(h):
@@ -288,6 +303,7 @@ def test_L0_2(window, send, bench, check, require, fth_plan):
               lambda h: ([e.raw_args.get("arg1") for e in h.window.events("cmdDisp.NoOpStringReceived")] == ["20", "42405", "21"],
                          str([e.text for e in h.window.events("cmdDisp.NoOpStringReceived")])))
         check("platform is a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (trixie)", platform)
+        settle(bench)
 
 
 @pytest.mark.req(*R(1, 2, 3, 11))
@@ -300,6 +316,7 @@ def test_L2_1(window, send, bench, check, require, fth_plan):
         absent(check)
         check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
         check("MPU6050 readings plausible for a bench at rest", imu_plausible)
+        settle(bench)
 
 
 @pytest.mark.req(*R(1, 2, 3, 11))
@@ -315,6 +332,7 @@ def test_L2_2(window, send, bench, check, require, fth_plan):
         check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
         check("MPU6050 readings plausible for a bench at rest", imu_plausible)
         check("event cmdDisp.NoOpReceived count == 3")
+        settle(bench)
 
 
 @pytest.mark.req(*R(4, 5, 6, 7, 8, 9, 11, 14))
@@ -335,6 +353,7 @@ def test_L2_3(window, send, bench, check, require, fth_plan):
         send("fileManager.CalculateCrc", [p])
         downlink(send, bench)
         downlinked(bench)
+        settle(bench)
 
 
 @pytest.mark.req(*R(4, 5, 6, 7, 8, 9, 14))
@@ -359,6 +378,7 @@ def test_L2_4(window, send, bench, check, require, fth_plan):
         send("fileManager.CalculateCrc", [p2])
         downlink(send, bench)
         downlinked(bench)
+        settle(bench)
 
 
 def two_names(h):
@@ -397,6 +417,7 @@ def test_L2_5(window, send, bench, check, require, fth_plan):
         bench.wait(10)
         downlink(send, bench)
         downlinked(bench)
+        settle(bench)
 
 
 @pytest.mark.req(*R(4, 7))
@@ -410,6 +431,7 @@ def test_L2_6(window, send, bench, check, require, fth_plan):
         check("event dpWriter.FileWritten count == 3")
         for k in (1, 2, 3):
             capture(send, bench, 46, k)
+        settle(bench)
 
 
 @pytest.mark.req(*R(12, 8, 9, 10, 11))
@@ -424,6 +446,7 @@ def test_L2_7(window, send, bench, check, require, fth_plan):
         p2 = capture(send, bench, 50, 2)
         send("fileManager.CalculateCrc", [p1])
         send("fileManager.CalculateCrc", [p2])
+        settle(bench)
     with window(51, 52) as w:
         std(require, fth_plan)
         metrics(w, fth_plan, "L2-7", check, require)
@@ -435,6 +458,7 @@ def test_L2_7(window, send, bench, check, require, fth_plan):
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         downlink(send, bench)
         downlinked(bench)
+        settle(bench)
 
 
 @pytest.mark.req(*R(12, 10))
@@ -447,6 +471,7 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
         check("event dpWriter.FileWritten count == 2")
         capture(send, bench, 53, 1)
         capture(send, bench, 53, 2)
+        settle(bench)
     with window(54, 55) as w:
         std(require, fth_plan)
         metrics(w, fth_plan, "L2-8", check, require)
@@ -459,6 +484,7 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
         bench.wait(15)
         send("cmdDisp.CMD_NO_OP", [])
         downlinked(bench)
+        settle(bench)
 
 
 def noop_during_downlink(h):
@@ -491,6 +517,7 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
             send("fileManager.ListDirectory", [DP_DIR])
             downlink(send, bench, wait_s=0)
             bench.wait(30)
+            settle(bench)
     finally:
         bench.action("final_state")
 

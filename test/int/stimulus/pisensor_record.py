@@ -48,6 +48,17 @@ def live():
     return _arg("--fth-replay-record") is None and raw_dir() is not None
 
 
+def caught_up(channel, since):
+    """True when a sample of `channel` with a unit time of `since` (UTC epoch seconds) or later is on the ground."""
+    log = raw_dir() / "fprime-cli-yamcs" / "channel.log"
+    if not log.is_file():
+        return False
+    for line in reversed(log.read_text(encoding="utf-8", errors="replace").splitlines()[-400:]):
+        if f".{channel}," in line:
+            return float(line.split("TB_PROC_TIME: ", 1)[1].split("s,", 1)[0]) >= since
+    return False
+
+
 def exported():
     """events/channels rows of the export with their ground reception time (`rx`), indexed like fth's rows."""
     raw = raw_dir()

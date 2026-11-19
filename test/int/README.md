@@ -94,7 +94,9 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
 7. Products: new check "roll and pitch of each ground file are marked valid" (L2-3, L2-4, L2-5, L7-1). The
    sample time bound applies to metrics marked valid (REQ-PiSensor-014 as amended). The L2-5 comparison with
    telemetry is two checks: temperature, latitude and longitude; roll and pitch.
-8. Scope, not-covered and decision log entries for the above. Not changed: tests, windows, commands, bounds,
+8. Every window ends with a wait until the telemetry sampled up to that moment has reached the ground
+   (telemetry age, below); no bound changes.
+9. Scope, not-covered and decision log entries for the above. Not changed: tests, windows, commands, bounds,
    planted faults. The metrics of L2-7 and L2-8 still name window D in their text (fth gap 5).
 
 ## Settled at the bench (2026-11-19)

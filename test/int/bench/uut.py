@@ -23,7 +23,7 @@ SOCKETS = ("pid=$(cat {d}/fsw.pid); echo PID=$pid; echo EXE=$(readlink /proc/$pi
            "ss -H -tuanp | grep \"pid=$pid,\" || true; echo '--- devices'; "
            "for f in /proc/$pid/fd/*; do t=$(readlink $f); [ -c \"$t\" ] && echo \"$t\"; done | sort -u")
 CLEAN = "rm -f {d}/run/DpCat/*.fdp; ls -A {d}/run/DpCat | wc -l"
-FINAL = "cd {d}/run && sha256sum DpCat/*.fdp"
+FINAL = "cd {d}/run && ls -A DpCat && for f in DpCat/*.fdp; do [ -e \"$f\" ] && sha256sum \"$f\"; done; true"
 
 
 def ssh(host: str, command: str, timeout: float = 60) -> subprocess.CompletedProcess:
