@@ -29,7 +29,7 @@
  * @param app: name of application
  */
 void print_usage(const char* app) {
-    Fw::Logger::log("Usage: ./%s [options]\n-a\thostname/IP address\n-p\tport_number\n", app);
+    Fw::Logger::log("Usage: ./%s [options]\n-h\tHelp\n", app);
 }
 
 /**
@@ -56,21 +56,11 @@ static void signalHandler(int signum) {
  */
 int main(int argc, char* argv[]) {
     Os::init();
-    U16 port_number = 0;
     I32 option = 0;
-    char* hostname = nullptr;
 
     // Loop while reading the getopt supplied options
-    while ((option = getopt(argc, argv, "hp:a:")) != -1) {
+    while ((option = getopt(argc, argv, "h")) != -1) {
         switch (option) {
-            // Handle the -a argument for address/hostname
-            case 'a':
-                hostname = optarg;
-                break;
-            // Handle the -p port number argument
-            case 'p':
-                port_number = static_cast<U16>(atoi(optarg));
-                break;
             // Cascade intended: help output
             case 'h':
             // Cascade intended: help output
@@ -83,13 +73,15 @@ int main(int argc, char* argv[]) {
     }
     // Object for communicating state to the reference topology
     PiSensor::TopologyState inputs;
-    inputs.hostname = hostname;
-    inputs.port = port_number;
     // Bench devices of the Raspberry Pi 5 (docs/ledger.md)
     inputs.bmp.device = {0, 0};
     inputs.mpu.device = "/dev/i2c-1";
-    inputs.gps.device = "/dev/ttyAMA0";
+    inputs.gps.device = "/dev/ttyACM0";  // USB GPS receiver
     inputs.gps.baud = 9600;
+    inputs.rfm69.device.device = 0;  // SPI bus 0
+    inputs.rfm69.device.select = 1;  // chip select 1 (the BMP280 has chip select 0)
+    inputs.rfm69.device.resetGpioChip = "/dev/gpiochip0";
+    inputs.rfm69.device.resetGpioPin = 26;
 
     // Setup program shutdown via Ctrl-C
     signal(SIGINT, signalHandler);
@@ -98,7 +90,7 @@ int main(int argc, char* argv[]) {
 
     // Setup, cycle, and teardown topology
     PiSensor::setupTopology(inputs);
-    PiSensor::startRateGroups(Fw::TimeInterval(0, 100000));  // 10 Hz base cycle
+    PiSensor::startRateGroups(Fw::TimeInterval(0, 1000));  // 1 kHz base cycle
     PiSensor::teardownTopology(inputs);
     Fw::Logger::log("Exiting...\n");
     return 0;

@@ -22,6 +22,9 @@
 #include "Svc/Subtopologies/ComCcsds/Ports_ComPacketQueueEnumAc.hpp"
 
 namespace PingEntries {
+namespace PiSensor_rateGroup1KHz {
+enum { WARN = 3, FATAL = 5 };
+}
 namespace PiSensor_rateGroup10Hz {
 enum { WARN = 3, FATAL = 5 };
 }
@@ -34,8 +37,6 @@ namespace PiSensor {
 
 //! State handed to the topology: link endpoint and device paths of the bench
 struct TopologyState {
-    const char* hostname;                  //!< Ground host of the TCP link
-    U16 port;                              //!< Ground port of the TCP link
     CdhCore::SubtopologyState cdhCore;
     ComCcsds::SubtopologyState comCcsds;
     DataProducts::SubtopologyState dataProducts;

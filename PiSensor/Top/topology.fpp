@@ -1,15 +1,16 @@
 module PiSensor {
 
   enum Ports_RateGroups {
+    rateGroup1KHz
     rateGroup10Hz
     rateGroup1Hz
   }
 
-  @ Base deployment: inherited elements only, prototype link over TCP
+  @ Base deployment: inherited elements only, TM and TC frames over the RFM69
   deployment topology PiSensor {
 
     instance CdhCore.Subtopology
-    instance ComCcsds.Subtopology
+    instance ComCcsds.FramingSubtopology
     instance FileHandlingCfdp.Subtopology
     instance DataProducts.Subtopology
     instance Bmp280.Subtopology
@@ -19,10 +20,11 @@ module PiSensor {
 
     instance linuxTimer
     instance rateGroupDriver
+    instance rateGroup1KHz
     instance rateGroup10Hz
     instance rateGroup1Hz
     instance posixTime
-    instance tcpLink
+    instance comRetry
 
     command connections instance CdhCore.cmdDisp
     event connections instance CdhCore.events
@@ -35,9 +37,12 @@ module PiSensor {
     connections RateGroups {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
 
+      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1KHz] -> rateGroup1KHz.CycleIn
+      rateGroup1KHz.RateGroupMemberOut[0] -> Rfm69.rfm69Manager.run
+
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.Subtopology.comQueueRun
-      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.Subtopology.aggregatorTimeout
+      rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
+      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.aggregator.timeout
       rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun
       rateGroup10Hz.RateGroupMemberOut[3] -> Bmp280.bmpManager.run
       rateGroup10Hz.RateGroupMemberOut[4] -> MpuImu.imuManager.run
@@ -46,7 +51,7 @@ module PiSensor {
       rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.Subtopology.tlmSendRun
       rateGroup1Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.healthRun
       rateGroup1Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.eventsRun
-      rateGroup1Hz.RateGroupMemberOut[3] -> ComCcsds.Subtopology.bufferManagerSchedIn
+      rateGroup1Hz.RateGroupMemberOut[3] -> ComCcsds.commsBufferManager.schedIn
       rateGroup1Hz.RateGroupMemberOut[4] -> DataProducts.Subtopology.dpBufferManagerSchedIn
       rateGroup1Hz.RateGroupMemberOut[5] -> DataProducts.Subtopology.dpWriterSchedIn
       rateGroup1Hz.RateGroupMemberOut[6] -> DataProducts.Subtopology.dpMgrSchedIn
@@ -61,15 +66,18 @@ module PiSensor {
     }
 
     connections Communications {
-      tcpLink.allocate -> ComCcsds.Subtopology.commsBufferGetCallee
-      tcpLink.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
-      tcpLink.$recv -> ComCcsds.Subtopology.drvReceiveIn
-      ComCcsds.Subtopology.drvReceiveReturnOut -> tcpLink.recvReturnIn
-      ComCcsds.Subtopology.drvSendOut -> tcpLink.$send
-      tcpLink.ready -> ComCcsds.Subtopology.drvConnected
-      # The radio is instantiated but not scheduled in the prototype configuration.
-      Rfm69.rfm69Manager.allocate -> ComCcsds.Subtopology.commsBufferGetCallee
-      Rfm69.rfm69Manager.deallocate -> ComCcsds.Subtopology.commsBufferSendIn
+      Rfm69.rfm69Manager.allocate -> ComCcsds.commsBufferManager.bufferGetCallee
+      Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
+      # Downlink: TM frames through the retry component to the radio
+      ComCcsds.FramingSubtopology.dataOut -> comRetry.dataIn
+      comRetry.dataReturnOut -> ComCcsds.FramingSubtopology.dataReturnIn
+      comRetry.comStatusOut -> ComCcsds.FramingSubtopology.comStatusIn
+      comRetry.dataOut -> Rfm69.rfm69Manager.dataIn
+      Rfm69.rfm69Manager.dataReturnOut -> comRetry.dataReturnIn
+      Rfm69.rfm69Manager.comStatusOut -> comRetry.comStatusIn
+      # Uplink: one TC frame per radio packet
+      Rfm69.rfm69Manager.dataOut -> ComCcsds.FramingSubtopology.dataIn
+      ComCcsds.FramingSubtopology.dataReturnOut -> Rfm69.rfm69Manager.dataReturnIn
     }
 
     connections DataProducts {
@@ -78,16 +86,16 @@ module PiSensor {
     }
 
     connections Spine {
-      CdhCore.Subtopology.eventsPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.EVENTS]
-      CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.Subtopology.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
-      ComCcsds.Subtopology.commandOut -> CdhCore.Subtopology.seqCmdBuff
-      CdhCore.Subtopology.seqCmdStatus -> ComCcsds.Subtopology.cmdResponseIn
-      FileHandlingCfdp.cfdpManager.dataOut[0] -> ComCcsds.Subtopology.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
-      ComCcsds.Subtopology.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> FileHandlingCfdp.cfdpManager.dataReturnIn[0]
-      ComCcsds.Subtopology.fileUplinkOut -> FileHandlingCfdp.cfdpManager.dataIn[0]
-      FileHandlingCfdp.cfdpManager.dataInReturn[0] -> ComCcsds.Subtopology.fileUplinkReturnIn
-      FileHandlingCfdp.cfdpManager.bufferAllocate[0] -> ComCcsds.Subtopology.commsBufferGetCallee
-      FileHandlingCfdp.cfdpManager.bufferDeallocate[0] -> ComCcsds.Subtopology.commsBufferSendIn
+      CdhCore.Subtopology.eventsPktSend -> ComCcsds.comQueue.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.EVENTS]
+      CdhCore.Subtopology.tlmSendPktSend -> ComCcsds.comQueue.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
+      ComCcsds.fprimeRouter.commandOut -> CdhCore.Subtopology.seqCmdBuff
+      CdhCore.Subtopology.seqCmdStatus -> ComCcsds.fprimeRouter.cmdResponseIn
+      FileHandlingCfdp.cfdpManager.dataOut[0] -> ComCcsds.comQueue.bufferQueueIn[ComCcsds.Ports_ComBufferQueue.FILE]
+      ComCcsds.comQueue.bufferReturnOut[ComCcsds.Ports_ComBufferQueue.FILE] -> FileHandlingCfdp.cfdpManager.dataReturnIn[0]
+      ComCcsds.fprimeRouter.fileOut -> FileHandlingCfdp.cfdpManager.dataIn[0]
+      FileHandlingCfdp.cfdpManager.dataInReturn[0] -> ComCcsds.fprimeRouter.fileBufferReturnIn
+      FileHandlingCfdp.cfdpManager.bufferAllocate[0] -> ComCcsds.commsBufferManager.bufferGetCallee
+      FileHandlingCfdp.cfdpManager.bufferDeallocate[0] -> ComCcsds.commsBufferManager.bufferSendIn
     }
   }
 }
