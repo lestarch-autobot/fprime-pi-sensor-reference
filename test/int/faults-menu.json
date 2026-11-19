@@ -11,16 +11,22 @@
       ],
       "fails": {
         "L2-3": [
-          "event dpWriter.FileWritten count == 1"
+          "event dpWriter.FileWritten count == 1",
+          "exactly one file arrived",
+          "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1"
         ],
         "L2-4": [
-          "event dpWriter.FileWritten count == 2 with different names"
+          "event dpWriter.FileWritten count == 2 with different names",
+          "exactly two files arrived",
+          "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"
         ],
         "L2-7": [
-          "event dpWriter.FileWritten count == 1 over the whole test (Q and D)"
+          "event dpWriter.FileWritten count == 2 over the whole test (Q and D)",
+          "exactly two files arrived",
+          "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"
         ]
       },
-      "mechanism": "piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged; the downlink outlasts one capture (about a minute per product over the radio), so its dpWriter.FileWritten falls inside the window",
+      "mechanism": "piCamera.CAPTURE() is inserted before the first fileManager.CalculateCrc of the test: one more product is stored than the test made, before the 30 s wait and the catalog build, so it is stored, downlinked and deleted with the others",
       "kind": "insert",
       "ripples_to": {}
     },
@@ -36,7 +42,7 @@
           "event cmdDisp.NoOpReceived count == 3"
         ],
         "L2-8": [
-          "event cmdDisp.NoOpReceived count == 1 during the downlink"
+          "event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted"
         ]
       },
       "mechanism": "cmdDisp.CMD_NO_OP() is sent twice in a row (inserted copy): one more command is served than the test expects",

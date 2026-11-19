@@ -10,16 +10,18 @@ L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(
 - Bench and Pi clocks: both synchronised by NTP; the offset is measured at L0-1 and must be under 0.5 s; tolerances that compare the two clocks use 2 s.
 - Heartbeat: `imuManager.Reading`, written to the telemetry packet every 1 Hz cycle; `cmdDisp.CommandsDispatched` updates on change only.
 - Minimum sample counts come from the requirement: one sample per 2 s of window outside a downlink (30 in 60 s, 15 in 30 s).
-- `dpCat.START_XMIT_CATALOG` is always sent with `remainActive` false: a product stored after the catalog is built is not sent once that downlink has finished. Each test waits 30 s (the REQ-PiSensor-007 bound) before it builds the catalog, so every product of the test is stored first.
+- `dpCat.START_XMIT_CATALOG` is always sent with `remainActive` false: a product stored after the catalog is built is not sent once that downlink has finished. Each test that carries `capture_before_xmit` waits 30 s (the REQ-PiSensor-007 bound) before it builds the catalog, so every product of the test is stored first; L2-8 waits for both `dpWriter.FileWritten` events.
 - Telemetry gaps are judged on ground reception time: the requirement is stated at the ground. Telemetry is sent at 1 Hz, so the 2 s bound leaves one period of margin for radio delay.
 - CFDP as shipped deletes a file after sending it (`cfdpManager.FileInDefaultKeep`, default DELETE): the on-board CRC is taken before the downlink, and L7-1 sets KEEP.
 - Constants: temperature -20 to 60 degC and gravity 8 to 12 m/s^2 are plausibility bounds for an indoor bench at rest; 1 km is the GPS plausibility bound around the surveyed bench position; 0.1 deg is the rounding allowance of the roll and pitch computation; the L2-5 widening values (0.5 degC, 2 deg, 0.0001 deg) are noise allowances for a bench at rest [I], to be confirmed against the BMP280 and MPU6050 datasheets and the receiver accuracy at the bench refresh; `piCamera.CaptureFailed` is the name planned for the capture failure event, confirmed against the `piCamera` SDD at the same refresh; the 30 s downlink precondition is three times the 10 s bound; the file CRC is that of `Os::File::calculateCrc`; the product directory is `DataProductsConfig.Paths.dpDir`.
+- Open character devices allowed to the deployment process (device paths of the project configuration): the SPI devices of the RFM69 and the BMP280, the I2C bus of the MPU6050, the GPS UART, the camera devices, `/dev/null`, `/dev/urandom`.
 - Out of scope: BMP280 pressure; yaw.
 
 ## 1 Entry gates
 - Component campaign `picam` closed; its unit tests pass.
 - Image built from the manifest SHAs; L0-1 and L0-2 pass on the bench.
 - Product directory empty at the start of each test (bench teardown empties the product directory over ssh; L7-1 has no teardown).
+- Frame loss measured over a 5 min downlink at the bench refresh and recorded; if a window of that length is not normally gap-free, the STD frame term is restated on the space-packet sequence counts of the event and telemetry APIDs before the plan is approved.
 - Bench recipe: BMP280, MPU6050, GPS receiver with a fix and Pi Camera attached to the Pi 5; RFM69 ground radio joined to fprime-yamcs on the ground host (supplied with the bench).
 
 ## 2 Test levels
@@ -29,7 +31,7 @@ L0 provenance and feasibility · L2 functional · L7 final state. No L3, L4, L5 
 
 Window rule: rows from the **last** `cmdDisp.NoOpStringReceived(id=START)` row that precedes the first `cmdDisp.NoOpStringReceived(id=END)` row following it, through that END row plus the END `cmdDisp.CMD_NO_OP_STRING` command's own `cmdDisp` rows (at most two), inclusive; ordering key `t = epoch·1e6 + fsw`, archive index on ties. Channel rows are those with `t` between the first and last window event. `commands_sent` = commands from the matching START sending (its last sending if re-sent) through the END sending, inclusive.
 
-Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0 for every opcode but piCamera.CAPTURE (a failed capture is judged by the test, as FAIL); no gap in the TM transfer frame count received by YAMCS between the markers (record/raw/frames.json); event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
+Standard `complete` block (STD): both markers present; commands_sent == count(event cmdDisp.OpCodeDispatched); event cmdDisp.OpCodeError count == 0 for every opcode but piCamera.CAPTURE (a failed capture is judged by the test, as FAIL); no gap, modulo 256, in the virtual channel frame count received by YAMCS between the markers (record/raw/frames.json); event cmdDisp.TooManyCommands count == 0; event comQueue.QueueOverflow count == 0; Heartbeat samples >= 2.
 Standard absence block (ABS): event piCamera.CaptureFailed count == 0; severity FATAL count == 0.
 Packets (named channel sets for `<packet> samples >= n`): Heartbeat = imuManager.Reading; Sensors = bmpManager.Reading, imuManager.Reading, gpsManager.Reading.
 
@@ -41,7 +43,7 @@ Setup:     Deployment running on the Raspberry Pi 5; RFM69 link up.
 Procedure: MARK(10); version.VERSION(ALL); action: read /proc/device-tree/model, /etc/os-release, /etc/rpi-issue and `getconf LONG_BIT` on the Pi over ssh into bench-actions.log; bracket (2 Heartbeat samples); action: list TCP and UDP sockets and open devices of the deployment process; MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
 Pass rule: named checks declared in the integration test (test_L0_1). metrics: |Pi clock - bench clock| <= 0.5 s, measured by a bench action (`date` over ssh, logged in bench-actions.log) (require).
-Evidence:  Version events equal the manifest describe strings; check: model starts with "Raspberry Pi 5", /etc/os-release VERSION_ID == 13 and VERSION_CODENAME == trixie (REQ-PiSensor-013), /etc/rpi-issue exists and names Raspberry Pi OS, LONG_BIT == 64; check: the process holds no TCP or UDP socket and no open device but the radio SPI device and the sensor buses; check: LibraryVersions names fprime-sensors only; check: the dictionary of the image holds no command of a test component.
+Evidence:  Version events equal the manifest describe strings; check: model starts with "Raspberry Pi 5", /etc/os-release VERSION_ID == 13 and VERSION_CODENAME == trixie (REQ-PiSensor-013), /etc/rpi-issue exists and names Raspberry Pi OS, LONG_BIT == 64; check: the process holds no TCP or UDP socket; check: its open character devices are a subset of the list in Scope; check: LibraryVersions names fprime-sensors only; check: the dictionary of the image holds no command of a test component.
 Planted faults:none
 
 ID:        L0-2
@@ -129,7 +131,7 @@ Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the b
 Procedure: MARK(50); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P1); piCamera.CAPTURE(); wait event dpWriter.FileWritten (names P2); fileManager.CalculateCrc(P1); fileManager.CalculateCrc(P2); MARK(51); wait 30 s; dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT, false); wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground; MARK(52).
 Window:    Q = Marker(id=50) … Marker(id=51); D = Marker(id=51) … Marker(id=52)
 Pass rule: named checks declared in the integration test (test_L2_7). metrics: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s (a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound).
-Evidence:  check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
+Evidence:  check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames received by YAMCS in D do not exceed the PacketsTransmitted increase; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
 Planted faults:capture_before_xmit
 
 ID:        L2-8
@@ -140,7 +142,7 @@ Setup:     Deployment running on the Raspberry Pi 5, RFM69 link up through the b
 Procedure: MARK(53); piCamera.CAPTURE(); wait event dpWriter.FileWritten; piCamera.CAPTURE(); wait event dpWriter.FileWritten; MARK(54); dpCat.BUILD_CATALOG(); dpCat.START_XMIT_CATALOG(NO_WAIT, false); wait 15 s; cmdDisp.CMD_NO_OP(); wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground; MARK(55).
 Window:    Q = Marker(id=53) … Marker(id=54); D = Marker(id=54) … Marker(id=55)
 Pass rule: named checks declared in the integration test (test_L2_8). metrics: for every sensor channel in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s; CFDP transaction duration in D >= 30 s (as L2-7).
-Evidence:  check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
+Evidence:  check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames received by YAMCS in D do not exceed the PacketsTransmitted increase; check: every CFDP transaction in the window is class 2 and finished complete at the ground.
 Planted faults:extra_noop
 
 ID:        L7-1
