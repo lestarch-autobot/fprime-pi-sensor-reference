@@ -119,3 +119,33 @@ Decisions (author's, for the gate):
 | other could fix (15) | could fix | not applied | single pass | writer |
 - Unit-test coverage after the review fixes [V]: 21 tests pass (the 20 of SDD §8 plus `NoCameraBuild`, added so the `PICAMERA_NO_CAMERA` interface is run); lines 99.1% (227 of 229) over `PiCamera.cpp`, `NoCamera.cpp`, `Camera.hpp`; the project minimum is 95%. `LibcameraCamera.cpp` is not in the unit-test build (finding TQ-3); it runs on the bench.
 - 2026-11-18 checklist, implementation stage [V]: hand-off empty. NO rows: 3.12 (container priority not commandable, as at design), 3.33 (the `CaptureMetrics` members carry units in annotations, not in names; approved model), 5.3 (hardware run record, written at close-out). 3.21 and 3.23 N/A (no interrupts). 4.2 audited YES (`TestUtils` is header-only, no CMake module). 38 rows UNCHECKED: the clang-tidy plugin is not installed on the development host (needs root).
+
+## Bench harness (2026-11-18)
+
+- Harness: `Components/PiCamera/test/int/` (plan C-1 to C-3, stimulus and named checks, three planted faults, bench recipe) and the bench adapter `test/int/bench/yamcs_bench.py`. No test component; marker `cmdDisp.CMD_NO_OP_STRING`.
+- Tool gaps of fth v0.1.2 [V]: no `verify-stimulus` subcommand; `verify-plan --sdd` rejects the heading `## 2. Requirements`; `require()` cannot expand a helper predicate of `std_complete`; `fth dev-campaign` and so `fth deliver` need a run with in-image `DUMP_COVERAGE` windows, which this Linux deployment as flown does not have.
+- `commands_sent == count(event cmdDisp.OpCodeDispatched)` is not usable with this marker [V]: the dispatch of the START marker carries the time tag of the marker event and can sort outside the window. The tests require instead that every command but the markers was dispatched.
+- The RFM69 uplink lost 2 of 17 command frames in one dry run [V]. The adapter sends a command again, at most twice, when the unit does not report its dispatch within 6 s, and logs each resend.
+- `require(...)` is judged on the live record at the time of the call [V]: the tests call it after the stimulus and a 3 s wait for the recorder.
+
+System-test review, Mode B, single pass (child session bd306eb3, `comp/picam`@53eda05): 10 must fix, 7 could fix, 1 ruled.
+
+| Finding | Disposition |
+|---|---|
+| M-1 arguments logged as strings | Fixed: decimal arguments are logged as numbers. |
+| M-2 `CaptureFailed` pattern | Fixed. |
+| M-3 REQ-PiCamera-009 unjudged | Fixed: dispatcher event patterns added; check function `every CAPTURE answered within CAPTURE_MAX_MS` fails when its operands are absent. |
+| M-4 `delta(CapturesCompleted)` in C-1 | Fixed: check removed. |
+| M-5 pacing of C-2 under its planted fault | Fixed: bracket before the camera is freed; the reason check is a function on the first failure and is out of `fails`. |
+| M-6 stale process id files | Fixed: a recorded process is signalled only while `/proc/<pid>/exe` is the program the adapter started. |
+| M-7 absolute paths in `bench.json` | Fixed for the adapter, bridge and interpreters (relative to the campaign root). Open: the YAMCS configuration directory is built by hand per `ground/README.md`, not by a pinned step. |
+| M-8 lost downlink frame not seen | Partly: the two overflow predicates are preconditions and the YAMCS link events are kept in `record/raw/ground-events.log`. Open: no precondition on a frame gap, because fth hands a check no raw ground data. |
+| M-9 REQ-PiCamera-024 | Plan states it is not verified as written on the bench (restart after a completed capture); unit test `RecoveryAfterFailure`. |
+| M-10 one `CaptureStarted` per command | Fixed. |
+| C-1 to C-7 | Applied: response timed, not the event; no start-up between failure and success; process confirmed after start and hold; clashing names reported in `record/raw/name-clash.log`; `checks_kat.py`; second restart witness. |
+| R-1 run-start markers read from `*.Marker` events only | Ruled (marker is binding). Tool gap to watch at unseal. |
+
+Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53eda05):
+
+- Run of 21:34: C-2 PASS, C-3 PASS; C-1 UNVERIFIED from the recorder timing above; the record replays as three PASS.
+- Run of 21:40: invalid. The MPU6050 stopped answering (`imuManager.I2cError`, `I2C_WRITE_ERR` on address 104) 55 s after the image start and stayed silent after a restart of the process. Bench fault reported to the project; not cleared here (no power-cycling, no sudo).
