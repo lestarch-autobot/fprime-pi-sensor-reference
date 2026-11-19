@@ -149,3 +149,12 @@ Dry runs on the bench [V], image sha256 `b1980c96…809cf` (flight sources of 53
 
 - Run of 21:34: C-2 PASS, C-3 PASS; C-1 UNVERIFIED from the recorder timing above; the record replays as three PASS.
 - Run of 21:40: invalid. The MPU6050 stopped answering (`imuManager.I2cError`, `I2C_WRITE_ERR` on address 104) 55 s after the image start and stayed silent after a restart of the process. Bench fault reported to the project; not cleared here (no power-cycling, no sudo).
+
+## Bench harness, second day (2026-11-19)
+
+- Tooling: fprime-testing-harness branch `linux-host-coverage`@a37aa1b0062a7ae2f2c85e795db345891c000a8a (v0.1.2 plus one commit) replaces v0.1.2 on the workstation. It accepts coverage counts copied off a Linux target (`--gcda-dir`), per the ruling on the coverage evidence.
+- Coverage on the target: an image built with `--coverage` is started with `GCOV_PREFIX` by the adapter (`flash --gcov`, `bench-coverage.json`); the counts are written when the image ends on `SIGTERM` and are copied off with `collect-gcda`. No test code is in the image.
+- Correction to the note above: `require(...)` is judged when the window closes, not at the call.
+- Channel samples reach the ground record about 36 s after events of the same unit time, and the lag grew by about 0.13 s per second over 12 s [V]; `comQueue` depth read 0, the place of the queue is not located. A window shorter than the lag closed with no bracket samples. The tests wait, before the END marker, until the bracket channel has a sample as new as the newest event (240 s at most). Reported to the project as a system finding.
+- Clean dry run [V], `comp/picam`@fe0a442, image sha256 `b1980c96…809cf`: C-1, C-2, C-3 PASS (record `d68bc46b…`).
+- Planted-fault dry runs of the same morning: invalid. The MPU6050 fault returned (two `I2cError` during the clean run with no bench action, then `lost arbitration` and `SDA stuck at low` in the kernel log about 35 s after the next image start). Reported to the project.
