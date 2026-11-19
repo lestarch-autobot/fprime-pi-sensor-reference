@@ -1,4 +1,4 @@
-# PiSensor override of Svc/Subtopologies/ComCcsds/ComCcsdsConfig/ComCcsdsConfig.fpp (nasa/fprime v4.4.2).
+# PiSensor override of Svc/Subtopologies/ComCcsds/ComCcsdsConfig/ComCcsdsConfig.fpp (nasa/fprime devel 83221ba).
 # One change: Aggregator.enablePacketSpanning = true.
 module ComCcsdsConfig {
     #Base ID for the ComCcsds Subtopology, all components are offsets from this base ID

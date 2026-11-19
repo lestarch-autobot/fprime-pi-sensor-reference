@@ -8,11 +8,9 @@ and stores it with location, attitude and temperature as one data product,
 downlinked by CFDP. The link is an RFM69 packet radio; the ground system is
 fprime-yamcs.
 
-Colour key, used in every table and diagram: 🟩 F Prime (inherited from
+Colour key, used in the Overview diagram and every table: 🟩 F Prime (inherited from
 `nasa/fprime`), 🟦 library (inherited from an F Prime library or ground
-package), 🟨 bespoke (built by this project). The ground radio that joins
-the RFM69 link to fprime-yamcs is bench equipment, not an element of this
-design.
+package), 🟨 bespoke (built by this project).
 
 ## Requirements
 
@@ -20,18 +18,18 @@ design.
 |---|---|---|
 | REQ-PiSensor-001 | Outside a CFDP downlink, the system shall downlink BMP280 temperature telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-002 | Outside a CFDP downlink, the system shall downlink MPU6050 acceleration and angular rate telemetry at least once every 2 s. | Integration Test |
-| REQ-PiSensor-003 | Outside a CFDP downlink, the system shall downlink GPS latitude and longitude telemetry at least once every 2 s. | Integration Test |
+| REQ-PiSensor-003 | Outside a CFDP downlink and with a GPS fix, the system shall downlink NMEA GPS latitude and longitude telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-004 | A capture command shall produce one Pi Camera JPEG picture of at least 640x480 pixels. | Integration Test |
 | REQ-PiSensor-005 | Each capture shall store one data product holding the picture, latitude, longitude, roll, pitch and temperature. | Integration Test |
 | REQ-PiSensor-006 | Each data product shall carry its capture time and the sample time of each metric. | Integration Test |
 | REQ-PiSensor-007 | The system shall store the data product within 30 s of receiving a capture command. | Integration Test |
 | REQ-PiSensor-008 | On command, the system shall downlink every stored data product not yet downlinked, by CFDP class 2. | Integration Test |
 | REQ-PiSensor-009 | A downlinked data product shall be byte-identical to the stored data product. | Integration Test |
-| REQ-PiSensor-010 | The RFM69 packet radio shall be the only link carrying commands, telemetry, events and downlinked CFDP files. | Integration Test |
+| REQ-PiSensor-010 | Commands, telemetry, events and CFDP files shall pass between the Raspberry Pi 5 and the ground only through the RFM69 packet radio. | Integration Test |
 | REQ-PiSensor-011 | Commands sent from fprime-yamcs shall execute, and telemetry, events and CFDP files shall arrive decoded in fprime-yamcs. | Integration Test |
-| REQ-PiSensor-012 | During a CFDP downlink, sensor telemetry shall continue at least once every 10 s. | Integration Test |
+| REQ-PiSensor-012 | During a CFDP downlink, the system shall downlink each telemetry item of REQ-PiSensor-001 to -003 at least once every 10 s. | Integration Test |
 | REQ-PiSensor-013 | The system shall meet REQ-PiSensor-001 to -012 and -014 on a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (Trixie). | Integration Test |
-| REQ-PiSensor-014 | Each metric in a data product shall have a sample time within 2 s of the capture time. | Integration Test |
+| REQ-PiSensor-014 | While REQ-PiSensor-001 to -003 are met, each metric in a data product shall have a sample time within 2 s of the capture time. | Integration Test |
 
 ## Architecture
 
@@ -69,6 +67,9 @@ flowchart LR
 ```
 
 ### Topology
+
+These images are generated from the sketch and use the tool's own colours
+(green outline: active component, pink: passive), not the colour key.
 
 Sketch source: [`sketch/PiSensorSketch.fpp`](sketch/PiSensorSketch.fpp).
 
@@ -154,18 +155,18 @@ subtopology are those of the subtopology as shipped.
 
 | Element | Class | Source | Function | Runs at | Boundary | Requirements (kind) | Verified by (observable) | Known defects |
 |---|---|---|---|---|---|---|---|---|
-| `PiSensor` topology and configuration | 🟨 bespoke | this project | Wires the elements; sets inherited configuration: TM frame and aggregate size to fit one 255-byte radio packet with packet spanning, device paths, ground YAMCS CFDP service | — | Raspberry Pi 5, 64-bit Raspberry Pi OS; ground host | 012 (system), 013 (system) | 012: largest gap between sensor telemetry packets at the ground during a catalog downlink. 013: platform and image version read on the bench | platform: unverified with the radio |
-| `piCamera` | 🟨 bespoke | this project | On a capture command: acquires one JPEG, reads the latest sensor readings and their times from the telemetry store, derives roll and pitch from the acceleration reading, writes one product container | Own thread, one capture at a time | Pi Camera on CSI | 004 (component), 005, 006, 007, 014 (set) | 004: `piCamera` component tests and the picture record of the downlinked product. 005, 006, 014: metric and time records of the downlinked product against telemetry samples. 007: `cmdDisp.OpCodeDispatched` of the capture command to `dpWriter.FileWritten` | Camera not yet on the bench |
-| `CdhCore.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | Exports no port for `tlmSend.TlmGet`; this topology connects it |
-| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime `devel@83221ba` | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Frames received by YAMCS; commands executed | Exports only the five `Svc.Com` ports; this topology connects `comQueue`, `aggregator`, `fprimeRouter` and `commsBufferManager` directly. No CFDP ports though the CFDP documentation shows them; CFDP data uses the file queue and file uplink ports. A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified under the radio |
+| `PiSensor` topology and configuration | 🟨 bespoke | this project | Wires the elements; sets inherited configuration: TM frame and aggregate size to fit one 255-byte radio packet with packet spanning, device paths, ground YAMCS CFDP service | — | Raspberry Pi 5, 64-bit Raspberry Pi OS | 012 (system), 013 (system) | 012: largest gap between sensor telemetry packets at the ground during a catalog downlink. 013: `CdhCore.version` events for the image; `/proc/device-tree/model` and `/etc/os-release` read over ssh for the platform | platform: unverified with the radio |
+| `piCamera` | 🟨 bespoke | this project | On a capture command: acquires one JPEG, reads the latest sensor readings and their times from the telemetry store, derives roll and pitch from the acceleration reading, writes one product container | Own thread, one capture at a time | Pi Camera on CSI | 004 (component), 005, 006, 007, 014 (set) | 004: `piCamera` component tests and the picture record of the downlinked product. 005, 006, 014: metric and time records of the downlinked product, decoded on the ground with the F Prime data product decoder and the deployment dictionary, against telemetry samples. 007: `cmdDisp.OpCodeDispatched` of the capture command to `dpWriter.FileWritten` | Camera not yet on the bench. Candidate `PiCamera.CameraManager` (fprime-amsat-reference `186d47f`) not inherited: it writes a plain JPEG file and has no output or product port, so 005, 006 and 014 would need a change to its source |
+| `CdhCore.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Command dispatch, events, telemetry channels and their store, health | 10 Hz dispatcher; 1 Hz telemetry, events, health | — | 001, 002, 003, 005, 006, 007, 008, 011, 014 (set) | Sensor channels and events at the ground; `cmdDisp.NoOpStringReceived` | Exports no port for `tlmSend.TlmGet`; this topology connects it. platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
+| `ComCcsds.FramingSubtopology` | 🟩 F Prime | fprime `devel@83221ba` | Queues, space packets, TM and TC transfer frames, routing | 10 Hz queue and aggregator; 1 Hz buffers | — | 010, 011 (set) | Over a window, TM frames received by YAMCS equal the `rfm69Manager.PacketsTransmitted` increase and commands executed equal the `PacketsReceived` increase; commands executed | Exports only the five `Svc.Com` ports; this topology connects `comQueue`, `aggregator`, `fprimeRouter` and `commsBufferManager` directly. CFDP data uses the file queue and file uplink ports. A packet larger than one aggregate asserts unless packet spanning is set. platform: unverified under the radio |
 | `DataProducts.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | Product buffers, writer and catalog; the catalog downlinks products not yet sent | 1 Hz writer, manager, buffers | Pi 5 file system | 005, 007, 008 (set) | `dpWriter.FileWritten`, `dpCat.CatalogXmitCompleted` events | platform: catalog downlink unverified |
-| `FileHandlingCfdp.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Exports no ports; this topology connects `cfdpManager` directly. Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer |
-| `comRetry` | 🟩 F Prime | fprime `devel@83221ba` | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Frames received by YAMCS | platform: unverified |
-| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006 (set) | Channel and product times | platform: 1 kHz group unverified |
-| `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280; bus not yet identified on the bench | 001, 005 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified |
-| `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005 (set) | `imuManager.Reading` | — |
-| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver; UART not yet identified on the bench | 003, 005 (set) | `gpsManager.Reading` | The default UART driver needs receive buffers; this topology owns the two wires from `driver` to `bufferManager`. platform: unverified |
-| `Rfm69.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Sends and receives one buffer of at most 255 bytes per radio packet | 1 kHz | RFM69 on SPI0 CE1 | 010 (set) | `rfm69Manager.PacketsTransmitted`, `PacketsReceived` | platform: unverified |
+| `FileHandlingCfdp.Subtopology` | 🟩 F Prime | fprime `devel@83221ba` | CFDP class 2 file transfer, file manager, parameters | 1 Hz | Ground CFDP entity | 008, 009 (set) | YAMCS transfer record; `fileManager.CalculateCrcSucceeded` event against the CRC of the ground file | Exports no ports; this topology connects `cfdpManager` directly. Transaction numbers restart at 1 after a restart, which YAMCS can match to an old transfer. platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
+| `comRetry` | 🟩 F Prime | fprime `devel@83221ba` | Holds a frame until the radio is free and sends it again when the radio refuses it | On each frame | — | 010 (set) | Over a window, TM frames received by YAMCS equal the `rfm69Manager.PacketsTransmitted` increase and commands executed equal the `PacketsReceived` increase | platform: unverified |
+| `posixTime`, `linuxTimer`, `rateGroupDriver`, `rateGroup1KHz`, `rateGroup10Hz`, `rateGroup1Hz` | 🟩 F Prime | fprime `devel@83221ba` | Time and periodic scheduling | 1 kHz, 10 Hz and 1 Hz | Pi 5 clock and timer | 001, 002, 003, 006, 014 (set) | Channel and product times | platform: 1 kHz group unverified |
+| `Bmp280.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads BMP280 temperature | 10 Hz | BMP280 on SPI; device and chip select not yet identified on the bench | 001, 005, 014 (set) | `bmpManager.Reading` | `Bmp280.BmpManager` has no unit tests at `e5d83d1`. platform: unverified |
+| `MpuImu.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads MPU6050 acceleration and angular rate | 10 Hz | MPU6050 on I2C bus 1, address 0x68 | 002, 005, 014 (set) | `imuManager.Reading` | platform: unverified at `83221ba` (ran on the Pi at v4.4.2) |
+| `NmeaGps.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Reads NMEA sentences and reports latitude and longitude | UART receive thread | GPS receiver sending one position per second; UART not yet identified on the bench | 003, 005, 014 (set) | `gpsManager.Reading` | The default UART driver needs receive buffers; this topology owns the two wires from `driver` to `bufferManager`. platform: unverified |
+| `Rfm69.Subtopology` | 🟦 library | fprime-sensors `e5d83d1` | Sends and receives one buffer of at most 255 bytes per radio packet | 1 kHz | RFM69 on SPI0 CE1 | 010 (set) | Over a window, TM frames received by YAMCS equal the `rfm69Manager.PacketsTransmitted` increase and commands executed equal the `PacketsReceived` increase | platform: unverified |
 | fprime-yamcs | 🟦 library | fprime-yamcs `f6f0e19` | Ground commanding, telemetry, events, CFDP entity | — | Ground host | 008, 009, 011 (set) | Decoded parameters, events, transfer records and files | No CFDP service configured as shipped; needs `fprime-yamcs-bundle` 5.13.7.0, which is not on PyPI |
 
 All 🟩 rows are built from [`nasa/fprime@83221ba`](https://github.com/nasa/fprime/commit/83221ba82a) (`devel`, v4.4.0-98),
@@ -188,6 +189,7 @@ Wiring this topology adds between the elements:
 | `ComCcsds.FramingSubtopology` frame ports | `comRetry`, then `Rfm69.rfm69Manager` | TM frames to the radio, sent again when the radio refuses one |
 | `Rfm69.rfm69Manager` | `ComCcsds.FramingSubtopology` | TC frames from the radio |
 | `CdhCore` events and telemetry, `FileHandlingCfdp.cfdpManager` | `ComCcsds.FramingSubtopology` queue and router ports | Events, telemetry, commands and CFDP data share the link |
+| `Rfm69.rfm69Manager`, `FileHandlingCfdp.cfdpManager` buffer ports | `ComCcsds.commsBufferManager` | Radio receive and CFDP PDU buffers from the comms pool |
 
 ## Red flags
 
@@ -203,15 +205,15 @@ _Generated by `fth render-sdd-tests` from the plan — do not edit by hand; the 
 
 | Test | Purpose | Requirements |
 |---|---|---|
-| L0-1 | Proves the running image is the manifest's image and runs on a Raspberry Pi 5 under 64-bit Raspberry Pi OS, reached over the RFM69. | REQ-PiSensor-013, REQ-PiSensor-010 |
-| L0-2 | Proves the marker command round-trips over the RFM69 on the Raspberry Pi 5 so every later window can be bracketed. | REQ-PiSensor-013, REQ-PiSensor-010 |
-| L2-1 | Proves every sensor channel arrives at the ground at least every 2 s. | REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-010, REQ-PiSensor-011 |
-| L2-2 | Proves the 2 s telemetry period holds while commands are dispatched. | REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-010, REQ-PiSensor-011 |
-| L2-3 | Proves one capture stores one product with a JPEG of at least 640x480, the metrics and their times, sampled within 2 s of the capture, delivered byte-identical by CFDP class 2. | REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-011, REQ-PiSensor-014 |
-| L2-4 | Proves a second capture stores a second product with its own capture time and the catalog downlinks both, byte-identical. | REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-014 |
+| L0-1 | Proves the image is the manifest's, on a Pi 5, reached only by RFM69. | REQ-PiSensor-013, REQ-PiSensor-010 |
+| L0-2 | Proves the marker command round-trips, so later windows can be bracketed. | REQ-PiSensor-013 |
+| L2-1 | Proves every sensor channel arrives at the ground at least every 2 s. | REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-011 |
+| L2-2 | Proves the 2 s telemetry period holds while commands are dispatched. | REQ-PiSensor-001, REQ-PiSensor-002, REQ-PiSensor-003, REQ-PiSensor-011 |
+| L2-3 | Proves one capture stores one complete product, delivered byte-identical by CFDP class 2. | REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-011, REQ-PiSensor-014 |
+| L2-4 | Proves two captures store two products and the catalog downlinks both. | REQ-PiSensor-004, REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-007, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-014 |
 | L2-5 | Proves the metrics stored in a product are the sensor readings downlinked around its capture. | REQ-PiSensor-005, REQ-PiSensor-006, REQ-PiSensor-014, REQ-PiSensor-008 |
 | L2-6 | Proves three captures in a row each store their product within 30 s. | REQ-PiSensor-004, REQ-PiSensor-007 |
-| L2-7 | Proves sensor telemetry continues at least every 10 s while products are downlinked over the RFM69. | REQ-PiSensor-012, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-010, REQ-PiSensor-011 |
-| L2-8 | Proves sensor telemetry continues and a command is served while two products are downlinked. | REQ-PiSensor-012, REQ-PiSensor-010 |
-| L7-1 | Leaves one known product on board for the independent final-state check. | REQ-PiSensor-009, REQ-PiSensor-005 |
+| L2-7 | Proves sensor telemetry continues every 10 s during a downlink. | REQ-PiSensor-012, REQ-PiSensor-008, REQ-PiSensor-009, REQ-PiSensor-010, REQ-PiSensor-011 |
+| L2-8 | Proves telemetry continues and a command is served during a downlink. | REQ-PiSensor-012, REQ-PiSensor-010 |
+| L7-1 | Leaves one known product on board for the independent final-state check. | REQ-PiSensor-009, REQ-PiSensor-005, REQ-PiSensor-008 |
 <!-- fth:tests:end -->

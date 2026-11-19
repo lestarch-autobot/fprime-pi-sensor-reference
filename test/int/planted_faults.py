@@ -32,12 +32,12 @@ for _name, _doc in [
 
 
 @planted_fault("capture_before_xmit", applies_to=["L2-3", "L2-4", "L2-7"], cls="uut-state", kind="insert",
-               mechanism="piCamera.CAPTURE() is inserted before dpCat.BUILD_CATALOG: one more product is stored than the test made; whether it is also sent depends on timing and is not judged; the downlink outlasts one capture (about a minute per product over the radio), so its dpWriter.FileWritten falls inside the window",
-               fails={"L2-3": ["event dpWriter.FileWritten count == 1"],
-                      "L2-4": ["event dpWriter.FileWritten count == 2 with different names"],
-                      "L2-7": ["event dpWriter.FileWritten count == 1 over the whole test (Q and D)"]})
+               mechanism="piCamera.CAPTURE() is inserted before each fileManager.CalculateCrc: one more product per CRC command is stored than the test made, before the 30 s wait and the catalog build, so it is stored, downlinked and deleted with the others",
+               fails={"L2-3": ["event dpWriter.FileWritten count == 1", "exactly one file arrived", "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1"],
+                      "L2-4": ["event dpWriter.FileWritten count == 2 with different names", "exactly two files arrived", "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"],
+                      "L2-7": ["event dpWriter.FileWritten count == 2 over the whole test (Q and D)", "exactly two files arrived", "event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2"]})
 def capture_before_xmit(test_id, command_name, args):
-    if _is(command_name, "BUILD_CATALOG"):
+    if _is(command_name, "CalculateCrc"):
         return [("piCamera.CAPTURE", []), (command_name, args)]
     return None
 
@@ -45,7 +45,7 @@ def capture_before_xmit(test_id, command_name, args):
 @planted_fault("extra_noop", applies_to=["L2-2", "L2-8"], cls="stimulus", kind="insert",
                mechanism="cmdDisp.CMD_NO_OP() is sent twice in a row (inserted copy): one more command is served than the test expects",
                fails={"L2-2": ["event cmdDisp.NoOpReceived count == 3"],
-                      "L2-8": ["event cmdDisp.NoOpReceived count == 1 during the downlink"]})
+                      "L2-8": ["event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted"]})
 def extra_noop(test_id, command_name, args):
     if _is(command_name, "CMD_NO_OP"):
         return [(command_name, args), (command_name, args)]
