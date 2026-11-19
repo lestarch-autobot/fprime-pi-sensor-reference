@@ -29,4 +29,21 @@ module PiSensor {
   @ Holds a frame until the radio is free and sends it again when the radio refuses it
   instance comRetry: Svc.ComRetry base id 0x10006000
 
+
+  @ Pi Camera: one picture and the latest sensor readings as one data product per capture command
+  instance piCamera: PiSensor.PiCamera base id 0x10008000 \
+    queue size 5 \
+    stack size 1048576 \
+    priority 30 \
+  {
+    phase Fpp.ToCpp.Phases.configComponents """
+    PiSensor::piCamera.configure(
+        PiSensor::getCamera(),
+        Bmp280::bmpManager.getIdBase() + PiSensor::SENSOR_READING_CHANNEL,
+        MpuImu::imuManager.getIdBase() + PiSensor::SENSOR_READING_CHANNEL,
+        NmeaGps::gpsManager.getIdBase() + PiSensor::SENSOR_READING_CHANNEL
+    );
+    """
+  }
+
 }
