@@ -20,7 +20,7 @@ package), 🟨 new (built by this project).
 | REQ-PiSensor-002 | Outside a CFDP downlink, the system shall downlink MPU6050 acceleration and angular rate telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-003 | Outside a CFDP downlink and with a GPS fix, the system shall downlink NMEA GPS latitude and longitude telemetry at least once every 2 s. | Integration Test |
 | REQ-PiSensor-004 | A capture command shall produce one Pi Camera JPEG picture of at least 640x480 pixels. | Integration Test |
-| REQ-PiSensor-005 | Each capture shall store one data product holding the picture, latitude, longitude, roll, pitch and temperature. While the MPU6050 gives no reading within the bound of REQ-PiSensor-014, the product shall hold roll and pitch as placeholders marked not valid. | Integration Test |
+| REQ-PiSensor-005 | Each capture shall store one data product holding the picture, latitude, longitude, roll, pitch and temperature. While a sensor gives no reading within the bound of REQ-PiSensor-014, the product shall hold that sensor's metrics (temperature; latitude and longitude; roll and pitch) as placeholders marked not valid. | Integration Test |
 | REQ-PiSensor-006 | Each data product shall carry its capture time and the sample time of each metric. | Integration Test |
 | REQ-PiSensor-007 | The system shall store the data product within 30 s of receiving a capture command. | Integration Test |
 | REQ-PiSensor-008 | On command, the system shall downlink every stored data product not yet downlinked, by CFDP class 2. | Integration Test |
