@@ -67,9 +67,15 @@ class PiCamera final : public PiCameraComponentBase {
     //! Steps TEMPERATURE, ATTITUDE, LOCATION
     StepResult readMetrics(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics);
 
-    //! Step ATTITUDE: roll and pitch from the acceleration reading.
-    //! A missing or stale reading is no failure: it is returned in lack and the attitude is stored as not valid
+    //! Step TEMPERATURE. A missing or stale reading is no failure: it is returned in lack and the
+    //! temperature is stored as not valid. The same holds for the two steps below
+    StepResult readTemperature(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics, StepResult& lack);
+
+    //! Step ATTITUDE: roll and pitch from the acceleration reading
     StepResult readAttitude(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics, StepResult& lack);
+
+    //! Step LOCATION
+    StepResult readLocation(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics, StepResult& lack);
 
     //! Read one channel and check that a value is present
     StepResult readChannel(FwChanIdType channel, PiCamera_FailStep step, Fw::Time& sampleTime, Fw::TlmBuffer& value);

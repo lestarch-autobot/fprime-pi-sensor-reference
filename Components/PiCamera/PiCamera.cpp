@@ -170,6 +170,35 @@ PiCamera::StepResult PiCamera::checkAge(PiCamera_FailStep step, const Fw::Time& 
     return success();
 }
 
+PiCamera::StepResult PiCamera::readTemperature(const Fw::Time& captureTime,
+                                               PiCamera_CaptureMetrics& metrics,
+                                               StepResult& lack) {
+    Fw::TlmBuffer value;
+    Fw::Time sampleTime;
+    Bmp280::Bmp280Data bmp;
+    lack = this->readChannel(this->m_temperatureChannel, PiCamera_FailStep::TEMPERATURE, sampleTime, value);
+    if (lack.ok && (value.deserializeTo(bmp) != Fw::FW_SERIALIZE_OK)) {
+        lack = failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::TEMPERATURE, 0);
+    }
+    if (lack.ok) {
+        lack = checkAge(PiCamera_FailStep::TEMPERATURE, captureTime, sampleTime);
+    }
+    if (!lack.ok) {
+        // No reading or a stale one: the capture goes on without the temperature
+        metrics.set_temperature(std::numeric_limits<F32>::quiet_NaN());
+        metrics.set_temperatureTime(Fw::TimeValue());
+        metrics.set_temperatureValid(false);
+        return success();
+    }
+    if (!std::isfinite(bmp.get_temperature())) {
+        return failure(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::TEMPERATURE, 0);
+    }
+    metrics.set_temperature(bmp.get_temperature());
+    metrics.set_temperatureTime(sampleTime.asTimeValue());
+    metrics.set_temperatureValid(true);
+    return success();
+}
+
 PiCamera::StepResult PiCamera::readAttitude(const Fw::Time& captureTime,
                                             PiCamera_CaptureMetrics& metrics,
                                             StepResult& lack) {
@@ -206,50 +235,26 @@ PiCamera::StepResult PiCamera::readAttitude(const Fw::Time& captureTime,
     return success();
 }
 
-PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics) {
+PiCamera::StepResult PiCamera::readLocation(const Fw::Time& captureTime,
+                                            PiCamera_CaptureMetrics& metrics,
+                                            StepResult& lack) {
     Fw::TlmBuffer value;
     Fw::Time sampleTime;
-    metrics.set_captureTime(captureTime.asTimeValue());
-
-    // Temperature
-    StepResult result =
-        this->readChannel(this->m_temperatureChannel, PiCamera_FailStep::TEMPERATURE, sampleTime, value);
-    if (!result.ok) {
-        return result;
-    }
-    Bmp280::Bmp280Data bmp;
-    if (value.deserializeTo(bmp) != Fw::FW_SERIALIZE_OK) {
-        return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::TEMPERATURE, 0);
-    }
-    result = checkAge(PiCamera_FailStep::TEMPERATURE, captureTime, sampleTime);
-    if (!result.ok) {
-        return result;
-    }
-    if (!std::isfinite(bmp.get_temperature())) {
-        return failure(PiCamera_FailReason::METRIC_INVALID, PiCamera_FailStep::TEMPERATURE, 0);
-    }
-    metrics.set_temperature(bmp.get_temperature());
-    metrics.set_temperatureTime(sampleTime.asTimeValue());
-
-    // Attitude: a missing or stale reading does not fail the capture
-    StepResult attitudeLack = success();
-    result = this->readAttitude(captureTime, metrics, attitudeLack);
-    if (!result.ok) {
-        return result;
-    }
-
-    // Location
-    result = this->readChannel(this->m_locationChannel, PiCamera_FailStep::LOCATION, sampleTime, value);
-    if (!result.ok) {
-        return result;
-    }
     NmeaGps::GpsData gps;
-    if (value.deserializeTo(gps) != Fw::FW_SERIALIZE_OK) {
-        return failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::LOCATION, 0);
+    lack = this->readChannel(this->m_locationChannel, PiCamera_FailStep::LOCATION, sampleTime, value);
+    if (lack.ok && (value.deserializeTo(gps) != Fw::FW_SERIALIZE_OK)) {
+        lack = failure(PiCamera_FailReason::SENSOR_NO_DATA, PiCamera_FailStep::LOCATION, 0);
     }
-    result = checkAge(PiCamera_FailStep::LOCATION, captureTime, sampleTime);
-    if (!result.ok) {
-        return result;
+    if (lack.ok) {
+        lack = checkAge(PiCamera_FailStep::LOCATION, captureTime, sampleTime);
+    }
+    if (!lack.ok) {
+        // No reading or a stale one: the capture goes on without latitude and longitude
+        metrics.set_latitude(std::numeric_limits<F64>::quiet_NaN());
+        metrics.set_longitude(std::numeric_limits<F64>::quiet_NaN());
+        metrics.set_locationTime(Fw::TimeValue());
+        metrics.set_locationValid(false);
+        return success();
     }
     const F64 latitude = gps.get_latitude();
     const F64 longitude = gps.get_longitude();
@@ -261,9 +266,35 @@ PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera
     metrics.set_latitude(latitude);
     metrics.set_longitude(longitude);
     metrics.set_locationTime(sampleTime.asTimeValue());
+    metrics.set_locationValid(true);
+    return success();
+}
+
+PiCamera::StepResult PiCamera::readMetrics(const Fw::Time& captureTime, PiCamera_CaptureMetrics& metrics) {
+    metrics.set_captureTime(captureTime.asTimeValue());
+    // A missing or stale reading does not fail the capture: it is returned as a lack
+    StepResult temperatureLack = success();
+    StepResult attitudeLack = success();
+    StepResult locationLack = success();
+    StepResult result = this->readTemperature(captureTime, metrics, temperatureLack);
+    if (result.ok) {
+        result = this->readAttitude(captureTime, metrics, attitudeLack);
+    }
+    if (result.ok) {
+        result = this->readLocation(captureTime, metrics, locationLack);
+    }
+    if (!result.ok) {
+        return result;
+    }
+    // Reported once the metrics are complete: a capture that fails for an invalid reading does not warn
+    if (!temperatureLack.ok) {
+        this->log_WARNING_LO_TemperatureUnavailable(temperatureLack.reason, temperatureLack.code);
+    }
     if (!attitudeLack.ok) {
-        // Reported once the metrics are complete: a capture that fails for another reading does not warn
         this->log_WARNING_LO_AttitudeUnavailable(attitudeLack.reason, attitudeLack.code);
+    }
+    if (!locationLack.ok) {
+        this->log_WARNING_LO_LocationUnavailable(locationLack.reason, locationLack.code);
     }
     return success();
 }
