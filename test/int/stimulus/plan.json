@@ -165,9 +165,10 @@
   "REQ-PiSensor-012": {
    "tests": [
     "L2-7",
-    "L2-8"
+    "L2-8",
+    "L2-9"
    ],
-   "verification": "L2-7, L2-8",
+   "verification": "L2-7, L2-8, L2-9",
    "note": ""
   },
   "REQ-PiSensor-013": {
@@ -710,15 +711,6 @@
      }
     },
     {
-     "helper": "max_ground_gap",
-     "text": "for gpsManager.Reading in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s",
-     "args": {
-      "channels": "Gps",
-      "bound_s": 10,
-      "min_samples": 3
-     }
-    },
-    {
      "helper": "downlink_duration_at_least",
      "text": "CFDP transaction duration in D >= 30 s",
      "args": {
@@ -794,6 +786,59 @@
      }
     },
     {
+     "helper": "downlink_duration_at_least",
+     "text": "CFDP transaction duration in D >= 30 s",
+     "args": {
+      "bound_s": 30
+     }
+    }
+   ],
+   "rationale": [
+    {
+     "pred": "CFDP transaction duration in D >= 30 s",
+     "text": "as L2-7"
+    }
+   ],
+   "knobs": [
+    "extra_noop"
+   ],
+   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+  },
+  {
+   "id": "L2-9",
+   "title": "GPS telemetry during a downlink",
+   "purpose": "Proves GPS telemetry continues every 10 s during a downlink.",
+   "covers": [
+    "REQ-PiSensor-012"
+   ],
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "procedure": [
+    "MARK(56)",
+    "piCamera.CAPTURE()",
+    "wait event dpWriter.FileWritten",
+    "MARK(57)",
+    "wait 30 s",
+    "dpCat.BUILD_CATALOG()",
+    "dpCat.START_XMIT_CATALOG(NO_WAIT, false)",
+    "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground",
+    "MARK(58)"
+   ],
+   "windows": [
+    {
+     "name": "Q",
+     "start_id": 56,
+     "end_id": 57,
+     "reset": false
+    },
+    {
+     "name": "D",
+     "start_id": 57,
+     "end_id": 58,
+     "reset": false
+    }
+   ],
+   "metrics": [
+    {
      "helper": "max_ground_gap",
      "text": "for gpsManager.Reading in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s",
      "args": {
@@ -813,13 +858,11 @@
    "rationale": [
     {
      "pred": "CFDP transaction duration in D >= 30 s",
-     "text": "as L2-7"
+     "text": "a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound"
     }
    ],
-   "knobs": [
-    "extra_noop"
-   ],
-   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "knobs": [],
+   "evidence": "check: event dpWriter.FileWritten count == 1 (in Q); check: exactly one file arrived."
   },
   {
    "id": "L7-1",

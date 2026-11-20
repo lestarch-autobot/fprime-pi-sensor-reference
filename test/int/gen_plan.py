@@ -5,9 +5,9 @@ R = lambda *n: [f"REQ-PiSensor-{i:03d}" for i in n]
 def W(a, b, name="W"): return {"name": name, "start_id": a, "end_id": b, "reset": False}
 def H(name, text, **args): return {"helper": name, "text": text, "args": args}
 SENS = ["bmpManager.Reading", "imuManager.Reading", "gpsManager.Reading"]
-def gap(bound, where="the window", n=30):
+def gap(bound, where="the window", n=30, sens=None):
     return [H("max_ground_gap", f"for {ch} in {where}: samples >= {n}, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= {bound} s", channels=pk, bound_s=bound, min_samples=n)
-            for pk, ch in zip(("Bmp", "Imu", "Gps"), SENS)]
+            for pk, ch in zip(("Bmp", "Imu", "Gps"), SENS) if ch in (sens or SENS)]
 T = []
 def t(id, title, purpose, covers, procedure, windows, metrics=(), knobs=(), evidence="", rationale=(), setup=None):
     T.append({"id": id, "title": title, "purpose": purpose, "covers": covers, "setup": setup or NOM,
@@ -55,13 +55,18 @@ t("L2-6", "Capture time bound, repeated", "Proves three captures in a row each s
   metrics=[CAP30], evidence="check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 3; check: event dpWriter.FileWritten count == 3.")
 t("L2-7", "Telemetry during a downlink", "Proves sensor telemetry continues every 10 s during a downlink.", R(12, 8, 9, 10, 11),
   ["MARK(50)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten (names P1)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten (names P2)", "fileManager.CalculateCrc(P1)", "fileManager.CalculateCrc(P2)", "MARK(51)"] + XMIT + ["MARK(52)"], [W(50, 51, "Q"), W(51, 52, "D")],
-  metrics=gap(10, "D", 3) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)], knobs=["capture_before_xmit"],
+  metrics=gap(10, "D", 3, SENS[:2]) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)], knobs=["capture_before_xmit"],
   evidence="check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; " + CRC.replace("<P>", "<P1> and <P2>") + "; " + CLS2 + ".",
   rationale=[("CFDP transaction duration in D >= 30 s", "a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound")])
 t("L2-8", "Telemetry and commands during a downlink", "Proves telemetry continues and a command is served during a downlink.", R(12, 10),
   ["MARK(53)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "MARK(54)", "dpCat.BUILD_CATALOG()", "dpCat.START_XMIT_CATALOG(NO_WAIT, false)", "wait 15 s", "cmdDisp.CMD_NO_OP()", "wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground", "MARK(55)"], [W(53, 54, "Q"), W(54, 55, "D")],
-  metrics=gap(10, "D", 3) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)],
+  metrics=gap(10, "D", 3, SENS[:2]) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)],
   knobs=["extra_noop"], evidence="check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; " + CLS2 + ".", rationale=[("CFDP transaction duration in D >= 30 s", "as L2-7")])
+t("L2-9", "GPS telemetry during a downlink", "Proves GPS telemetry continues every 10 s during a downlink.", R(12),
+  ["MARK(56)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "MARK(57)"] + XMIT + ["MARK(58)"], [W(56, 57, "Q"), W(57, 58, "D")],
+  metrics=gap(10, "D", 3, SENS[2:]) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)],
+  evidence="check: event dpWriter.FileWritten count == 1 (in Q); check: exactly one file arrived.",
+  rationale=[("CFDP transaction duration in D >= 30 s", "a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound")])
 t("L7-1", "Final state", "Leaves one known product on board for the independent final-state check.", R(9, 5, 8),
   ["MARK(60)", "cfdpManager.FileInDefaultKeep_PRM_SET(KEEP)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten (names P)", "fileManager.CalculateCrc(P)"] + XMIT + ["fileManager.ListDirectory(product directory)", "dpCat.BUILD_CATALOG()", "dpCat.START_XMIT_CATALOG(NO_WAIT, false)", "wait 30 s", "MARK(61)"], [W(60, 61)],
   evidence="check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; " + CRC + "; " + REC + "; the directory listing names P only; check: no CFDP transaction starts after the second START_XMIT_CATALOG. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt.")

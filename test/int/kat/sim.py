@@ -162,7 +162,7 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
             state["keep"] = not k["keep_ignored"]
         elif name == "dpCat.START_XMIT_CATALOG":
             ev(t + 0.15, "DataProducts.dpCat.CatalogXmitStarted", "ACTIVITY_LO", "Catalog transmission started")
-            at, each = t + 1.0, (2.0 if k["fast_downlink"] else 20.0)
+            at, each = t + 1.0, (2.0 if k["fast_downlink"] else 35.0)
             for fname, data in sorted(stored.items()):
                 if fname in downlinked and not k["resend"]:
                     continue  # the catalog holds each product until it was transmitted once

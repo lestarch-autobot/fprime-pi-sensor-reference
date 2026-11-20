@@ -502,6 +502,26 @@ def noop_during_downlink(h):
     return n == 1, f"{n} NoOpReceived between them"
 
 
+@pytest.mark.req(*R(12))
+def test_L2_9(window, send, bench, check, require, fth_plan):
+    bench.action("clean_products")
+    with window(56, 57) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-9", check, require)
+        absent(check)
+        check("event dpWriter.FileWritten count == 1")
+        capture(send, bench, 56, 1)
+        settle(bench)
+    with window(57, 58) as w:
+        std(require, fth_plan)
+        metrics(w, fth_plan, "L2-9", check, require)
+        absent(check)
+        check("exactly one file arrived", files_arrived(1))
+        downlink(send, bench)
+        downlinked(bench, 1)
+        settle(bench)
+
+
 @pytest.mark.req(*R(9, 5, 8))
 def test_L7_1(window, send, bench, check, require, fth_plan):
     bench.action("clean_products")

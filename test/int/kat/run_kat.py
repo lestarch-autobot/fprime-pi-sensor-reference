@@ -2,7 +2,7 @@
 """Known-answer tests of the harness, offline: `python -B test/int/kat/run_kat.py` from the repository root.
 
 1. unit answers of the bench adapters and of the record library;
-2. the stimulus replayed over a synthetic record of a healthy system (sim.py): all 11 tests pass;
+2. the stimulus replayed over a synthetic record of a healthy system (sim.py): all 12 tests pass;
 3. the same with one behaviour broken at a time: the named check of the named test must not pass;
 4. each planted fault of the plan, applied to the command list: its `fails` checks fail, by name.
 Exit status 0 when every answer is the known one.
@@ -71,7 +71,7 @@ def replay(commands, knobs, tmp, tag):
     for m in re.finditer(r"^_{3,} test_(L\d)_(\d) _{3,}$(.*?)(?=^_{3,} test_|^=+ )", r.stdout, re.M | re.S):
         if out.get(f"{m.group(1)}-{m.group(2)}") != "":
             out[f"{m.group(1)}-{m.group(2)}"] = "\n".join(l for l in m.group(3).splitlines() if l.startswith("E "))
-    if len(out) != 11:
+    if len(out) != 12:
         raise SystemExit(f"replay produced {len(out)} verdicts:\n{r.stdout[-3000:]}\n{r.stderr[-2000:]}")
     return out
 
