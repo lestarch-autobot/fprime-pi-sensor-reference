@@ -143,3 +143,9 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
 - A command is sent again 6.4 s after it was sent, not 6.0 s: the unit sends a telemetry frame every second and
   hears nothing while it sends (half duplex), so a resend a whole number of seconds later meets the same frame.
   Seen on the first run: three sends of one marker command at the start of the unit's frame, none received.
+- `Svc.TlmPacketizer` gives a packet the time of the last write to one of its channels. A packet of seldom
+  written channels (`version.*`, sent every 300 s) so arrives minutes behind the others, and fth reads a step
+  back of more than 5 s in unit time as a restart: the windows after it held no channel row. The recorder
+  writes a row more than 4 s behind the newest unit time to `fprime-cli-yamcs/channel-late.log`, which is in
+  the record and which fth does not read. A sensor sample that late is then missing from its window and the
+  2 s rule fails, as it should.

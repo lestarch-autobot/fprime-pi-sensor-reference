@@ -37,6 +37,9 @@ EVENT_TIME_TAG_OFFSET = 6 + 2 + 4 + 2 + 1  # space packet header, descriptor, ev
 
 
 # ---------------------------------------------------------------- pure formatting (unit tested)
+LATE_S = 4.0  # a row this far behind the newest unit time is kept apart; fth takes 5 s back as a restart
+
+
 def epoch(value) -> float:
     """UTC epoch seconds of a datetime (naive = UTC) or an ISO-8601 string."""
     if isinstance(value, str):
@@ -127,9 +130,11 @@ class Recorder:
         self.lock = threading.Lock()
         self.files = {n: open(p, "a", buffering=1, encoding="utf-8") for n, p in (
             ("event", self.cli / "event.log"), ("channel", self.cli / "channel.log"),
+            ("late", self.cli / "channel-late.log"),
             ("events", self.side / "events.jsonl"), ("channels", self.side / "channels.jsonl"),
             ("timetags", self.side / "timetags.jsonl"), ("links", self.side / "links.jsonl"),
             ("ground", self.raw / "ground-events.log"))}
+        self.newest = 0.0  # newest unit time written to channel.log
         self.transfers = {}
         self.stop = threading.Event()
         dictionary = json.loads(Path(a.dictionary).read_text(encoding="utf-8"))
@@ -159,8 +164,14 @@ class Recorder:
                 s = {"name": p.name, "generationTime": p.generation_time.isoformat(),
                      "receptionTime": p.reception_time.isoformat(), "value": p.eng_value}
                 self.files["channels"].write(json.dumps(s, sort_keys=True, default=str) + "\n")
-                self.files["channel"].write(channel_line(json.loads(json.dumps(s, default=str)), self.root,
-                                                         self.a.gen_offset, self.ids, self.a.deployment) + "\n")
+                # A telemetry packet carries the time of the last write to one of its channels, so a packet of
+                # seldom written channels arrives minutes behind the others. fth reads a step back in unit
+                # time as a restart: such rows go to channel-late.log, which fth does not read.
+                fsw = epoch(s["generationTime"]) - self.a.gen_offset
+                late = fsw < self.newest - LATE_S
+                self.newest = max(self.newest, fsw)
+                self.files["late" if late else "channel"].write(channel_line(
+                    json.loads(json.dumps(s, default=str)), self.root, self.a.gen_offset, self.ids, self.a.deployment) + "\n")
 
     def on_event_packet(self, packet):
         b = packet.binary
