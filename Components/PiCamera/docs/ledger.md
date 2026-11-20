@@ -207,3 +207,77 @@ Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598
 - `fth deliver --harness uut --tool harness`: OK, 0 findings. `rfr-input.zip` sha256 `0c5d5d3d6f647ed002bf0da8decdf850be6feadfd808cc9ac713f90105a22a2c`, manifest sha256 `0365b61603576970da27acd53f90bd8f25d8e93ba0e14ff2b4e2327a702fdd83`, 33 pinned files. Same UUT commit 3e2290f, images and dictionary as the first delivery; the manifest gains a `tool` pin (`harness`, 8dd2a5e, `v0.1.2-2-g8dd2a5e`, clean). This delivery supersedes the first.
 - Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK. 39 preflight checks, 12 command lines rendered, 47 path tokens checked; `rfr.log` sha256 `6aee4505a8f7927c864ad6451fb06a082080110444bdff917e35530c203e7ac9`. No seed was requested and no run for record was made.
 - Unsealed `fth audit` of dry-1 with 8dd2a5e: the run-start marker step still fails (`no manifest run-start marker for this manifest/run id`). The record does hold the markers (4294901761 followed by 3745703664 = 0xdf42e6f0, the manifest of the run), but the exported event has two arguments, `{"text": "Received a NO-OP string=4294901761", "nums": [4294901761]}`, and the tool reads the event only when it has one argument that is a decimal string. Reported to the project; the record was not changed.
+
+## Release, third delivery (2026-11-19)
+
+- Tooling: fprime-testing-harness `linux-host-coverage`@f57cce6182422e5dc2b8870cd85d80c748696f7f (marker events of `cmdDisp.NoOpStringReceived` are read), at `harness/` of the campaign root.
+- `fth deliver --harness uut --tool harness`: OK, 0 findings. `rfr-input.zip` sha256 `9905f78df4173826f629855319850ace68ce8059377073a534beefac8445573e`, manifest sha256 `7a2404010d5a52da24500b3cf65b0d299e90a637f4aaa495d1a74912a6c52154`, 33 pinned files; tool pin f57cce6 (`v0.1.2-3-gf57cce6`, clean). UUT commit 3e2290f, images and dictionary unchanged. This delivery supersedes the first two.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `206a68908c8b0c8ac3b5b41058e9b4e3ccfe84d4aa463367a7f1f720b734e512`.
+- `fth audit --unsealed --tests` of dry-1: ok, all 16 steps, the run-start marker step included.
+- No seed was requested and no run for record was made. The bench was not used after the coverage run.
+
+## Design change: capture without any sensor reading (2026-11-20)
+
+- Ruling of Michael Starch, 2026-11-20 10:51 PST, verbatim: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE". Passed on by the project: the GPS receiver has no fix and cannot be given sky, so every capture was refused at `LOCATION`. It is the authority for this change to the SDD.
+- Change: the rule of 2026-11-19 for the attitude now holds for the three readings. A missing, undecodable or stale temperature, acceleration or location reading does not fail a capture: its values are stored as NaN, its sample time as zero, its flag false (`temperatureValid`, `attitudeValid`, `locationValid`), and one warning is emitted per unavailable reading. The picture is always stored. REQ-PiCamera-026 is rewritten for the three readings; REQ-PiCamera-010 and 011 now define stale and missing; REQ-PiCamera-005, 008, 012 and 015 are reworded to match.
+- Record layout: `locationValid` follows `locationTime` and `temperatureValid` follows `temperatureTime`, so each flag sits with its values, as `attitudeValid` does. Members after `locationTime` move by one byte against the delivery of 2026-11-19.
+- Decision: sibling events `TemperatureUnavailable` and `LocationUnavailable` beside `AttitudeUnavailable`, not one general event, so the existing event keeps its name, identifier and text.
+- Decision: a reading that is present and fresh but invalid (non-finite temperature, latitude or longitude out of range, zero or non-finite acceleration) still fails with `METRIC_INVALID`. The rule is the same for the three readings, so the design is consistent; the ruling names missing data. `SENSOR_NO_DATA` and `SENSOR_STALE` remain in `FailReason` as warning reasons and no longer occur in `CaptureFailed`.
+- Unchanged: camera failures, `TOO_LARGE`, `NO_CONTAINER` and `BUSY` fail the capture. No sensor data is substituted anywhere.
+- System level: REQ-PiSensor-014 as written fails a capture for any stale metric; the exception is the project's to record.
+- Unit tests: 22 pass (`AttitudeUnavailable` became `ReadingUnavailable`; `StaleReading`, `MissingReading`, `FailureResponse`, `RecoveryAfterFailure`, `RandomSequences` adapted). Coverage: lines 99.3% (266 of 268), branches 84.8% (368 of 434), functions 94.1% (32 of 34).
+- Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
+- Bench plan: one check per sensor, `<sensor> warning agrees with the sensor telemetry`: the warning is expected when the window holds no sample of the sensor, no warning when samples are fresh before the start and the end of the capture, and nothing is judged between.
+- Review: none for this change; the project asked for speed and the change repeats the reviewed pattern of 2026-11-19 for two more readings.
+
+## Release, fourth delivery (2026-11-20)
+
+Written after the freeze; the package pins `comp/picam`@c2b6adbe50652d6f152face3f7a8dc094e4e4cb3, the commit before this section. It supersedes the deliveries of 2026-11-19.
+
+- Images, built from scratch on the workstation [V]: pure sha256 `cc287e1d0cbae1dc8efe89491e017e848c326a5b561aff7a679c5a5342d867f9`; built for coverage `a51e1b2420c1b7244189a76d731bb279f32f5ec1fd6fb5e8fbe35bc97e907b8b`; dictionary `3d6bc63bfc51715de1f19b52100433694f91791a805c00f4ca9b1e6a488cd472`. `fth deliver` rebuilt the pure image and the dictionary to the same hashes.
+- Sensors on the day [V]: BMP280 answering (no `TemperatureUnavailable` in any run); GPS without a fix (`LocationUnavailable(SENSOR_NO_DATA, 0)` in every capture); MPU6050 failed again about 15 s after the first image start (`imuManager.I2cError`), so every capture carried `AttitudeUnavailable`. A valid attitude was not seen on the bench.
+- A first clean run at 62ca8b0 failed the response-time check of C-1 and C-2 in the harness: `CaptureStarted` and the dispatch event of `CAPTURE` were 1 ms apart and the check matched equal time tags. Fixed in c2b6adb (50 ms); the unit was not at fault.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `c88e696e…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `9b32c188…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `56caa615…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `ab2dfa21…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `f554007f…` |
+
+- `fth audit --unsealed --tests`: dry-1 ok, every step (15 OK lines, the run-start markers among them; the "16 steps" of the third delivery was a miscount of the same 15). dry-2 to dry-4: runner and replay agree on every test; the two failing steps are the ones a planted development run must fail (plant present, the planted command not replayed).
+- Coverage: unit tests, lines 99.3% (266 of 268); on the target, `Components/PiCamera/`, 284 count files: lines 76.1% (429 of 564), functions 83.0% (39 of 47), branches 56.8% (319 of 562). Plan minimum 95 and 75. `fth dev-campaign --gcda-dir`: clean.
+- `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `77bf3d450b4ca54742dbb46fe5cd5ec7532b26c47f631bc7a8a88aa7d8103127`, manifest sha256 `34191a02a361ee8d062fd7fcb826c7187d7f2f9d6f017fb5801cc577975cea69`, 33 pinned files.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `c2b412e93b152346404d667218aed689f5bd2bb71020028055b703577a33d9d4`.
+- No seed was requested and no run for record was made.
+
+## Picture size for the downlink (2026-11-20)
+
+- Instruction of the project, 2026-11-20 11:39 PST: the link carries 128 file bytes per second and the pictures were 60 to 127 kB, 10 to 16 minutes each; reduce a typical bench picture to about 20 kB, under 32 kB as design target.
+- Change: `JPEG_QUALITY` 90 to 20. Nothing else: the resolution stays 640 x 480, because the approved scope and REQ-PiCamera-002 say at least 640 x 480; the project's suggestion of 640 x 360 was not taken for that reason and the project was told.
+- Basis for 20 [V]: `rpicam-still` at 640 x 480 on the bench scene gave 21.9 kB at quality 90 and 7.2 kB at quality 30, a factor of 0.33; the target needs about 0.25 of the sizes seen at 90. Measured sizes of the component are in the release section below.
+- `PICTURE_MAX_SIZE` (262144) is unchanged: it is the bound that fails a capture, not the typical size.
+- The runs and the delivery of this morning are superseded.
+
+## Release, fifth delivery (2026-11-20)
+
+Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db5136890cd9516fd8932, the commit before this section. It supersedes every earlier delivery.
+
+- Images, built from scratch on the workstation [V]: pure sha256 `05d483517031a537010372a96d339cc3a1297f9789222bd4c4c4d23960f8a7d1`; built for coverage `50140d61b353350476c5b0443738e483271d445b1500a43e8c60f3ae64438782`; dictionary `bd66b80e75c91baf121d5ba7dc6ca98b129cd23fd6e19aca970cdee8d9a89a80`. `fth deliver` rebuilt the pure image and the dictionary to the same hashes.
+- Picture size at `JPEG_QUALITY` 20 [V]: 9 491 to 11 666 bytes over the 22 captures of the five runs. One stored picture was read back from its product file and decodes as a 640 x 480 picture of the bench scene, a textured surface with little detail; a scene with more detail will be larger.
+- Sensors: BMP280 answering (no `TemperatureUnavailable`); GPS without a fix and MPU6050 silent, so every capture carried `LocationUnavailable` and `AttitudeUnavailable`.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `d7987c5d…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `74d01e04…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `e0c8e00a…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `2f1f83db…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `eef38518…` |
+
+- `fth audit --unsealed --tests`: dry-1 ok, every step; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed.
+- Coverage: unit tests, lines 99.3% (266 of 268), report at `ut-coverage/` of the campaign root and `inputs/coverage/ut/` of the package; on the target, lines 76.1% (429 of 564), functions 83.0%, branches 56.8%. `fth dev-campaign --gcda-dir`: clean.
+- `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `33f7f126f693d20104d18634f02c851e07a8a83e78b96dcf3a07502b5ca553a9`, manifest sha256 `b63e0625535abff90fb249b27b41d01707e3e2e1db5072bf785aac4f8c05e6b5`, 33 pinned files.
+- Seed-free rehearsal: OK, 39 preflight checks; `rfr.log` sha256 `0dc39b6aff07694150f34ddc3eaac64b4d06d6df1e384438fb73393c1146f531`.
+- No seed was requested and no run for record was made.

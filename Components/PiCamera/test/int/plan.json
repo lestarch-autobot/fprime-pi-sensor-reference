@@ -16,7 +16,9 @@
   "cmdDisp.OpCodeDispatched": "Opcode (?P<opCode>0x[0-9a-fA-F]+) dispatched to port \\d+$",
   "cmdDisp.OpCodeCompleted": "Opcode (?P<opCode>0x[0-9a-fA-F]+) completed$",
   "cmdDisp.OpCodeError": "Opcode (?P<opCode>0x[0-9a-fA-F]+) completed with error (?P<error>\\w+)$",
-  "piCamera.AttitudeUnavailable": "Attitude unavailable: (?P<reason>\\w+) code (?P<code>-?\\d+); roll and pitch stored as NaN$"
+  "piCamera.AttitudeUnavailable": "Attitude unavailable: (?P<reason>\\w+) code (?P<code>-?\\d+); roll and pitch stored as NaN$",
+  "piCamera.TemperatureUnavailable": "Temperature unavailable: (?P<reason>\\w+) code (?P<code>-?\\d+); temperature stored as NaN$",
+  "piCamera.LocationUnavailable": "Location unavailable: (?P<reason>\\w+) code (?P<code>-?\\d+); latitude and longitude stored as NaN$"
  },
  "packets": {
   "Heartbeat": [
@@ -44,10 +46,10 @@
    "lines_min": 75
   },
   "not_covered_ack": [
-   "Failure paths of the temperature and the location readings (SENSOR_NO_DATA, SENSOR_STALE, METRIC_INVALID): the bench sensors are not disturbed; unit tests StaleReading, MissingReading, InvalidMetric.",
+   "METRIC_INVALID (a reading present and fresh but out of range): the bench sensors are not disturbed; unit test InvalidMetric.",
    "Camera failures other than a camera held by another process (NO_CAMERA, TIMEOUT, errors at CONFIGURE, START, FRAME, ENCODE) and TOO_LARGE: unit tests NoCamera, FrameTimeout, CameraErrors, TooLarge.",
    "NO_CONTAINER and BUSY: unit tests NoContainer, BusyDuringCapture.",
-   "The attitude path that is not the state of the bench MPU6050 on the day (present or silent): unit tests RollPitch, AttitudeUnavailable."
+   "For each sensor, the path that is not its state on the day (answering or silent): unit tests MetricsCopied, RollPitch, ReadingUnavailable, StaleReading, MissingReading."
   ],
   "rationale": "System coverage is measured over Components/PiCamera of an image built with --coverage, counts copied off the Pi after the plan. The three bench tests run the nominal capture and one camera failure; the failure branches listed are unit-test ground."
  },
@@ -97,8 +99,8 @@
     "C-2",
     "C-3"
    ],
-   "verification": "C-1, C-2, C-3 (a capture completes whatever the MPU6050 does; it warns when the window holds no MPU6050 sample, and does not warn when the samples are fresh around it), unit test AttitudeUnavailable (record content)",
-   "note": "The bench does not read the stored record. A capture with some MPU6050 samples in the window but none fresh around it is not judged: channel samples are lost on the downlink, so a gap in the record does not show the unit had no reading."
+   "verification": "C-1, C-2, C-3 (a capture completes whatever the three sensors do; for each sensor it warns when the window holds no sample of it, and does not warn when its samples are fresh around the capture), unit tests ReadingUnavailable, StaleReading, MissingReading (record content)",
+   "note": "The bench does not read the stored record. A capture with some samples of a sensor in the window but none fresh around it is not judged for that sensor: channel samples are lost on the downlink, so a gap in the record does not show the unit had no reading."
   }
  },
  "scope": [
@@ -108,7 +110,7 @@
  "not_covered": [
   "- No camera attached (REQ-PiCamera-016, `NO_CAMERA`): needs the cable removed; unit test `NoCamera`.",
   "- Restart during a capture: the restart of C-3 comes after a completed capture; a capture lasts under 1 s on the bench and the bench action takes longer.",
-  "- Content of the `Metrics` record (`attitudeValid`, NaN for roll and pitch): the component plan does not read the product file; unit test `AttitudeUnavailable` and the project system tests that read the downlinked product."
+  "- Content of the `Metrics` record (the three flags, NaN for the values of an unavailable reading): the component plan does not read the product file; unit test `ReadingUnavailable` and the project system tests that read the downlinked product."
  ],
  "tests": [
   {

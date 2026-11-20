@@ -6,9 +6,15 @@ import pytest
 CAPTURE = "piCamera.CAPTURE"
 PICTURE_MAX_SIZE = 262144
 CAPTURE_MAX_S = 15.0
+DISPATCH_S = 0.05
 HEARTBEAT = "bmpManager.Reading"
-IMU = "imuManager.Reading"
-IMU_FRESH_S = 1.5
+FRESH_S = 1.5
+# Warning event and telemetry channel of each reading a capture stores
+SENSORS = {
+    "temperature": ("piCamera.TemperatureUnavailable", "bmpManager.Reading"),
+    "attitude": ("piCamera.AttitudeUnavailable", "imuManager.Reading"),
+    "location": ("piCamera.LocationUnavailable", "gpsManager.Reading"),
+}
 RESPONSES = ("cmdDisp.OpCodeCompleted", "cmdDisp.OpCodeError")
 
 
@@ -94,8 +100,8 @@ def responses_within_bound(h):
     captures = [e for e in h.window.events("piCamera.CaptureStarted")]
     if not captures:
         return False, "no capture in the window"
-    # The opcode of CAPTURE is the one dispatched with the first CaptureStarted (same time tag)
-    codes = {opcode(e.args["opCode"]) for e in dispatched if e.t == captures[0].t}
+    # The opcode of CAPTURE is the one dispatched with the first CaptureStarted (time tags within DISPATCH_S)
+    codes = {opcode(e.args["opCode"]) for e in dispatched if abs(e.t - captures[0].t) <= DISPATCH_S}
     if len(codes) != 1:
         return False, f"dispatch of CAPTURE not identified: {sorted(codes)}"
     code = codes.pop()
@@ -106,35 +112,46 @@ def responses_within_bound(h):
     return ok, f"response times {times} s for opcode {code:#x}"
 
 
-def attitude_expected(started, completed, imu_times):
-    """Whether a capture from ``started`` to ``completed`` must warn that the attitude is unavailable.
+def warning_expected(started, completed, sample_times):
+    """Whether a capture from ``started`` to ``completed`` must warn that a reading is unavailable.
 
-    True: the window holds no MPU6050 sample at all. False: a sample in the IMU_FRESH_S before the
-    start and one in the IMU_FRESH_S before the end, so the reading was fresh whenever the unit
-    judged it. None: anything else is not judged, because channel samples are lost on the downlink
-    and a gap in the record does not show that the unit had no reading.
+    True: the window holds no sample of the sensor at all. False: a sample in the FRESH_S before the
+    start and one in the FRESH_S before the end, so the reading was fresh whenever the unit judged
+    it. None: anything else is not judged, because channel samples are lost on the downlink and a
+    gap in the record does not show that the unit had no reading.
     """
-    if not imu_times:
+    if not sample_times:
         return True
-    fresh = all(any(0.0 <= moment - t <= IMU_FRESH_S for t in imu_times) for moment in (started, completed))
+    fresh = all(any(0.0 <= moment - t <= FRESH_S for t in sample_times) for moment in (started, completed))
     return False if fresh else None
 
 
-def attitude_warning_justified(h):
-    """Each completed capture warned of an unavailable attitude as the recorded MPU6050 telemetry requires."""
-    done = h.window.events("piCamera.CaptureCompleted")
-    warned = [e.t for e in h.window.events("piCamera.AttitudeUnavailable")]
-    started = [e.t for e in h.window.events("piCamera.CaptureStarted")]
-    imu = [c.t for c in h.window.ch if c.short == IMU]
-    if not done:
-        return False, "no completed capture in the window"
-    seen = []
-    for capture in done:
-        begin = max([t for t in started if t <= capture.t], default=capture.t)
-        warning = any(begin <= t <= capture.t for t in warned)
-        seen.append((warning, attitude_expected(begin, capture.t, imu)))
-    ok = all(expected is None or warning == expected for warning, expected in seen)
-    return ok, f"(warned, warning expected from the MPU6050 telemetry) per capture: {seen}; {len(imu)} MPU6050 samples"
+def warnings_agree(sensor):
+    """Check: each completed capture warned of an unavailable reading as the recorded telemetry of the sensor requires."""
+    event, channel = SENSORS[sensor]
+
+    def judge(h):
+        done = h.window.events("piCamera.CaptureCompleted")
+        warned = [e.t for e in h.window.events(event)]
+        started = [e.t for e in h.window.events("piCamera.CaptureStarted")]
+        samples = [c.t for c in h.window.ch if c.short == channel]
+        if not done:
+            return False, "no completed capture in the window"
+        seen = []
+        for capture in done:
+            begin = max([t for t in started if t <= capture.t], default=capture.t)
+            warning = any(begin <= t <= capture.t for t in warned)
+            seen.append((warning, warning_expected(begin, capture.t, samples)))
+        ok = all(expected is None or warning == expected for warning, expected in seen)
+        return ok, f"(warned, warning expected from {channel}) per capture: {seen}; {len(samples)} samples"
+
+    return judge
+
+
+def check_readings(check):
+    """A reading is stored as valid (no warning) when its sensor answers and as a placeholder (warning) when it is silent."""
+    for sensor in SENSORS:
+        check(f"{sensor} warning agrees with the sensor telemetry", warnings_agree(sensor))
 
 
 def first_failure_is_camera_open(h):
@@ -168,7 +185,7 @@ def test_C_1(window, send, bench, check, require):
         check("event piCamera.CaptureCompleted count == 1")
         check("event dpWriter.FileWritten count == 1")
         check("picture size within PICTURE_MAX_SIZE", picture_within_limit)
-        check("attitude warning agrees with the MPU6050 telemetry", attitude_warning_justified)
+        check_readings(check)
         check("every CAPTURE answered within CAPTURE_MAX_MS", responses_within_bound)
 
 
@@ -195,7 +212,7 @@ def test_C_2(window, send, bench, check, require):
         check("event piCamera.CaptureCompleted count == 1")
         check("event dpWriter.FileWritten count == 1")
         check("no start-up between the failure and the success", no_start_between_failure_and_success)
-        check("attitude warning agrees with the MPU6050 telemetry", attitude_warning_justified)
+        check_readings(check)
         check("every CAPTURE answered within CAPTURE_MAX_MS", responses_within_bound)
 
 
@@ -217,4 +234,4 @@ def test_C_3(window, send, bench, check, require):
         check("event dpWriter.FileWritten count == 2")
         check("last(piCamera.CapturesCompleted) == 1")
         check("event version.ProjectVersion count == 1")
-        check("attitude warning agrees with the MPU6050 telemetry", attitude_warning_justified)
+        check_readings(check)

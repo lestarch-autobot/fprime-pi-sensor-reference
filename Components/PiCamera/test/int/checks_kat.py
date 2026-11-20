@@ -2,7 +2,7 @@
 
 Not named test_*.py: fth refuses a stimulus directory that holds a test outside the plan.
 """
-from test_picam import PICTURE_MAX_SIZE, attitude_expected, picture_sizes_ok, response_times, row_times
+from test_picam import PICTURE_MAX_SIZE, warning_expected, picture_sizes_ok, response_times, row_times
 
 
 def test_picture_sizes():
@@ -32,10 +32,10 @@ def test_row_times():
     assert row_times(rows, "imuManager.Reading") == [10.5]
 
 
-def test_attitude_expected():
-    assert attitude_expected(100.0, 101.0, [99.0, 100.0]) is False
-    assert attitude_expected(100.0, 101.0, [99.5]) is False
-    assert attitude_expected(100.0, 101.0, []) is True
-    assert attitude_expected(100.0, 101.0, [90.0]) is None
-    assert attitude_expected(100.0, 101.0, [100.5]) is None
-    assert attitude_expected(100.0, 101.0, [99.0, 105.0]) is None
+def test_warning_expected():
+    assert warning_expected(100.0, 101.0, [99.0, 100.0]) is False
+    assert warning_expected(100.0, 101.0, [99.5]) is False
+    assert warning_expected(100.0, 101.0, []) is True
+    assert warning_expected(100.0, 101.0, [90.0]) is None
+    assert warning_expected(100.0, 101.0, [100.5]) is None
+    assert warning_expected(100.0, 101.0, [99.0, 105.0]) is None

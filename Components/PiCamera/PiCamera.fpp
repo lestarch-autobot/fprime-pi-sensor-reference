@@ -15,8 +15,8 @@ module PiSensor {
       CAMERA_ERROR = 2 @< A camera or JPEG library call failed or the frame is in error
       TIMEOUT = 3 @< No frame arrived within FRAME_TIMEOUT_MS
       TOO_LARGE = 4 @< The JPEG exceeds PICTURE_MAX_SIZE
-      SENSOR_NO_DATA = 5 @< The telemetry store holds no usable reading
-      SENSOR_STALE = 6 @< A reading is older or newer than METRIC_MAX_AGE_MS
+      SENSOR_NO_DATA = 5 @< The telemetry store holds no usable reading; reported as a warning, not a failure
+      SENSOR_STALE = 6 @< A reading is older or newer than METRIC_MAX_AGE_MS; reported as a warning, not a failure
       METRIC_INVALID = 7 @< A reading holds a value outside its range
       NO_CONTAINER = 8 @< No product container buffer was obtained
     }
@@ -40,12 +40,14 @@ module PiSensor {
     struct CaptureMetrics {
       @ Time the frame was acquired
       captureTime: Fw.TimeValue
-      @ Latitude in degrees, north positive
+      @ Latitude in degrees, north positive; NaN when locationValid is false
       latitude: F64
-      @ Longitude in degrees, east positive
+      @ Longitude in degrees, east positive; NaN when locationValid is false
       longitude: F64
-      @ Sample time of latitude and longitude
+      @ Sample time of latitude and longitude; zero when locationValid is false
       locationTime: Fw.TimeValue
+      @ True when latitude and longitude are a location reading
+      locationValid: bool
       @ Roll in degrees; NaN when attitudeValid is false
       roll: F32
       @ Pitch in degrees; NaN when attitudeValid is false
@@ -54,10 +56,12 @@ module PiSensor {
       attitudeTime: Fw.TimeValue
       @ True when roll and pitch are derived from an acceleration reading
       attitudeValid: bool
-      @ Temperature in degrees Celsius
+      @ Temperature in degrees Celsius; NaN when temperatureValid is false
       temperature: F32
-      @ Sample time of the temperature
+      @ Sample time of the temperature; zero when temperatureValid is false
       temperatureTime: Fw.TimeValue
+      @ True when the temperature is a temperature reading
+      temperatureValid: bool
     }
 
     @ Picture width in pixels
@@ -78,8 +82,8 @@ module PiSensor {
     @ Frames discarded while exposure settles
     constant SETTLE_FRAMES = 10
 
-    @ libjpeg quality setting, 1 to 100
-    constant JPEG_QUALITY = 90
+    @ libjpeg quality setting, 1 to 100; low, so that a picture fits the downlink budget
+    constant JPEG_QUALITY = 20
 
     @ Largest difference between a sample time and the capture time, in milliseconds
     constant METRIC_MAX_AGE_MS = 2000
@@ -144,6 +148,18 @@ module PiSensor {
       reason: FailReason @< SENSOR_NO_DATA or SENSOR_STALE
       code: I32 @< Sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
     ) severity warning low format "Attitude unavailable: {} code {}; roll and pitch stored as NaN"
+
+    @ The temperature reading is missing or stale; the capture goes on without the temperature
+    event TemperatureUnavailable(
+      reason: FailReason @< SENSOR_NO_DATA or SENSOR_STALE
+      code: I32 @< Sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
+    ) severity warning low format "Temperature unavailable: {} code {}; temperature stored as NaN"
+
+    @ The location reading is missing or stale; the capture goes on without latitude and longitude
+    event LocationUnavailable(
+      reason: FailReason @< SENSOR_NO_DATA or SENSOR_STALE
+      code: I32 @< Sample age in ms for SENSOR_STALE, limited to the I32 range; else 0
+    ) severity warning low format "Location unavailable: {} code {}; latitude and longitude stored as NaN"
 
     # ----------------------------------------------------------------------
     # Telemetry
