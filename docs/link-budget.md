@@ -1,102 +1,114 @@
 # PiSensor link budget (RFM69 downlink)
 
 Each figure is marked [V] verified (in the source at the cited place, or measured on the bench
-by the session named) or [I] inferred. Bench measurements of this configuration are recorded
-in `docs/ledger.md`, not here.
+with `fix/link-budget`) or [I] inferred.
 
 ## Capacity
 
 | Item | Value | Basis |
 |---|---|---|
 | TM frame | 255 bytes | [V] `PiSensor/project/config/ComCfg.fpp` `TmFrameFixedSize` |
-| TM frame data field | 247 bytes | [V] `lib/fprime/default/config/CfdpCfg.fpp` comment: 1024-byte frame leaves 1016 |
-| Frame period | 0.625 s (1.6 frames/s) | [V] `Rfm69Manager.hpp` `TX_TX_HOLDOFF_TICKS = 500` at the 1 kHz `run`; ~0.125 s airtime measured by the harness session |
-| Capacity C | 395 bytes/s of space packets | 1.6 x 247 |
+| TM frame data field | 247 bytes | [V] frame minus 6-byte header and 2-byte error control |
+| Frame period | 0.62 s (1.6 frames/s) | [V] `Rfm69Manager.hpp` `TX_TX_HOLDOFF_TICKS = 500` at the 1 kHz `run`, plus airtime; frame spacing 0.62 s measured |
+| Capacity C | 395 bytes/s of space packets, in at most 1.6 frames/s | 1.6 x 247 |
 
-Space packets span frames (`ComCcsdsConfig.fpp` `enablePacketSpanning = true`), so the budget
-is in bytes per second, not packets per frame. A frame that the aggregator sends on its
-time-out before it is full carries idle fill; when the radio is the bottleneck the aggregator
-fills frames completely [I].
+Both limits count. Space packets span frames (`ComCcsdsConfig.fpp` `enablePacketSpanning =
+true`), so a busy link fills its frames and carries 395 bytes/s. A frame that is sent before it
+is full carries idle fill, so a quiet link is limited by the number of frames, not by bytes.
 
 ## Sources
 
 A telemetry packet is 6 (space packet header) + 2 (descriptor) + 2 (packet id) + 11 (time) =
-21 bytes plus its channels [V `Svc/TlmPacketizer/TlmPacketizer.cpp`]. Channel sizes are from
-the dictionary [V]. A group sends a packet only if a channel in it was written since the
-last send, and not more often than its period (`TlmPacketizerCfg.fpp`, `ON_CHANGE_MIN`).
+21 bytes plus its channels [V sizes seen in the frames on the bench]. A group sends a packet
+only if a channel in it was written since the last send, and not more often than its period
+(`TlmPacketizerCfg.fpp`, `ON_CHANGE_MIN`).
 
 | Source | Packet (bytes) | Period (s) | bytes/s |
 |---|---|---|---|
-| `Bmp` (bmpManager.Reading, 12) | 33 | 1 | 33 |
-| `Imu` (imuManager.Reading, 28) | 49 | 1 | 49 |
-| `Gps` (gpsManager.Reading, 24) | 45 | 1 | 45 |
-| `Link` (radio, command, queue, camera, catalog counters) | 82 | 5 | 16 |
-| `Housekeeping` (43 channels) | 229 | 30 | 8 |
-| `CfdpChannels`, `CfdpParameters`, `Versions`, `TlmConfig` | 253, 42, 105, 103 | 300 | 2 |
-| Events (not rate limited; a command gives 2, about 40 bytes each) | | | about 10 allowed |
+| `G0Bmp` (bmpManager.Reading) | 33 | 1 | 33 |
+| `G0Imu` (imuManager.Reading) | 49 | 1 | 49 |
+| `G0Gps` (gpsManager.Reading) | 45 | 1 | 45 |
+| `G1Link` (radio, command, queue, camera, catalog counters) | 82 | 5 | 16 |
+| `G2Housekeeping` | 237 | 30 | 8 |
+| `G3CfdpChannels`, `G3CfdpParameters`, `G3Versions`, `G3TlmConfig` | 253, 42, 105, 103 | 300 | 2 |
+| Events (not rate limited; a command gives 2 of about 40 bytes) | | | about 10 allowed |
 | CFDP File Data PDU: 6 + 2 + 16 + 4 + 128 file bytes | 156 | 1 | 156 |
 
 ## Budget
 
-| Condition | bytes/s | Share of C | Margin |
-|---|---|---|---|
-| Idle: sensors 127 + link 16 + housekeeping 10 + events 10 | 163 | 41 % | 59 % |
-| Downlink: idle 163 + file 156 | 319 | 81 % | 19 % |
+| Condition | bytes/s | Share of 395 | Frames/s | Share of 1.6 |
+|---|---|---|---|---|
+| Idle: sensors 127 + link 16 + housekeeping 8 + other 2 + events 10 | 163 | 41 % | 1.0 plus a second frame when a cycle exceeds 247 bytes; 1.08 measured | 68 % |
+| Downlink: idle 163 + file 156 | 319 | 81 % | 319 / 247 = 1.3 when frames fill; 1.28 measured | 80 % |
 
-- Idle is under the 60 % target. The sensor packets are sent every second, so a reception gap
-  is one second plus at most one frame period and the aggregator time-out [I]; REQ-PiSensor-001
-  to -003 allow 2 s.
-- During a downlink the telemetry queue is served before the file queue (`ComCcsdsConfig.fpp`
-  `QueuePriorities`: events 0, telemetry 1, file 2; `Svc.ComQueue` serves 0 first [V
-  `ComQueue.cpp`]; it was telemetry 2, file 1), and the file source is limited to one PDU
-  per second, so neither queue builds a backlog.
-- A 76,573-byte product is 599 File Data PDUs: about 10 minutes plus the EOF/Finished exchange
-  and any retransmission. Each retransmitted PDU costs one second.
+- One frame per second is the least that meets the 2 s requirements with 1 Hz sensors, and it
+  is 62.5 % of the frames the hold-off allows: the frame share cannot go below that, however
+  few bytes are sent. In bytes, idle is 41 % with a live IMU.
+- A 76,573-byte product is 599 File Data PDUs: about 10 minutes. 127,491 bytes took 938 s
+  on the bench [V]. Each retransmitted PDU costs one second.
+
+## Timing of a second
+
+The base cycle is 1 kHz (`PiSensorTopology.cpp`, `rateGroupDivisorsSet`).
+
+| When | What | Why |
+|---|---|---|
+| t | 10 Hz group: the sensor managers write `Reading` | |
+| t + 50 ms | 1 Hz group: `tlmSend` makes the packets, `cfdpManager` makes one PDU | on the same cycle as the 10 Hz group the packetizer could miss the sample of that second |
+| t + 300 ms | `rateGroup1HzFlush`: `aggregator.timeout` sends the frame if it is not full | at 10 Hz a burst of five events left as two frames ahead of the sensor frame (gap 1.95 to 2.0 s measured) |
+
+A frame that fills is sent at once. `Svc.TlmPacketizer` sends the packets of a cycle in the
+order of their names, hence the group prefix: sensor packets are at the head of the frame.
+`Svc.ComQueue` serves priority 0 first: telemetry 0, events 1, file 2.
 
 ## Configuration that follows the budget
 
 | Lever | Where | Value | Was |
 |---|---|---|---|
 | Telemetry as packets, chosen channels and rates | `project/config/CdhCoreTlmConfig.fpp`, `Top/PiSensorPackets.fppi`, `project/config/TlmPacketizerCfg.fpp` | table above | every written channel, every second (`Svc.TlmChan`) |
-| CFDP PDU size | `project/config/CfdpCfg.fpp` `MaxPduSize` | 148 (128 file bytes; the file data size is capped by it [V `TransactionTx.cpp`]) | 1001 |
+| Queue order | `project/config/ComCcsdsConfig.fpp` `QueuePriorities` | telemetry 0, events 1, file 2 | events 0, file 1, telemetry 2 |
+| 1 Hz group phase | `Top/PiSensorTopology.cpp` | offset 50 ms | 0 |
+| Partial frame time-out | `Top/topology.fpp`, `Top/instances.fpp` `rateGroup1HzFlush`; `project/config/AcConstants.fpp` `RateGroupDriverRateGroupPorts = 4` | 1 Hz, offset 300 ms | 10 Hz |
+| CFDP PDU size | `project/config/CfdpCfg.fpp` `MaxPduSize` | 148 (128 file bytes) | 1001 |
 | CFDP PDUs per 1 Hz cycle | parameter `cfdpManager.ChannelConfig[].max_outgoing_pdus_per_cycle`, `project/config/PrmDb.json` | 1 | 64 |
 | CFDP ACK timer / limit on the unit | parameter `cfdpManager.ChannelConfig[].ack_timer`, `ack_limit` | 10 s / 10 | 2 s / 10 |
-| Queue order | `project/config/ComCcsdsConfig.fpp` `QueuePriorities` | events 0, telemetry 1, file 2 | events 0, file 1, telemetry 2 |
 | Product directory | `project/config/DataProductsConfig.fpp` `Paths` | `dp` (product path 39 characters) | `./DpCat` (44) |
 
-The parameters are loaded at start-up from `PrmDb.dat` in the working directory
-(`FileHandlingCfdp.prmDb`). Build it from `PiSensor/project/config/PrmDb.json`:
+## Parameter file
+
+The two CFDP values above exist only as parameters. `FileHandlingCfdp.prmDb` reads `PrmDb.dat`
+from the working directory of the process at start-up [V event `PrmFileLoadComplete ...
+Records: 1` on the bench]. Build it from `PiSensor/project/config/PrmDb.json` with the
+dictionary of the same image (`fprime-prm-write` is installed with the F Prime tools):
 
 ```sh
-fprime-prm-write dat --dictionary build-artifacts/Linux/PiSensor/dict/PiSensorTopologyDictionary.json \
-    --output PrmDb.dat PiSensor/project/config/PrmDb.json
+fprime-prm-write dat PiSensor/project/config/PrmDb.json \
+    --dictionary build-artifacts/Linux/PiSensor/dict/PiSensorTopologyDictionary.json -o PrmDb.dat
 ```
 
-and place it beside where `PiSensor` is started. Without the file the unit sends up to 64 PDUs
-per second into a link that carries two; the transfer then depends on `BuffersExhausted`
-back-pressure and retransmission.
+Copy `PrmDb.dat` into the directory from which `PiSensor` is started, before starting it. The
+file is 125 bytes. Without it the unit uses the defaults: 64 PDUs per second and a 2 s ACK
+timer, into a link that carries one or two frames per second.
 
 ## Ground (bench set-up, YAMCS `CfdpService`)
 
-The end-of-file exchange crosses the link in both directions with a 0.5 s hold-off each way
-and behind queued frames. Set in the bench YAMCS configuration: `inactivityTimeout` at least
-60000 ms, `eofAckTimeout` / `finAckTimeout` at least 10000 ms, `nakTimeout` at least 10000 ms,
-`immediateNak: false` (a frame lost on the radio then costs one NAK round rather than a NAK per
-gap while frames are still in flight).
+Used on the bench, added under `args` of `org.yamcs.cfdp.CfdpService` in
+`etc/yamcs.fprime-project.yaml` of the bench YAMCS configuration: `inactivityTimeout: 60000`,
+`eofAckTimeout: 10000`, `finAckTimeout: 10000`, `finAckLimit: 10`, `nakTimeout: 20000`,
+`nakLimit: 10`, `immediateNak: false`.
 
 ## Uplink
 
 A command string argument holds at most `FW_CMD_STRING_MAX_SIZE` = 40 characters
-[V `lib/fprime/default/config/FpConstants.fpp`, `Fw/Cmd/CmdString.hpp`]; a longer one fails
-deserialization and the command is answered `FORMAT_ERROR` [V generated command dispatch].
-The observed limit (67-byte TC frame accepted, 71-byte rejected) is this 40-character limit
-(27 bytes of frame, packet and command overhead + 40) [I], not a radio limit: a truncated
-radio packet would fail the TC frame check and give no command response. The product path is
-therefore shortened to 39 characters. Whether TC frames longer than 67 bytes cross the radio
-is not established and no command of the test plan needs one.
+[V `lib/fprime/default/config/FpConstants.fpp`, `Fw/Cmd/CmdString.hpp`]. The product path is
+39 characters with the directory `dp`.
 
-## Not within project configuration
+## Limits that project configuration does not remove
 
-- The 0.5 s transmit hold-off (`Rfm69Manager.hpp`) sets C. The budget closes with it.
+- The 0.5 s transmit hold-off (`Rfm69Manager.hpp`) sets the 1.6 frames/s.
+- About one TM frame in 650 reaches the ground with a wrong frame error control field and is
+  discarded by YAMCS [V 2 of 1283 and 2 of 1298 frames in two 20-minute runs]. The telemetry of
+  that second is lost and the reception gap of each sensor is then 2.0 s. A second copy of
+  each sample would need two frames per second, which the hold-off does not allow.
 - Picture size: `PICTURE_WIDTH`, `PICTURE_HEIGHT`, `JPEG_QUALITY` are constants of
   `Components/PiCamera/PiCamera.fpp`; `piCamera.configure` takes no size or quality.
