@@ -20,7 +20,7 @@ MARK = re.compile(r"cmdDisp\.NoOpStringReceived,\d+,EventSeverity\.\w+,Received 
 WRITTEN = re.compile(r"dpWriter\.FileWritten,\d+,EventSeverity\.\w+,Wrote \d+ bytes to file (\S+)$")
 OPCODE = re.compile(r"Opcode (0x[0-9a-fA-F]+)")
 TIME_SIZE = 11  # Fw.TimeValue: time base U16, context U8, seconds U32, microseconds U32
-METRICS_SIZE = 4 * TIME_SIZE + 8 + 8 + 4 + 4 + 4
+METRICS_SIZE = 4 * TIME_SIZE + 8 + 8 + 4 + 4 + 1 + 4
 _cache = {}
 
 
@@ -48,6 +48,17 @@ def live():
     return _arg("--fth-replay-record") is None and raw_dir() is not None
 
 
+def caught_up(channel, since):
+    """True when a sample of `channel` with a unit time of `since` (UTC epoch seconds) or later is on the ground."""
+    log = raw_dir() / "fprime-cli-yamcs" / "channel.log"
+    if not log.is_file():
+        return False
+    for line in reversed(log.read_text(encoding="utf-8", errors="replace").splitlines()[-400:]):
+        if f".{channel}," in line:
+            return float(line.split("TB_PROC_TIME: ", 1)[1].split("s,", 1)[0]) >= since
+    return False
+
+
 def exported():
     """events/channels rows of the export with their ground reception time (`rx`), indexed like fth's rows."""
     raw = raw_dir()
@@ -69,10 +80,12 @@ def exported():
 
 
 def epoch(value):
-    """UTC epoch seconds of an ISO-8601 time as YAMCS writes it."""
+    """UTC epoch seconds of an ISO-8601 time. YAMCS writes the zone; the bench program that sends commands (yamcs_bench.py send)
+    and its resend log write the local time of the workstation without one, so a time without a zone is
+    local time: judge a record in the time zone of the bench that made it."""
     value = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     if value.tzinfo is None:
-        value = value.replace(tzinfo=datetime.timezone.utc)
+        value = value.astimezone()
     return value.timestamp()
 
 
@@ -84,6 +97,13 @@ def rx(row):
 def bounds(w):
     """Ground reception times of the window's START and END marker events."""
     return rx(w.start_marker), rx(w.end_marker)
+
+
+def resends(w, marker_opcode):
+    """Resends the bench logged (cmd/resend.log) between the two markers, marker commands apart."""
+    t0, t1 = epoch(w.cmds[0].sent), epoch(w.cmds[-1].sent)
+    rows = [l.split(",") for f in raw_dir().glob("**/resend.log") for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
+    return len([r for r in rows if int(r[2]) != marker_opcode and t0 <= epoch(r[0]) <= t1])
 
 
 def snapshot(name, after):
@@ -212,6 +232,9 @@ def decode_product(data, size_len=8):
     off += 8
     m["attitudeTime"] = _time(body, off)
     off += TIME_SIZE
+    assert body[off] in (0, 1), f"attitudeValid is {body[off]}, not a bool"
+    m["attitudeValid"] = body[off] == 1
+    off += 1
     m["temperature"] = struct.unpack_from(">f", body, off)[0]
     off += 4
     m["temperatureTime"] = _time(body, off)

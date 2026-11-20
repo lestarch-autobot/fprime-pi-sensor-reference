@@ -31,12 +31,14 @@ def plan_steps(plan: dict, marker: str) -> dict:
     return out
 
 
-def sent(run_dir: Path) -> list:
-    rows = []
+def sent(run_dir: Path, deployment: str = "PiSensor") -> list:
+    """Commands of the dry run, in order, by the short name the plan uses (fth prefixes the deployment)."""
+    rows, lead = [], deployment + "."
     for log in sorted((run_dir / "record" / "raw" / "cmd").glob("fprime-cli-dry-*/command.log")):
         for line in log.read_text(encoding="utf-8").splitlines():
             head, raw = line.split(",[", 1)
-            rows.append((head.split(",")[2], [str(a) for a in json.loads("[" + raw)]))
+            name = head.split(",")[2]
+            rows.append((name[len(lead):] if name.startswith(lead) else name, [str(a) for a in json.loads("[" + raw)]))
     return rows
 
 

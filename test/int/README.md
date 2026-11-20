@@ -1,29 +1,28 @@
 # PiSensor system test harness
 
-The harness of the 11 tests of `plan.json` (approved with Gate 1). It runs on the bench workstation with
+The harness of the 11 tests of `stimulus/plan.json` (approved with Gate 1). It runs on the bench workstation with
 [fprime-testing-harness](https://github.com/LeStarch/fprime-testing-harness) (`fth`) v0.1.2; the ground
 system is fprime-yamcs and the ground radio is the Feather M0 RFM69. Nothing here is part of the flight
 deployment and there is no test component.
 
 | Path | What it is |
 |---|---|
-| `plan.json`, `plan.md`, `faults-menu.json`, `gen_plan.py` | the approved plan (baseline; not changed by the harness) |
-| `planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
+| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 2 (changelog below) |
+| `stimulus/planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
 | `stimulus/test_pisensor.py` | the stimulus and the named checks, one function per plan test; the `--tests` directory |
 | `stimulus/pisensor_record.py` | record access for the checks: ground reception time, transfers, frames, product decoder |
 | `bench.json` | the bench: command lines of the ground side, the sender, the recorder, the UUT actions |
-| `bench/ground.py` | starts and stops fprime-yamcs and `ground/feather_bridge.py` |
-| `bench/yamcs_send.py` | sends one command through the YAMCS HTTP API, writes the sender log fth reads |
+| `bench/yamcs_bench.py` | of the `piCamera` component tests: image on the Pi, fprime-yamcs and `ground/feather_bridge.py`, command sending with resend |
 | `bench/yamcs_recorder.py` | records events, telemetry, transfers, frames and received files from YAMCS |
-| `bench/uut.py` | the Pi over ssh: install and start the image, read it back, the bench actions |
+| `bench/uut.py` | the bench actions on the Pi over ssh |
 | `bench/verify_stimulus.py` | stimulus against the plan procedures, from a dry run |
 | `kat/` | known-answer tests of all of the above over a synthetic record (`run_kat.py`, `sim.py`) |
 
 ## Offline checks (no bench)
 
 ```
-fth verify-plan test/int/plan.json --tests test/int/stimulus --bench test/int/bench.json
-python -B test/int/bench/verify_stimulus.py test/int/plan.json --tests test/int/stimulus --bench test/int/bench.json
+fth verify-plan test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
+python -B test/int/bench/verify_stimulus.py test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
 python -B test/int/kat/run_kat.py        # needs Pillow
 ```
 
@@ -76,10 +75,52 @@ Each is worked around in this directory; fth is not modified.
     serial as `Serial# = ...`. There is no hook to stop the flight software after a run (`uut.py stop`).
 11. No hook after the run for the final-state evidence: taken at the end of L7-1, after its window closed.
 
-## To settle at the bench
+## Plan revision 2 (2026-11-19, harness builder; not yet reviewed)
 
-`bench.json` `serial` and `dictionary`; `BENCH_POSITION` in the stimulus (surveyed latitude and longitude:
-until set, "sensor readings plausible" fails); the event order of the marker (item 6); `gen_offset` against
-`timetags.jsonl`; YAMCS client calls of the sender and recorder (written from the fprime-yamcs 0.2.5 and
-yamcs-client sources, never run against a server); the format of the `version` events; `piCamera` names
-and the product layout once the component is wired (taken from its SDD); the character-device list.
+Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as strict as the requirements.
+
+1. Telemetry period metric: one per channel (`bmpManager.Reading`, `imuManager.Reading`, `gpsManager.Reading`)
+   instead of one for all three, in L2-1, L2-2, L2-7 and L2-8; same bound and sample count. A silent sensor
+   fails its own metric only. Samples are selected by ground reception time between the two markers.
+2. Heartbeat is `bmpManager.Reading`, not `imuManager.Reading` (Captain's MPU6050 ruling: no window gate on it).
+3. STD no longer holds `commands_sent == count(event cmdDisp.OpCodeDispatched)`. Every window requires instead:
+   commands sent, marker commands apart, equal the dispatch events of other opcodes. The dispatch event of a
+   marker can sort outside the window. With r resends logged by the bench in the window (`cmd/resend.log`,
+   at most two per command, sent when no dispatch is reported within 6 s) the count may be up to r higher.
+4. L0-1 procedure: the clock action is a step (its metric needed it).
+5. L0-1 check wording: "character devices held by the process are a subset of the list in Scope".
+6. L2-1, L2-2: the MPU6050 bounds are stated in the units of the channel, 0.82 to 1.22 g and 28.6 deg/s
+   (the same 8 to 12 m/s^2 and 0.5 rad/s). The plausibility check is two checks: BMP280 and GPS; MPU6050.
+7. Products: new check "roll and pitch of each ground file are marked valid" (L2-3, L2-4, L2-5, L7-1). The
+   sample time bound applies to metrics marked valid (REQ-PiSensor-014 as amended). The L2-5 comparison with
+   telemetry is two checks: temperature, latitude and longitude; roll and pitch.
+8. Every window ends with a wait until the telemetry sampled up to that moment has reached the ground
+   (telemetry age, below); no bound changes.
+9. Scope, not-covered and decision log entries for the above. Not changed: tests, windows, commands, bounds,
+   planted faults. The metrics of L2-7 and L2-8 still name window D in their text (fth gap 5).
+
+## Settled at the bench (2026-11-19)
+
+- YAMCS generation time is the unit time tag + 1.000 s (`timetags.jsonl`): `gen_offset` 1.0 stands. The
+  recorder of `yamcs_bench.py` does not subtract it; this harness uses `yamcs_recorder.py`.
+- Image, ground system and command sending are those of `yamcs_bench.py` (proven by the component runs);
+  it logs the sending time as local time without a zone, so a record is judged in the time zone of its bench.
+- `bench.json` serial and dictionary; bench position 34.130442, -118.058840.
+- Telemetry age grows by about 0.1 s per second of run: `Rfm69Manager` holds 0.5 s after each frame
+  (1.6 frames/s) and idle telemetry needs a little more. See `docs/ledger.md`.
+- The blind lint of fth refuses the word for the sending program in stimulus prose; it is not used there.
+- fth pins and replays the tests directory and wants the plan and its helper module in it, and its lint
+  refuses other Python there: the plan, its menu and `planted_faults.py` moved from `test/int/` to
+  `test/int/stimulus/` (content unchanged by the move). `fth run` passes no partial selection to pytest, so
+  L0 is the first two tests of a full run.
+- The recorder logs the channels of the dictionary only. YAMCS also publishes packet fields
+  (`CCSDS_Packet_*`, `FPrimeTime`, `FPrimeFilePacket*`) whose generation time is no unit time; with them in
+  the record fth reads a restart and its windows hold no channel row.
+- YAMCS takes a bool argument as `True` or `False`. Parameter commands are in the dictionary with an
+  upper-case name (`FILEINDEFAULTKEEP_PRM_SET`); `yamcs_bench.py send` matches them without case and logs
+  the name as the plan writes it.
+- `final_state` accepts an empty product directory.
+- Link findings of the first live runs (flight configuration, not harness; numbers in `docs/ledger.md`):
+  a command frame above 67 bytes does not arrive whole, so `fileManager.CalculateCrc` of a product path
+  (44 characters) ends in `FORMAT_ERROR`; a picture downlink does not complete; one telemetry sample was lost
+  on board in the second run; telemetry stops for minutes while a file is sent.

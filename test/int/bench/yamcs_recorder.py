@@ -50,7 +50,12 @@ def one_line(text: str) -> str:
     return str(text).replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n")
 
 
-def event_line(ev: dict, gen_offset: float) -> str:
+def log_name(deployment: str, qualified: str) -> str:
+    """`CdhCore.cmdDisp.OpCodeCompleted` -> `<deployment>.cmdDisp.OpCodeCompleted` (the name fth looks for)."""
+    return ".".join([deployment] + qualified.split(".")[-2:]) if deployment else qualified
+
+
+def event_line(ev: dict, gen_offset: float, deployment: str = "") -> str:
     """`ev`: {type, message, generationTime, receptionTime, extra{fprime_severity, fprime_event_id}}."""
     extra = ev.get("extra") or {}
     name = extra.get("fprime_event_name") or ev["type"]
@@ -59,7 +64,7 @@ def event_line(ev: dict, gen_offset: float) -> str:
     if text.startswith(f"[{leaf}] "):
         text = text[len(leaf) + 3:]
     fsw = epoch(ev["generationTime"]) - gen_offset
-    return (f"TB_PROC_TIME: {fsw:.6f}s, context=0,(rx={epoch(ev['receptionTime']):.6f}),{name.replace(',', ';')},"
+    return (f"TB_PROC_TIME: {fsw:.6f}s, context=0,(rx={epoch(ev['receptionTime']):.6f}),{log_name(deployment, name).replace(',', ';')},"
             f"{int(extra.get('fprime_event_id', 0))},EventSeverity.{extra.get('fprime_severity', 'UNKNOWN')},{one_line(text)}")
 
 
@@ -68,12 +73,12 @@ def channel_name(qualified: str, root: str) -> str:
     return q.strip("/").replace("/", ".")
 
 
-def channel_line(sample: dict, root: str, gen_offset: float, ids: dict) -> str:
+def channel_line(sample: dict, root: str, gen_offset: float, ids: dict, deployment: str = "") -> str:
     """`sample`: {name (qualified), generationTime, receptionTime, value}."""
     name = channel_name(sample["name"], root)
     fsw = epoch(sample["generationTime"]) - gen_offset
     value = json.dumps(sample["value"], separators=(",", ":"), sort_keys=True)
-    return f"TB_PROC_TIME: {fsw:.6f}s, context=0,(rx={epoch(sample['receptionTime']):.6f}),{name},{ids.get(name, 0)},{value}"
+    return f"TB_PROC_TIME: {fsw:.6f}s, context=0,(rx={epoch(sample['receptionTime']):.6f}),{log_name(deployment, name)},{ids.get(name, 0)},{value}"
 
 
 def parse_bridge(text: str) -> list:
@@ -123,7 +128,8 @@ class Recorder:
         self.files = {n: open(p, "a", buffering=1, encoding="utf-8") for n, p in (
             ("event", self.cli / "event.log"), ("channel", self.cli / "channel.log"),
             ("events", self.side / "events.jsonl"), ("channels", self.side / "channels.jsonl"),
-            ("timetags", self.side / "timetags.jsonl"), ("links", self.side / "links.jsonl"))}
+            ("timetags", self.side / "timetags.jsonl"), ("links", self.side / "links.jsonl"),
+            ("ground", self.raw / "ground-events.log"))}
         self.transfers = {}
         self.stop = threading.Event()
         dictionary = json.loads(Path(a.dictionary).read_text(encoding="utf-8"))
@@ -138,19 +144,23 @@ class Recorder:
               "receptionTime": event.reception_time.isoformat(), "extra": dict(event.extra or {})}
         with self.lock:
             self.files["events"].write(json.dumps(ev, sort_keys=True) + "\n")
-            if ev["source"] == self.a.event_source:
-                self.files["event"].write(event_line(ev, self.a.gen_offset) + "\n")
+            if ev["extra"].get("fprime_event_name"):
+                self.files["event"].write(event_line(ev, self.a.gen_offset, self.a.deployment) + "\n")
+            else:  # a ground event (link, packet sequence): kept beside the record, not an event of the unit
+                self.files["ground"].write(f"{ev['generationTime']},{ev['source']},{ev['type']},{ev['severity']},{one_line(ev['message'])}\n")
 
     def on_parameters(self, data):
         with self.lock:
             for p in data.parameters:
-                if not p.name.startswith(self.root):
+                # channels of the dictionary only: YAMCS also publishes packet fields (CCSDS_Packet_*, FPrimeTime,
+                # FPrimeFilePacket*) whose generation time is no unit time; fth would read a reboot from them
+                if not p.name.startswith(self.root) or channel_name(p.name, self.root) not in self.ids:
                     continue
                 s = {"name": p.name, "generationTime": p.generation_time.isoformat(),
                      "receptionTime": p.reception_time.isoformat(), "value": p.eng_value}
                 self.files["channels"].write(json.dumps(s, sort_keys=True, default=str) + "\n")
                 self.files["channel"].write(channel_line(json.loads(json.dumps(s, default=str)), self.root,
-                                                         self.a.gen_offset, self.ids) + "\n")
+                                                         self.a.gen_offset, self.ids, self.a.deployment) + "\n")
 
     def on_event_packet(self, packet):
         b = packet.binary
@@ -195,14 +205,23 @@ class Recorder:
 
     def run(self):
         from yamcs.client import YamcsClient
-        client = YamcsClient(self.a.url)
-        processor = client.get_processor(self.a.instance, "realtime")
-        mdb = client.get_mdb(self.a.instance)
-        names = [p.qualified_name for p in mdb.list_parameters() if p.qualified_name.startswith(self.root)]
-        container = next(c.qualified_name for c in mdb.list_containers() if c.qualified_name.endswith("/FPrimeEvent"))
-        subs = [client.create_event_subscription(self.a.instance, self.on_event),
-                processor.create_parameter_subscription(names, on_data=self.on_parameters, abort_on_invalid=False, send_from_cache=False),
-                processor.create_container_subscription([container], on_data=self.on_event_packet)]
+        limit = time.time() + self.a.connect_s
+        while True:
+            try:
+                client = YamcsClient(self.a.url)
+                processor = client.get_processor(self.a.instance, "realtime")
+                mdb = client.get_mdb(self.a.instance)
+                names = [p.qualified_name for p in mdb.list_parameters() if p.qualified_name.startswith(self.root)]
+                container = next(c.qualified_name for c in mdb.list_containers() if c.qualified_name.endswith("/FPrimeEvent"))
+                subs = [client.create_event_subscription(self.a.instance, self.on_event),
+                        processor.create_parameter_subscription(names, on_data=self.on_parameters, abort_on_invalid=False, send_from_cache=False),
+                        processor.create_container_subscription([container], on_data=self.on_event_packet)]
+                break
+            except Exception as exc:  # noqa: BLE001 - YAMCS is still starting
+                if time.time() > limit:
+                    raise SystemExit(f"recorder: YAMCS at {self.a.url} not reachable: {exc!r}")
+                time.sleep(2)
+        (self.cli / "recorder.ready").write_text("ready\n", encoding="utf-8")
         storage = client.get_storage_client()
         print(f"recorder: subscribed to events, {len(names)} parameters, {container}", flush=True)
         beat = 0
@@ -240,7 +259,8 @@ def main(argv=None) -> int:
     ap.add_argument("--dictionary", required=True)
     ap.add_argument("--logs", required=True)
     ap.add_argument("--gen-offset", type=float, default=1.0, help="YAMCS generation time minus F Prime time tag, seconds")
-    ap.add_argument("--event-source", default="FPrimeEventProcessor")
+    ap.add_argument("--deployment", default="", help="prefix of the names in the fth logs (subtopology dropped); empty keeps qualified names")
+    ap.add_argument("--connect-s", type=float, default=180)
     ap.add_argument("--cfdp-service", default="CfdpService")
     ap.add_argument("--tm-link", default="UDP_TM_IN")
     ap.add_argument("--period", type=float, default=0.5)

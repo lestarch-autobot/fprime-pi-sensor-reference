@@ -15,7 +15,7 @@ def _is(command_name, short):
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "stimulus"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pisensor_record as rec  # noqa: E402
 
 
@@ -38,7 +38,8 @@ def max_ground_gap(ctx, channels, bound_s, min_samples):
     t0, t1 = rec.bounds(ctx.window)
     bad, seen = [], []
     for ch in ctx.plan.packets[channels]:
-        times = [rec.rx(r) for r in ctx.window.channel(ch)]
+        # by ground reception time, as the requirement is stated: fth cuts ctx.window.channel() on FSW time
+        times = sorted(t for t in (rec.rx(r) for r in ctx.record.channels if r.short == ch) if t0 <= t <= t1)
         gap = max(b - a for a, b in zip([t0] + times, times + [t1]))
         seen.append(f"{ch}: {len(times)} samples, largest gap {gap:.3f} s")
         if len(times) < min_samples or gap > bound_s:
@@ -75,9 +76,10 @@ def product_time_within(ctx, tol_s):
 
 @helper("product_sample_times_within")
 def product_sample_times_within(ctx, bound_s):
-    """Each metric record of each ground file carries a sample time within bound_s of the capture time record."""
+    """Each metric marked valid of each ground file carries a sample time within bound_s of the capture time record."""
     prods = _products(ctx.window)
-    worst = [max(abs(p["metrics"][k]["t"] - p["metrics"]["captureTime"]["t"]) for k in ("locationTime", "attitudeTime", "temperatureTime"))
+    worst = [max(abs(p["metrics"][k]["t"] - p["metrics"]["captureTime"]["t"]) for k in ("locationTime", "attitudeTime", "temperatureTime")
+                 if k != "attitudeTime" or p["metrics"]["attitudeValid"])  # REQ-PiSensor-014: metrics marked valid
              for p in prods]
     return bool(prods) and all(x <= bound_s for x in worst), "largest |sample - capture| per product: " + (", ".join(f"{x:.3f} s" for x in worst) or "no product"), [], False
 

@@ -64,6 +64,8 @@ def load_dictionary(path: str) -> dict:
 
 def resolve(entries: list, deployment: str, name: str) -> dict:
     found = [e for e in entries if short_name(deployment, e["name"]) == name or e["name"] == name]
+    if not found:  # the dictionary writes a parameter command in upper case: FILEINDEFAULTKEEP_PRM_SET
+        found = [e for e in entries if short_name(deployment, e["name"]).lower() == name.lower()]
     if len(found) != 1:
         raise SystemExit(f"{name}: {len(found)} dictionary entries match")
     return found[0]
@@ -320,7 +322,9 @@ def cmd_send(args) -> None:
     params = entry.get("formalParams", [])
     if len(params) != len(args.args):
         raise SystemExit(f"{args.command}: {len(params)} arguments expected, {len(args.args)} given")
-    body = {"args": {p["name"]: a for p, a in zip(params, args.args)}}
+    # YAMCS takes a bool as the label of its enumeration, True or False
+    body = {"args": {p["name"]: (a.strip().capitalize() if p["type"].get("kind") == "bool" else a)
+                     for p, a in zip(params, args.args)}}
     url = (f"http://{args.yamcs}/api/processors/{args.instance}/realtime/commands/{args.space_system}/"
            + entry["name"].replace(".", "/"))
     seen = watch_dispatch(args, entry["opcode"])
@@ -342,8 +346,12 @@ def cmd_send(args) -> None:
     epoch = int(sent.timestamp())
     # fth compares a marker argument as a number: a decimal argument is logged as one
     logged = [int(a) if re.fullmatch(r"-?\d+", a) else a for a in args.args]
+    # the name as the caller wrote it when only the case differs (parameter commands)
+    logged_name = short_name(args.deployment, entry["name"])
+    if logged_name != args.command and logged_name.lower() == args.command.lower():
+        logged_name = args.command
     (out / "command.log").write_text(
-        f"{sent.isoformat()},(2(0)-{epoch}:{sent.microsecond}),{short_name(args.deployment, entry['name'])},"
+        f"{sent.isoformat()},(2(0)-{epoch}:{sent.microsecond}),{logged_name},"
         f"{entry['opcode']},{json.dumps(logged)}\n", encoding="utf-8")
 
 
