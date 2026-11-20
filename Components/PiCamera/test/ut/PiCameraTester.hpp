@@ -23,6 +23,8 @@ class PiCameraTester final : public PiCameraGTestBase {
 
     //! Channels given to configure
     enum Channel { TEMPERATURE = 0, ATTITUDE = 1, LOCATION = 2, NUM_CHANNELS = 3 };
+    //! Readings a capture went on without: bit 1 << Channel
+    enum Lacking : U32 { LACKS_TEMPERATURE = 1U << TEMPERATURE, LACKS_ATTITUDE = 1U << ATTITUDE, LACKS_LOCATION = 1U << LOCATION };
     static constexpr FwChanIdType CHANNEL_ID[NUM_CHANNELS] = {0x1100, 0x2200, 0x3300};
 
     //! One entry of the substitute telemetry store
@@ -56,7 +58,7 @@ class PiCameraTester final : public PiCameraGTestBase {
     void testFrameTimeout();
     void testStaleReading();
     void testMissingReading();
-    void testAttitudeUnavailable();
+    void testReadingUnavailable();
     void testInvalidMetric();
     void testNoCamera();
     void testCameraErrors();
@@ -107,14 +109,14 @@ class PiCameraTester final : public PiCameraGTestBase {
     void ping(U32 key);
 
     // Helpers: checks
-    //! attitudeValid false: the product has NaN for roll and pitch and AttitudeUnavailable was emitted
-    void assertSuccess(FwSizeType pictureSize, bool attitudeValid = true);
+    //! lacking: the readings (Lacking bits) whose placeholder, false flag and warning are expected
+    void assertSuccess(FwSizeType pictureSize, U32 lacking = 0);
     void assertFailure(PiCamera_FailReason reason, PiCamera_FailStep step, I32 code);
     //! capture() and assertFailure(), then a capture with the nominal set-up that succeeds
     void captureFails(PiCamera_FailReason reason, PiCamera_FailStep step, I32 code);
-    //! A capture that succeeds without roll and pitch, then one with the nominal set-up that has them
-    void captureWithoutAttitude(PiCamera_FailReason reason, I32 code);
-    //! captureFails() for the temperature and the location, captureWithoutAttitude() for the acceleration
+    //! The warning of one channel carries this reason and code
+    void assertUnavailable(U32 channel, PiCamera_FailReason reason, I32 code);
+    //! A capture that succeeds without the reading of one channel, then one with the nominal set-up that has it
     void captureLacks(U32 channel, PiCamera_FailReason reason, I32 code);
     void assertCameraClosed();
     Product readProduct(U32 index);
