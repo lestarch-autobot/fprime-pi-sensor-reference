@@ -99,7 +99,7 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
 9. Scope, not-covered and decision log entries for the above. Not changed: tests, windows, commands, bounds,
    planted faults. The metrics of L2-7 and L2-8 still name window D in their text (fth gap 5).
 
-## Plan revision 3 (2026-11-20, harness builder; not yet reviewed)
+## Plan revision 3 (2026-11-20, harness builder; Mode B review closed at one round)
 
 Follows REQ-PiSensor-005 as amended by the human ruling of 2026-11-20 (`docs/ledger.md`): a capture stores its
 product whether or not a sensor answers, with that sensor's metrics as placeholders marked not valid. Interface
@@ -136,7 +136,9 @@ No bound of a requirement changed. The plan has 12 tests.
 6. Unchanged: both planted faults and their `fails` lists, the coverage minimum, every GPS period and
    plausibility check, `event piCamera.CaptureFailed count == 0`.
 
-Review of 2026-11-20 (Mode B, one round), all taken: a flag byte is 0xFF for true and 0x00 for false as F Prime
+Review of 2026-11-20 (Mode B, one round, of `7a83d34`): not accepted on one must-fix (the flag bytes), logic
+otherwise sound. The must-fix and the four could-fix items were edited in `466c827`; the edit was read by the
+project anchor and not reviewed again. All taken: a flag byte is 0xFF for true and 0x00 for false as F Prime
 writes a `bool` (`FW_SERIALIZE_TRUE_VALUE`), any other value is refused; a metric marked valid needs its telemetry
 sample (0.1 s: the sensors sample once a second, and the component and the channel are stamped apart); the
 unavailable event is judged at the capture time; wrong-record cases for each metric group. The frame count
