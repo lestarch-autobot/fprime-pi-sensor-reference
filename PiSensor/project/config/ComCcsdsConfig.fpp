@@ -32,9 +32,12 @@ module ComCcsdsConfig {
     }
 
     module QueuePriorities {
-        constant events      = 0                 
-        constant tlm         = 2                 
-        constant file        = 1                   
+        # PiSensor: 0 is served first (Svc.ComQueue). Telemetry goes before file data so that a
+        # CFDP downlink does not hold the sensor telemetry back (REQ-PiSensor-012); the file
+        # source is limited to the link share left by docs/link-budget.md.
+        constant events      = 0
+        constant tlm         = 1
+        constant file        = 2
     }
 
     # Aggregator configuration constants

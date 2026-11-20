@@ -53,7 +53,11 @@ module DataProductsConfig {
 
     # Directory and file paths
     module Paths {
-        constant dpDir    = "./DpCat"
-        constant dpState  = "./DpCat/DpState.dat"
+        # PiSensor: a product path is a command argument (fileManager.CalculateCrc and the
+        # like), and a command string holds FW_CMD_STRING_MAX_SIZE (40) characters. With
+        # this directory "dp/Dp_<id>_<seconds>_<microseconds>.fdp" is 39 characters
+        # (8-digit id, 10-digit seconds); with the catalog value "./DpCat" it is 44.
+        constant dpDir    = "dp"
+        constant dpState  = "dp/DpState.dat"
     }
 }

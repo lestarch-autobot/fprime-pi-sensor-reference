@@ -35,6 +35,8 @@ module PiSensor {
     param connections instance FileHandlingCfdp.prmDb
     time connections instance posixTime
 
+    include "PiSensorPackets.fppi"
+
     connections RateGroups {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
 
