@@ -33,8 +33,12 @@ DEFAULTS = {"capture_fails": False, "clock_offset": 0.1, "drop_frame": False, "c
             "telemetry_gap": False, "small_picture": False, "extra_socket": False, "slow_capture": False,
             "stale_sample": False, "tcp_frames": False, "fatal": False, "keep_ignored": False, "fast_downlink": False, "resend": False, "wrong_time": False,
             # GPS without a fix (REQ-PiSensor-005 placeholders) and the wrong records around it
+            # each of the others names a metric group (temperature, location, attitude) or is False
             "gps_silent": False, "false_invalid": False, "no_warning": False, "bad_placeholder": False,
-            "placeholder_time": False, "stray_warning": False}
+            "placeholder_time": False, "stray_warning": False, "valid_absent": False, "flag_one": False}
+GROUP = {"temperature": ("Bmp/", "Temperature unavailable: SENSOR_NO_DATA code 0; temperature stored as NaN"),
+         "location": ("Gps/", "Location unavailable: SENSOR_NO_DATA code 0; latitude and longitude stored as NaN"),
+         "attitude": ("MpuImu/", "Attitude unavailable: SENSOR_NO_DATA code 0; roll and pitch stored as NaN")}
 
 
 def jpeg(seed: int, size=(640, 480)) -> bytes:
@@ -49,15 +53,18 @@ def _time(t: float) -> bytes:
     return struct.pack(">HBII", 2, 0, int(t), int(round((t - int(t)) * 1e6)))
 
 
-def product(t: float, sample_t: float, acc: dict, temperature: float, picture: bytes, location=None) -> bytes:
+def product(t: float, sample_t: float, acc: dict, temperature: float, picture: bytes, lacking=None, true=0xFF) -> bytes:
     """A `Capture` container as Fw::DpContainer writes it (see stimulus/pisensor_record.decode_product)."""
     import math
     roll = math.degrees(math.atan2(acc["y"], acc["z"]))
     pitch = math.degrees(math.atan2(-acc["x"], math.sqrt(acc["y"] ** 2 + acc["z"] ** 2)))
-    lat, lon, loc_t, loc_valid = location or (LAT, LON, sample_t, True)
-    metrics = (_time(t) + struct.pack(">dd", lat, lon) + _time(loc_t) + bytes([1 if loc_valid else 0])
-               + struct.pack(">ff", roll, pitch) + _time(sample_t) + bytes([1])
-               + struct.pack(">f", temperature) + _time(sample_t) + bytes([1]))
+    # lacking: {group: (values kept finite, sample time)} for the groups stored as marked not valid
+    lacking, nan = lacking or {}, float("nan")
+    val = lambda g, v: v if g not in lacking or lacking[g][0] else nan
+    tail = lambda g: _time(lacking[g][1] if g in lacking else sample_t) + bytes([0 if g in lacking else true])
+    metrics = (_time(t) + struct.pack(">dd", val("location", LAT), val("location", LON)) + tail("location")
+               + struct.pack(">ff", val("attitude", roll), val("attitude", pitch)) + tail("attitude")
+               + struct.pack(">f", val("temperature", temperature)) + tail("temperature"))
     body = struct.pack(">I", 0x10008000) + metrics + struct.pack(">IQ", 0x10008001, len(picture)) + picture
     head = struct.pack(">HII", 5, 0x10008000, 0) + _time(t) + bytes([0]) + bytes(32) + bytes([0]) + struct.pack(">Q", len(body))
     crc = lambda b: struct.pack(">I", zlib.crc32(b) & 0xFFFFFFFF)
@@ -70,7 +77,9 @@ def iso(t: float) -> str:
 
 def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
     k = dict(DEFAULTS, **(knobs or {}))
-    silent = k["gps_silent"] or k["no_warning"] or k["bad_placeholder"] or k["placeholder_time"]  # no gpsManager.Reading at all
+    # groups whose sensor gives no sample: the GPS over the whole run (no fix), the others in the 3 s up to each capture
+    quiet = {k[x] for x in ("no_warning", "bad_placeholder", "placeholder_time") if k[x]} | ({"location"} if k["gps_silent"] else set())
+    captured = []
     raw = Path(raw_dir)
     for d in ("cmd", "fprime-cli-yamcs", "files", "actions"):
         (raw / d).mkdir(parents=True, exist_ok=True)
@@ -145,15 +154,14 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
                 took = 35.0 if k["slow_capture"] else 1.5
                 tc = t + 0.4 - (10.0 if k["wrong_time"] else 0.0)
                 sample_t = tc - (5.0 if k["stale_sample"] else 0.0) - (tc % 1.0)
-                location = None
-                if silent or k["false_invalid"]:  # latitude and longitude stored as placeholders
-                    nan = float("nan")
-                    location = ((LAT, LON) if k["bad_placeholder"] else (nan, nan)) + ((sample_t if k["placeholder_time"] else 0.0), False)
-                if (location and not k["no_warning"]) or k["stray_warning"]:
-                    ev(t + 0.45, "PiSensor.piCamera.LocationUnavailable", "WARNING_LO",
-                       "Location unavailable: SENSOR_NO_DATA code 0; latitude and longitude stored as NaN")
-                data = product(tc, sample_t, acc(tc), temp(tc),
-                               jpeg(state["n"], (320, 240) if k["small_picture"] else (640, 480)), location)
+                captured.append(tc)
+                lacking = {g: (g == k["bad_placeholder"], sample_t if g == k["placeholder_time"] else 0.0)
+                           for g in GROUP if g in quiet or g == k["false_invalid"]}  # stored as placeholders
+                for g in GROUP:  # the order piCamera sends them in
+                    if (g in lacking and g != k["no_warning"]) or g == k["stray_warning"]:
+                        ev(t + 0.45, f"PiSensor.piCamera.{g.capitalize()}Unavailable", "WARNING_LO", GROUP[g][1])
+                data = product(tc, sample_t, acc(tc), temp(tc), jpeg(state["n"], (320, 240) if k["small_picture"] else (640, 480)),
+                               lacking, 0x01 if k["flag_one"] else 0xFF)
                 fname = f"dp/Dp_{0x10008000:08d}_{int(tc):08d}_{int((tc % 1) * 1e6):08d}.fdp"
                 stored[fname] = data
                 made.append(fname)
@@ -219,7 +227,9 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
                             ("Bmp/bmpManager/Reading", {"pressure": 101.3, "temperature": temp(tsec), "altitude": 350.0}),
                             ("Gps/gpsManager/Reading", {"latitude": LAT, "longitude": LON, "altitude": 350.0}),
                             ("Radio/rfm69Manager/PacketsTransmitted", sent_frames), ("Radio/rfm69Manager/PacketsReceived", int(tsec - T0))):
-                if silent and nm.startswith("Gps/"):
+                if k["gps_silent"] and nm.startswith("Gps/"):
+                    continue
+                if any(nm.startswith(GROUP[g][0]) and any(tc - 3.0 <= tsec <= tc + 1.0 for tc in captured) for g in quiet - ({"location"} if k["gps_silent"] else set()) | ({k["valid_absent"]} if k["valid_absent"] else set())):
                     continue
                 ch.append({"name": ROOT + nm, "generationTime": iso(tsec + 1.0), "receptionTime": iso(tsec + 0.3), "value": val})
         tsec += 1.0

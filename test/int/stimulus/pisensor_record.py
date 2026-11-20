@@ -141,9 +141,15 @@ def value(row):
 
 
 # ---------------------------------------------------------------- stimulus: names the UUT chose
-def sampled(channel, t, span_s):
-    """Unit times of the samples of `channel` in the whole record that lie in the span_s up to unit time t."""
-    return [r["fsw"] for r in exported()["channels"] if r["name"].endswith("." + channel) and t - span_s <= r["fsw"] <= t]
+def sampled(channel, t, span_s, after_s=0.0):
+    """Unit times of the samples of `channel` in the whole record from span_s before unit time t to after_s after it."""
+    return [r["fsw"] for r in exported()["channels"] if r["name"].endswith("." + channel) and t - span_s <= r["fsw"] <= t + after_s]
+
+
+def name_time(name):
+    """Time tag in a product file name (`Dp_<id>_<seconds>_<microseconds>.fdp`): the capture time."""
+    m = re.search(r"_(\d+)_(\d+)\.fdp", name)
+    return int(m.group(1)) + int(m.group(2)) / 1e6 if m else None
 
 
 def products(start_id, count):
@@ -214,6 +220,12 @@ def _time(buf, off):
     return {"base": base, "t": sec + usec / 1e6}
 
 
+def _flag(byte, name):
+    """F Prime writes a bool as one byte: FW_SERIALIZE_TRUE_VALUE 0xFF, FW_SERIALIZE_FALSE_VALUE 0x00."""
+    assert byte in (0x00, 0xFF), f"{name} is 0x{byte:02X}, neither 0xFF (true) nor 0x00 (false)"
+    return byte == 0xFF
+
+
 def decode_product(data, size_len=8):
     """Parse one `Capture` container; AssertionError (with the reason) when it is not one.
 
@@ -238,22 +250,19 @@ def decode_product(data, size_len=8):
     off += 16
     m["locationTime"] = _time(body, off)
     off += TIME_SIZE
-    assert body[off] in (0, 1), f"locationValid is {body[off]}, not a bool"
-    m["locationValid"] = body[off] == 1
+    m["locationValid"] = _flag(body[off], "locationValid")
     off += 1
     m["roll"], m["pitch"] = struct.unpack_from(">ff", body, off)
     off += 8
     m["attitudeTime"] = _time(body, off)
     off += TIME_SIZE
-    assert body[off] in (0, 1), f"attitudeValid is {body[off]}, not a bool"
-    m["attitudeValid"] = body[off] == 1
+    m["attitudeValid"] = _flag(body[off], "attitudeValid")
     off += 1
     m["temperature"] = struct.unpack_from(">f", body, off)[0]
     off += 4
     m["temperatureTime"] = _time(body, off)
     off += TIME_SIZE
-    assert body[off] in (0, 1), f"temperatureValid is {body[off]}, not a bool"
-    m["temperatureValid"] = body[off] == 1
+    m["temperatureValid"] = _flag(body[off], "temperatureValid")
     off += 1
     ids = [struct.unpack_from(">I", body, 0)[0], struct.unpack_from(">I", body, off)[0]]
     n = int.from_bytes(body[off + 4:off + 4 + size_len], "big")

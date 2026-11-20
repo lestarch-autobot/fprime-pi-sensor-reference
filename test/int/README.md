@@ -110,8 +110,9 @@ No bound of a requirement changed. The plan has 12 tests.
 1. Product validity, in L2-3, L2-4, L2-5 and L7-1.
    Old: `roll and pitch of each ground file are marked valid`.
    New: `each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose
-   sensor was silent`. For temperature, latitude and longitude, roll and pitch: marked valid, the values are
-   finite; marked not valid, the values are NaN, the sample time is zero, and the record holds no telemetry
+   sensor was silent`. For temperature, latitude and longitude, roll and pitch: marked valid (flag byte
+   0xFF), the values are finite and the record holds a telemetry sample of that sensor within 0.1 s of the stated
+   sample time; marked not valid (flag byte 0x00), the values are NaN, the sample time is zero, and the record holds no telemetry
    sample of that sensor (`bmpManager.Reading`, `gpsManager.Reading`, `imuManager.Reading`) with a unit time in
    the 2 s up to the capture time record; in the window, the events of that sensor are as many as the ground
    files with that metric not valid. The samples are taken from the whole record, not only the window.
@@ -122,7 +123,8 @@ No bound of a requirement changed. The plan has 12 tests.
    of the product ...`, `roll and pitch of the product ...`). A metric marked not valid is not compared; check 1
    judges it. Before, every metric was compared.
 4. New in every window of every test: `each piCamera event that reports a sensor unavailable has no telemetry
-   sample of that sensor in the 2 s before it`. The plan had no precondition on warning events (only `severity
+   sample of that sensor in the 2 s before its capture`. The capture time is the time in the name of the product
+   written next in the window; the event time where none follows. The plan had no precondition on warning events (only `severity
    FATAL count == 0` and `event piCamera.CaptureFailed count == 0`, both unchanged), so the events trip nothing
    when the sensor is silent, and this check fails when it was answering.
 5. GPS during a downlink. Old: `for gpsManager.Reading in D: samples >= 3, and the largest gap ... <= 10 s` in
@@ -134,11 +136,20 @@ No bound of a requirement changed. The plan has 12 tests.
 6. Unchanged: both planted faults and their `fails` lists, the coverage minimum, every GPS period and
    plausibility check, `event piCamera.CaptureFailed count == 0`.
 
+Review of 2026-11-20 (Mode B, one round), all taken: a flag byte is 0xFF for true and 0x00 for false as F Prime
+writes a `bool` (`FW_SERIALIZE_TRUE_VALUE`), any other value is refused; a metric marked valid needs its telemetry
+sample (0.1 s: the sensors sample once a second, and the component and the channel are stamped apart); the
+unavailable event is judged at the capture time; wrong-record cases for each metric group. The frame count
+precondition was already in every window, so none was added; what it does not cover is in the plan's not-covered
+list, with the other limits of this revision.
+
 Known-answer cases (`kat/run_kat.py`, list `BROKEN` and the `gps_silent` replay; records made by `kat/sim.py`):
-GPS silent with placeholders and the event (only L2-1, L2-2 and L2-9 fail); marked valid with a sample 5 s old
-(`stale_sample`); marked not valid while the GPS answers (`false_invalid`); placeholder without the event
-(`no_warning`); marked not valid with values that are not NaN (`bad_placeholder`); marked not valid with a sample
-time (`placeholder_time`); the event with a product marked valid (`stray_warning`).
+GPS silent over the run with placeholders and the event (only L2-1, L2-2 and L2-9 fail); marked valid with a
+sample 5 s old (`stale_sample`); a flag byte of 0x01 (`flag_one`); for each of location, temperature and attitude:
+marked not valid while the sensor answers (`false_invalid`), placeholder without the event (`no_warning`), marked
+valid without a telemetry sample at the sample time (`valid_absent`); for location also values that are not NaN
+(`bad_placeholder`), a sample time that is not zero (`placeholder_time`), the event with a product marked valid
+(`stray_warning`).
 
 ## Settled at the bench (2026-11-19)
 

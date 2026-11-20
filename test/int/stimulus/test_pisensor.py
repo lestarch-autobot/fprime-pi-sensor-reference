@@ -37,7 +37,7 @@ def absent(check):
     """The plan's ABS block."""
     check("event piCamera.CaptureFailed count == 0")
     check("severity FATAL count == 0", lambda h: (not [e for e in h.window.ev if e.severity == "FATAL"], "FATAL events in the window"))
-    check("each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it", unavailable_silent)
+    check("each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before its capture", unavailable_silent)
 
 
 def metrics(w, plan, test_id, check, require):
@@ -177,11 +177,13 @@ def imu_plausible(h):
 
 
 SILENT_S = 2.0  # REQ-PiSensor-014: a reading older than this is not stored
+SAMPLE_MATCH_S = 0.1  # a metric marked valid has a telemetry sample this close to its sample time (sensors sample once a second)
 
 
 def metrics_valid_or_silent(h):
     """REQ-PiSensor-005, for every ground file of the window and each metric group (temperature; latitude and
-    longitude; roll and pitch). Marked valid: the values are finite. Marked not valid: the values are NaN, the
+    longitude; roll and pitch). Marked valid: the values are finite and the record holds a telemetry sample of
+    that sensor within 0.1 s of the stated sample time. Marked not valid: the values are NaN, the
     sample time is zero, and the record holds no telemetry sample of that sensor with a unit time in the 2 s up
     to the capture time record. In the window, the events piCamera sends for a group stored as placeholders are
     as many as the ground files with that group not valid."""
@@ -195,6 +197,8 @@ def metrics_valid_or_silent(h):
             if m[flag]:
                 if not all(math.isfinite(v) for v in values):
                     bad.append(f"{n}: {group} marked valid, values {values}")
+                if not rec.sampled(channel, m[tkey]["t"], SAMPLE_MATCH_S, SAMPLE_MATCH_S):
+                    bad.append(f"{n}: {group} marked valid, no {channel} sample within {SAMPLE_MATCH_S:g} s of its sample time {m[tkey]['t']:.3f}")
                 continue
             lacking[group] += 1
             if not all(math.isnan(v) for v in values):
@@ -213,14 +217,17 @@ def metrics_valid_or_silent(h):
 
 def unavailable_silent(h):
     """Each piCamera event that reports a sensor unavailable: no telemetry sample of that sensor in the record
-    with a unit time in the 2 s up to the event."""
+    with a unit time in the 2 s up to the capture time, which is the time in the name of the product written
+    next in the window (the event itself follows the capture); the event time where no product follows."""
     bad, n = [], 0
+    written = [(e.fsw, rec.name_time(e.text)) for e in h.window.ev if e.short == "dpWriter.FileWritten"]
     for _, _, _, _, channel, event in rec.GROUPS:
         for e in (e for e in h.window.ev if e.short == event):
             n += 1
-            fresh = rec.sampled(channel, e.fsw, SILENT_S)
+            at = next((t for fsw, t in written if fsw >= e.fsw and t is not None and t <= e.fsw), e.fsw)
+            fresh = rec.sampled(channel, at, SILENT_S)
             if fresh:
-                bad.append(f"{event} at {e.fsw:.3f}: {len(fresh)} {channel} sample(s) in the {SILENT_S:g} s before it")
+                bad.append(f"{event} at {e.fsw:.3f} (capture {at:.3f}): {len(fresh)} {channel} sample(s) in the {SILENT_S:g} s before the capture")
     return not bad, f"{n} event(s); sensor answering at: {bad or 'none'}"
 
 

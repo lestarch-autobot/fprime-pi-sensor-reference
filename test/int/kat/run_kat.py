@@ -47,15 +47,25 @@ BROKEN = [
     ("keep_ignored", True, "L7-1", "the directory listing names P only"),
     ("resend", True, "L7-1", "no CFDP transaction starts after the second START_XMIT_CATALOG"),
     ("fast_downlink", True, "L2-7", "CFDP transaction duration in D >= 30 s"),
-    # REQ-PiSensor-005 placeholders: the wrong records
+    # REQ-PiSensor-005 placeholders: the wrong records, per metric group
     ("stale_sample", True, "L2-3", "sample time"),  # marked valid, sample 5 s before the capture
-    ("false_invalid", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid while the GPS answers
-    ("false_invalid", True, "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it"),
-    ("no_warning", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # placeholder, GPS silent, no LocationUnavailable event
-    ("bad_placeholder", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, values not NaN
-    ("placeholder_time", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, sample time not zero
-    ("stray_warning", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # LocationUnavailable event, product marked valid
-    ("stray_warning", True, "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it"),
+    ("flag_one", True, "L2-3", "neither 0xFF (true) nor 0x00 (false)"),  # a flag byte of 0x01
+    ("false_invalid", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid while the sensor answers
+    ("false_invalid", "location", "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before its capture"),
+    ("no_warning", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # placeholder, sensor silent, no event
+    ("valid_absent", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked valid, no telemetry sample at its sample time
+    ("false_invalid", "temperature", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid while the sensor answers
+    ("false_invalid", "temperature", "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before its capture"),
+    ("no_warning", "temperature", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # placeholder, sensor silent, no event
+    ("valid_absent", "temperature", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked valid, no telemetry sample at its sample time
+    ("false_invalid", "attitude", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid while the sensor answers
+    ("false_invalid", "attitude", "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before its capture"),
+    ("no_warning", "attitude", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # placeholder, sensor silent, no event
+    ("valid_absent", "attitude", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked valid, no telemetry sample at its sample time
+    ("bad_placeholder", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, values not NaN
+    ("placeholder_time", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, sample time not zero
+    ("stray_warning", "location", "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # the event, product marked valid
+    ("stray_warning", "location", "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before its capture"),
 ]
 NO_FIX = ("L2-1", "L2-2", "L2-9")  # the tests that judge gpsManager.Reading (REQ-PiSensor-003, GPS item of -012)
 
@@ -166,9 +176,9 @@ def main() -> int:
         done = {}
         for knob, value, test_id, needle in BROKEN:
             if (knob, value) not in done:
-                done[(knob, value)] = replay(commands, {knob: value}, tmp, f"{knob}")
+                done[(knob, value)] = replay(commands, {knob: value}, tmp, f"{knob}-{value}")
             text = done[(knob, value)][test_id]
-            answer(f"broken ({knob}): {test_id} does not pass, naming `{needle}`", needle in text, text[:600])
+            answer(f"broken ({knob}={value}): {test_id} does not pass, naming `{needle}`", needle in text, text[:600])
         for fault, test_id, cmds, fails in planted(commands):
             text = replay(cmds, {}, tmp, f"{fault}-{test_id}")[test_id]
             failed = sorted(re.findall(r"check failed: (.*?) — seen", text))
