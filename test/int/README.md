@@ -113,3 +113,14 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
   refuses other Python there: the plan, its menu and `planted_faults.py` moved from `test/int/` to
   `test/int/stimulus/` (content unchanged by the move). `fth run` passes no partial selection to pytest, so
   L0 is the first two tests of a full run.
+- The recorder logs the channels of the dictionary only. YAMCS also publishes packet fields
+  (`CCSDS_Packet_*`, `FPrimeTime`, `FPrimeFilePacket*`) whose generation time is no unit time; with them in
+  the record fth reads a restart and its windows hold no channel row.
+- YAMCS takes a bool argument as `True` or `False`. Parameter commands are in the dictionary with an
+  upper-case name (`FILEINDEFAULTKEEP_PRM_SET`); `yamcs_bench.py send` matches them without case and logs
+  the name as the plan writes it.
+- `final_state` accepts an empty product directory.
+- Link findings of the first live runs (flight configuration, not harness; numbers in `docs/ledger.md`):
+  a command frame above 67 bytes does not arrive whole, so `fileManager.CalculateCrc` of a product path
+  (44 characters) ends in `FORMAT_ERROR`; a picture downlink does not complete; one telemetry sample was lost
+  on board in the second run; telemetry stops for minutes while a file is sent.
