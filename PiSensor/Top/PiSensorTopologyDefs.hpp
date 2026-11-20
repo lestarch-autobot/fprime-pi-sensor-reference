@@ -32,6 +32,9 @@ enum { WARN = 3, FATAL = 5 };
 namespace PiSensor_rateGroup1Hz {
 enum { WARN = 3, FATAL = 5 };
 }
+namespace PiSensor_rateGroup1HzFlush {
+enum { WARN = 3, FATAL = 5 };
+}
 // The component thread does not answer during a capture (at most 15 s)
 namespace PiSensor_piCamera {
 enum { WARN = 20, FATAL = 30 };

@@ -74,6 +74,8 @@ telemetry packets PiSensorPackets {
     rateGroup10Hz.RgCycleSlips
     rateGroup1Hz.RgMaxTime
     rateGroup1Hz.RgCycleSlips
+    rateGroup1HzFlush.RgMaxTime
+    rateGroup1HzFlush.RgCycleSlips
     Rfm69.spiDriver.SPI_Bytes
     Bmp280.bmpDriver.SPI_Bytes
     NmeaGps.bufferManager.TotalBuffs

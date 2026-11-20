@@ -24,6 +24,12 @@ module PiSensor {
     stack size Default.STACK_SIZE \
     priority 39
 
+  @ 1 Hz, 250 ms after rateGroup1Hz: sends the frame that holds the telemetry packets of that second
+  instance rateGroup1HzFlush: Svc.ActiveRateGroup base id 0x10007000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 39
+
   instance posixTime: Svc.PosixTime base id 0x10005000
 
   @ Holds a frame until the radio is free and sends it again when the radio refuses it

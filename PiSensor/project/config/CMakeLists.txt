@@ -2,6 +2,7 @@
 register_fprime_config(
     INTERFACE
     CONFIGURATION_OVERRIDES
+        "${CMAKE_CURRENT_LIST_DIR}/AcConstants.fpp"
         "${CMAKE_CURRENT_LIST_DIR}/CdhCoreTlmConfig.fpp"
         "${CMAKE_CURRENT_LIST_DIR}/CfdpCfg.fpp"
         "${CMAKE_CURRENT_LIST_DIR}/ComCcsdsConfig.fpp"
