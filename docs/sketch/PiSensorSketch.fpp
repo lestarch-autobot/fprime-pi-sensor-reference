@@ -25,6 +25,7 @@ module PiSensor {
   instance rateGroup1KHz: Svc.ActiveRateGroup base id 0x10002000 queue size 10 stack size 65536 priority 41
   instance rateGroup10Hz: Svc.ActiveRateGroup base id 0x10003000 queue size 10 stack size 65536 priority 40
   instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10004000 queue size 10 stack size 65536 priority 39
+  instance rateGroup1HzFlush: Svc.ActiveRateGroup base id 0x10007000 queue size 10 stack size 65536 priority 39
   instance posixTime: Svc.PosixTime base id 0x10005000
   instance comRetry: Svc.ComRetry base id 0x10006000
   instance piCamera: PiCamera base id 0x10008000 queue size 5 stack size 65536 priority 30
@@ -44,6 +45,7 @@ module PiSensor {
     instance rateGroup1KHz
     instance rateGroup10Hz
     instance rateGroup1Hz
+    instance rateGroup1HzFlush
     instance posixTime
     instance comRetry
     instance piCamera
@@ -61,12 +63,13 @@ module PiSensor {
       rateGroupDriver.CycleOut[0] -> rateGroup1KHz.CycleIn
       rateGroupDriver.CycleOut[1] -> rateGroup10Hz.CycleIn
       rateGroupDriver.CycleOut[2] -> rateGroup1Hz.CycleIn
+      rateGroupDriver.CycleOut[3] -> rateGroup1HzFlush.CycleIn
+      rateGroup1HzFlush.RateGroupMemberOut[0] -> ComCcsds.aggregator.timeout
       rateGroup1KHz.RateGroupMemberOut[0] -> Rfm69.rfm69Manager.run
       rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
-      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.aggregator.timeout
-      rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun
-      rateGroup10Hz.RateGroupMemberOut[3] -> Bmp280.bmpManager.run
-      rateGroup10Hz.RateGroupMemberOut[4] -> MpuImu.imuManager.run
+      rateGroup10Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.cmdDispRun
+      rateGroup10Hz.RateGroupMemberOut[2] -> Bmp280.bmpManager.run
+      rateGroup10Hz.RateGroupMemberOut[3] -> MpuImu.imuManager.run
       rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.Subtopology.tlmSendRun
       rateGroup1Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.healthRun
       rateGroup1Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.eventsRun
