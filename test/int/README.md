@@ -190,9 +190,10 @@ valid without a telemetry sample at the sample time (`valid_absent`); for locati
   the image> -o inputs/PrmDb.dat`. fth does not pin this file; its hash is in the report of a run.
 - The bench YAMCS configuration carries the CFDP timers of `docs/link-budget.md` (bench set-up, not in this
   repository).
-- A test waits 1200 s for each product it downlinks (and for one more where a planted capture can add one):
-  128 file bytes a second, pictures up to 90 kB (about 710 s), 127 kB measured at 938 s, lost PDUs sent again.
-  `wait_cfdp` waits 1200 s.
+- A test waits 600 s for each product it downlinks (and for one more where a planted capture can add one):
+  128 file bytes a second, pictures at JPEG quality 20 of 9.5 to 11.7 kB (75 to 95 s), design target 32 kB
+  (250 s), doubled for a busier scene and PDUs sent again, plus 100 s for the CFDP exchange.
+  `wait_cfdp` waits 600 s.
 - The wait at the end of a window stays, with a limit of 60 s instead of 900 s: telemetry is one to two seconds
   behind, and fth judges a window right after its END marker, so the samples of the last second would be missing.
 - Link counters (`rfm69Manager.PacketsTransmitted`, `PacketsReceived`) arrive every 5 s. The one check that

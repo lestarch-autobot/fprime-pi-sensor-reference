@@ -14,7 +14,7 @@
     "clock": "{python} {bench}/uut.py action clock --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
     "clean_products": "{python} {bench}/uut.py action clean_products --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
     "final_state": "{python} {bench}/uut.py action final_state --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
-    "wait_cfdp": "{python} {bench}/uut.py action wait_cfdp --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs} --timeout 1200",
+    "wait_cfdp": "{python} {bench}/uut.py action wait_cfdp --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs} --timeout 600",
     "bench_release": "{python} {adapter} stop"
   },
   "vars": {

@@ -313,10 +313,12 @@ def downlink(send, bench, wait_s=30):
     send("dpCat.START_XMIT_CATALOG", ["NO_WAIT", "false"])
 
 
-# Limit for one product on the link: 128 file bytes a second, pictures seen up to 90 kB (about 710 s), a
-# 127 kB product measured at 938 s; lost PDUs are sent again at one a second. A test waits this long for each
+# Limit for one product on the link. The link carries 128 file bytes a second (one CFDP file data PDU a
+# second). Pictures at JPEG quality 20 were 9.5 to 11.7 kB on the bench (about 75 to 95 s); the design target
+# is 32 kB (250 s). The limit is twice that for a busier scene and PDUs sent again, plus 100 s for the
+# metadata, EOF and Finished exchange: a product of up to 64 kB still fits. A test waits this long for each
 # product it stores, and one more where a planted capture can add one.
-PRODUCT_DOWNLINK_S = 1200
+PRODUCT_DOWNLINK_S = 600
 
 
 def downlinked(bench, products=1):
