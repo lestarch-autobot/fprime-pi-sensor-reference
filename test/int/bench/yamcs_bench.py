@@ -390,7 +390,8 @@ def main() -> None:
     p = sub.add_parser("send")
     p.add_argument("--dictionary", required=True); p.add_argument("--logs", required=True)
     p.add_argument("--resend", type=int, default=2, help="times a command not reported as dispatched is sent again")
-    p.add_argument("--dispatch-s", type=float, default=6.0, help="wait for the dispatch report before a resend")
+    # not a whole number of seconds: the unit sends a frame every second and hears nothing meanwhile
+    p.add_argument("--dispatch-s", type=float, default=6.4, help="wait for the dispatch report before a resend")
     p.add_argument("command"); p.add_argument("args", nargs="*")
     p.set_defaults(fn=cmd_send)
     args = parser.parse_args()

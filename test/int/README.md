@@ -140,3 +140,6 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
   behind, and fth judges a window right after its END marker, so the samples of the last second would be missing.
 - Link counters (`rfm69Manager.PacketsTransmitted`, `PacketsReceived`) arrive every 5 s. The one check that
   reads them needs two samples in a downlink window of minutes; unchanged.
+- A command is sent again 6.4 s after it was sent, not 6.0 s: the unit sends a telemetry frame every second and
+  hears nothing while it sends (half duplex), so a resend a whole number of seconds later meets the same frame.
+  Seen on the first run: three sends of one marker command at the start of the unit's frame, none received.
