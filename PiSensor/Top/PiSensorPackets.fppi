@@ -3,24 +3,26 @@
 # (PiSensor/project/config/TlmPacketizerCfg.fpp); a packet is sent only when one of its
 # channels was written since it was last sent. The sizes and rates are budgeted in
 # docs/link-budget.md.
+# Svc.TlmPacketizer sends the packets of a cycle in the order of their names: the group prefix
+# keeps the sensor packets at the head of the frame, ahead of a large housekeeping packet.
 telemetry packets PiSensorPackets {
 
   # Group 0, every 1 Hz cycle. One packet per sensor, so that a sensor that stops producing
   # readings stops being downlinked instead of riding along with the others.
-  packet Bmp id 1 group 0 {
+  packet G0Bmp id 1 group 0 {
     Bmp280.bmpManager.Reading
   }
 
-  packet Imu id 2 group 0 {
+  packet G0Imu id 2 group 0 {
     MpuImu.imuManager.Reading
   }
 
-  packet Gps id 3 group 0 {
+  packet G0Gps id 3 group 0 {
     NmeaGps.gpsManager.Reading
   }
 
   # Group 1, at most once every 5 s: radio link, command and product counters
-  packet Link id 4 group 1 {
+  packet G1Link id 4 group 1 {
     Rfm69.rfm69Manager.PacketsTransmitted
     Rfm69.rfm69Manager.PacketsReceived
     Rfm69.rfm69Manager.RxCrcErrors
@@ -39,7 +41,7 @@ telemetry packets PiSensorPackets {
   }
 
   # Group 2, at most once every 30 s: housekeeping
-  packet Housekeeping id 5 group 2 {
+  packet G2Housekeeping id 5 group 2 {
     CdhCore.events.EventsDropped
     CdhCore.$health.PingLateWarnings
     ComCcsds.comQueue.comIngressDropped
@@ -88,11 +90,11 @@ telemetry packets PiSensorPackets {
   }
 
   # Group 3, at most once every 300 s: large or rarely changing items
-  packet CfdpChannels id 6 group 3 {
+  packet G3CfdpChannels id 6 group 3 {
     FileHandlingCfdp.cfdpManager.ChannelTelemetry
   }
 
-  packet CfdpParameters id 7 group 3 {
+  packet G3CfdpParameters id 7 group 3 {
     FileHandlingCfdp.cfdpManager.PRM_LOCAL_EID
     FileHandlingCfdp.cfdpManager.PRM_OUTGOING_FILE_CHUNK_SIZE
     FileHandlingCfdp.cfdpManager.PRM_RX_CRC_CALC_BYTES_PER_CYCLE
@@ -104,12 +106,12 @@ telemetry packets PiSensorPackets {
     FileHandlingCfdp.cfdpManager.PRM_FILE_IN_DEFAULT_PRIORITY
   }
 
-  packet TlmConfig id 9 group 3 {
+  packet G3TlmConfig id 9 group 3 {
     CdhCore.tlmSend.GroupConfigs
     CdhCore.tlmSend.SectionEnabled
   }
 
-  packet Versions id 8 group 3 {
+  packet G3Versions id 8 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
   }
