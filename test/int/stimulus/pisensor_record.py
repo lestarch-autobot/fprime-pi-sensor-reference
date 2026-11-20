@@ -20,7 +20,12 @@ MARK = re.compile(r"cmdDisp\.NoOpStringReceived,\d+,EventSeverity\.\w+,Received 
 WRITTEN = re.compile(r"dpWriter\.FileWritten,\d+,EventSeverity\.\w+,Wrote \d+ bytes to file (\S+)$")
 OPCODE = re.compile(r"Opcode (0x[0-9a-fA-F]+)")
 TIME_SIZE = 11  # Fw.TimeValue: time base U16, context U8, seconds U32, microseconds U32
-METRICS_SIZE = 4 * TIME_SIZE + 8 + 8 + 4 + 4 + 1 + 4
+METRICS_SIZE = 4 * TIME_SIZE + 8 + 8 + 1 + 4 + 4 + 1 + 4 + 1
+# Metric groups of a product (REQ-PiSensor-005): flag, values, sample time, telemetry channel of the sensor,
+# event piCamera sends when it stores the group as placeholders.
+GROUPS = (("temperature", "temperatureValid", ("temperature",), "temperatureTime", "bmpManager.Reading", "piCamera.TemperatureUnavailable"),
+          ("location", "locationValid", ("latitude", "longitude"), "locationTime", "gpsManager.Reading", "piCamera.LocationUnavailable"),
+          ("attitude", "attitudeValid", ("roll", "pitch"), "attitudeTime", "imuManager.Reading", "piCamera.AttitudeUnavailable"))
 _cache = {}
 
 
@@ -136,6 +141,11 @@ def value(row):
 
 
 # ---------------------------------------------------------------- stimulus: names the UUT chose
+def sampled(channel, t, span_s):
+    """Unit times of the samples of `channel` in the whole record that lie in the span_s up to unit time t."""
+    return [r["fsw"] for r in exported()["channels"] if r["name"].endswith("." + channel) and t - span_s <= r["fsw"] <= t]
+
+
 def products(start_id, count):
     """File names of the first `count` dpWriter.FileWritten events after the last marker `start_id`.
 
@@ -228,6 +238,9 @@ def decode_product(data, size_len=8):
     off += 16
     m["locationTime"] = _time(body, off)
     off += TIME_SIZE
+    assert body[off] in (0, 1), f"locationValid is {body[off]}, not a bool"
+    m["locationValid"] = body[off] == 1
+    off += 1
     m["roll"], m["pitch"] = struct.unpack_from(">ff", body, off)
     off += 8
     m["attitudeTime"] = _time(body, off)
@@ -239,6 +252,9 @@ def decode_product(data, size_len=8):
     off += 4
     m["temperatureTime"] = _time(body, off)
     off += TIME_SIZE
+    assert body[off] in (0, 1), f"temperatureValid is {body[off]}, not a bool"
+    m["temperatureValid"] = body[off] == 1
+    off += 1
     ids = [struct.unpack_from(">I", body, 0)[0], struct.unpack_from(">I", body, off)[0]]
     n = int.from_bytes(body[off + 4:off + 4 + size_len], "big")
     jpeg = body[off + 4 + size_len:]

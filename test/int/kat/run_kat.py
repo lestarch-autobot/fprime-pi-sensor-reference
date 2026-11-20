@@ -47,7 +47,17 @@ BROKEN = [
     ("keep_ignored", True, "L7-1", "the directory listing names P only"),
     ("resend", True, "L7-1", "no CFDP transaction starts after the second START_XMIT_CATALOG"),
     ("fast_downlink", True, "L2-7", "CFDP transaction duration in D >= 30 s"),
+    # REQ-PiSensor-005 placeholders: the wrong records
+    ("stale_sample", True, "L2-3", "sample time"),  # marked valid, sample 5 s before the capture
+    ("false_invalid", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid while the GPS answers
+    ("false_invalid", True, "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it"),
+    ("no_warning", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # placeholder, GPS silent, no LocationUnavailable event
+    ("bad_placeholder", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, values not NaN
+    ("placeholder_time", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # marked not valid, sample time not zero
+    ("stray_warning", True, "L2-3", "each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent"),  # LocationUnavailable event, product marked valid
+    ("stray_warning", True, "L2-6", "each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it"),
 ]
+NO_FIX = ("L2-1", "L2-2", "L2-9")  # the tests that judge gpsManager.Reading (REQ-PiSensor-003, GPS item of -012)
 
 
 def pytest(args, env=None):
@@ -147,6 +157,12 @@ def main() -> int:
         nominal = replay(commands, {}, tmp, "nominal")
         for test_id, text in sorted(nominal.items()):
             answer(f"healthy system: {test_id} passes", text == "", text[:600])
+        no_fix = replay(commands, {"gps_silent": True}, tmp, "gps_silent")
+        for test_id, text in sorted(no_fix.items()):
+            if test_id in NO_FIX:
+                answer(f"GPS without a fix: {test_id} fails, naming `for gpsManager.Reading in`", "for gpsManager.Reading in" in text, text[:600])
+            else:
+                answer(f"GPS without a fix, products with placeholders and the event: {test_id} passes", text == "", text[:600])
         done = {}
         for knob, value, test_id, needle in BROKEN:
             if (knob, value) not in done:

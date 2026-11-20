@@ -78,8 +78,8 @@ def product_time_within(ctx, tol_s):
 def product_sample_times_within(ctx, bound_s):
     """Each metric marked valid of each ground file carries a sample time within bound_s of the capture time record."""
     prods = _products(ctx.window)
-    worst = [max(abs(p["metrics"][k]["t"] - p["metrics"]["captureTime"]["t"]) for k in ("locationTime", "attitudeTime", "temperatureTime")
-                 if k != "attitudeTime" or p["metrics"]["attitudeValid"])  # REQ-PiSensor-014: metrics marked valid
+    worst = [max([abs(p["metrics"][tkey]["t"] - p["metrics"]["captureTime"]["t"])  # REQ-PiSensor-014: metrics marked valid
+                  for _, flag, _, tkey, _, _ in rec.GROUPS if p["metrics"][flag]], default=0.0)
              for p in prods]
     return bool(prods) and all(x <= bound_s for x in worst), "largest |sample - capture| per product: " + (", ".join(f"{x:.3f} s" for x in worst) or "no product"), [], False
 

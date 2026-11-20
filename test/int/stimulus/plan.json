@@ -206,7 +206,8 @@
   "- Open character devices allowed to the deployment process (device paths of the project configuration): the SPI devices of the RFM69 and the BMP280, the I2C bus of the MPU6050, the GPS UART, the camera devices, `/dev/null`, `/dev/urandom`.",
   "- The 2 in the frame count checks of L2-7 and L2-8 allows one frame in flight at each `PacketsTransmitted` snapshot.",
   "- Commands (revision 2): in every window, the commands sent, marker commands apart, equal the `cmdDisp.OpCodeDispatched` events of opcodes other than the marker's. The dispatch event of a marker carries the time of the marker event and can sort outside the window; a lost marker is judged by the marker precondition. The RFM69 uplink has no retransmission: the bench sender sends a command again, at most twice, when the unit does not report its dispatch within 6 s, and logs each resend in `record/raw/cmd/resend.log`; with r resends logged in the window the dispatch count may lie between the commands sent and that number plus r. A command dispatched twice still fails the count checks of its test.",
-  "- MPU6050 (revision 2, Captain's ruling of 2026-11-19 in `docs/ledger.md`): the sensor of this bench is silent. Nothing is substituted. The checks that need it are separate named checks and fail: the `imuManager.Reading` period and plausibility (REQ-PiSensor-002), roll and pitch marked valid (REQ-PiSensor-005), roll and pitch against the telemetry (L2-5). REQ-PiSensor-014 as amended bounds the sample time of the metrics marked valid.",
+  "- Missing sensor data (revision 3, human ruling of 2026-11-20 in `docs/ledger.md`, REQ-PiSensor-005 as amended): a capture stores its product whether or not a sensor answers. Nothing is substituted. A metric marked valid is judged as before (sample time within 2 s, REQ-PiSensor-014; agreement with the telemetry in L2-5). A metric marked not valid passes only as a NaN placeholder with a zero sample time, with the `piCamera` event of that sensor in the window, and with no telemetry sample of that sensor in the record in the 2 s up to the capture time record; a lost TM frame cannot fake that silence, since it makes the window unverified (Completeness). In every window, a `piCamera.TemperatureUnavailable`, `AttitudeUnavailable` or `LocationUnavailable` event is a failure when the record holds a telemetry sample of that sensor in the 2 s up to the event. These events are WARNING_LO and no precondition reads the warning severities.",
+  "- GPS without a fix (revision 3): the `gpsManager.Reading` period and plausibility checks are unchanged and fail. They are judged in L2-1 and L2-2 (REQ-PiSensor-003) and in L2-9 (the GPS item of REQ-PiSensor-012, moved there unchanged from window D of L2-7 and L2-8, which keep the BMP280 and MPU6050 items). No other test reads the GPS channel except through a product metric marked valid.",
   "- Telemetry period checks select the samples by ground reception time between the reception times of the two markers.",
   "- Every window ends with a wait, before its END marker, until a `bmpManager.Reading` sample with a unit time of that moment or later has reached the ground (at most 60 s): telemetry reaches the ground one to two seconds after it is sampled, and a window is judged right after its END marker. No bound of a requirement depends on this wait.",
   "- Out of scope: BMP280 pressure; yaw."
@@ -233,7 +234,8 @@
   "2. 2026-11-18 designer — product content is judged on the ground copy of the file; `fileManager.CalculateCrc` gives the on-board check and the bench `sha256sum` the independent final state.",
   "3. 2026-11-18 designer — planted faults insert commands of existing components only; a grown or altered product file is not usable as a fault because `Svc.DpCatalog` refuses it (size check).",
   "4. 2026-11-18 designer — every test makes its own product; no test depends on a product of another test.",
-  "5. 2026-11-19 harness builder, revision 2 — see the changelog in `test/int/README.md`: per-channel telemetry period metrics, Heartbeat on `bmpManager.Reading`, command count with marker commands apart and logged resends, clock action in the L0-1 procedure, IMU bounds stated in the units of the channel, roll and pitch validity as a check of its own."
+  "5. 2026-11-19 harness builder, revision 2 — see the changelog in `test/int/README.md`: per-channel telemetry period metrics, Heartbeat on `bmpManager.Reading`, command count with marker commands apart and logged resends, clock action in the L0-1 procedure, IMU bounds stated in the units of the channel, roll and pitch validity as a check of its own.",
+  "6. 2026-11-20 harness builder, revision 3 (REQ-PiSensor-005 as amended by the human ruling of 2026-11-20) — see the changelog in `test/int/README.md`: product metrics judged valid or not valid per sensor, the sensor-unavailable event check in every window, the GPS item of REQ-PiSensor-012 in its own test L2-9."
  ],
  "tests": [
   {
@@ -273,7 +275,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Version events equal the manifest describe strings; check: model starts with \"Raspberry Pi 5\", /etc/os-release VERSION_ID == 13 and VERSION_CODENAME == trixie (REQ-PiSensor-013), /etc/rpi-issue exists and names Raspberry Pi OS, LONG_BIT == 64; check: the process holds no TCP or UDP socket; check: character devices held by the process are a subset of the list in Scope; check: LibraryVersions names fprime-sensors only; check: the dictionary of the image holds no command of a test component."
+   "evidence": "Version events equal the manifest describe strings; check: model starts with \"Raspberry Pi 5\", /etc/os-release VERSION_ID == 13 and VERSION_CODENAME == trixie (REQ-PiSensor-013), /etc/rpi-issue exists and names Raspberry Pi OS, LONG_BIT == 64; check: the process holds no TCP or UDP socket; check: character devices held by the process are a subset of the list in Scope; check: LibraryVersions names fprime-sensors only; check: the dictionary of the image holds no command of a test component; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L0-2",
@@ -301,7 +303,7 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "Three NoOpStringReceived events in order, strings byte-exact; platform check as L0-1."
+   "evidence": "Three NoOpStringReceived events in order, strings byte-exact; platform check as L0-1; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-1",
@@ -313,7 +315,7 @@
     "REQ-PiSensor-003",
     "REQ-PiSensor-011"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(30)",
     "wait 60 s",
@@ -358,7 +360,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 0.82 and 1.22 g (8 to 12 m/s^2) and angular rate magnitude <= 28.6 deg/s (0.5 rad/s) (bench at rest; MPU6050 datasheet zero-rate offset 20 deg/s); gpsManager.Reading within 1 km of the bench position in the manifest."
+   "evidence": "Channel strips over 60 s; check: bmpManager.Reading temperature between -20 and 60 degC; imuManager.Reading acceleration magnitude between 0.82 and 1.22 g (8 to 12 m/s^2) and angular rate magnitude <= 28.6 deg/s (0.5 rad/s) (bench at rest; MPU6050 datasheet zero-rate offset 20 deg/s); gpsManager.Reading within 1 km of the bench position in the manifest; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-2",
@@ -370,7 +372,7 @@
     "REQ-PiSensor-003",
     "REQ-PiSensor-011"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(32)",
     "cmdDisp.CMD_NO_OP()",
@@ -422,7 +424,7 @@
    "knobs": [
     "extra_noop"
    ],
-   "evidence": "As L2-1; check: event cmdDisp.NoOpReceived count == 3."
+   "evidence": "As L2-1; check: event cmdDisp.NoOpReceived count == 3; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-3",
@@ -438,7 +440,7 @@
     "REQ-PiSensor-011",
     "REQ-PiSensor-014"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(40)",
     "piCamera.CAPTURE()",
@@ -487,7 +489,7 @@
    "knobs": [
     "capture_before_xmit"
    ],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: roll and pitch are marked valid (`attitudeValid`)."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: event dpWriter.FileWritten count == 1; check: exactly one file arrived; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid, the values are finite; marked not valid, the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-4",
@@ -502,7 +504,7 @@
     "REQ-PiSensor-009",
     "REQ-PiSensor-014"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(42)",
     "piCamera.CAPTURE()",
@@ -555,7 +557,7 @@
    "knobs": [
     "capture_before_xmit"
    ],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; picture records of P1 and P2 differ; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: roll and pitch are marked valid (`attitudeValid`)."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 with different names; capture time of P2 later than that of P1; picture records of P1 and P2 differ; check: exactly two files arrived; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid, the values are finite; marked not valid, the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-5",
@@ -567,7 +569,7 @@
     "REQ-PiSensor-014",
     "REQ-PiSensor-008"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(44)",
     "wait 10 s",
@@ -606,7 +608,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: every CFDP transaction in the window is class 2 and finished complete at the ground; check: exactly one file arrived; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: roll and pitch are marked valid (`attitudeValid`); check, for each metric: its sample time equals, or lies between, FSW time tags of that channel's samples in the window; where a window sample has the same FSW time the values are equal (roll and pitch within 0.1 deg of the bench computation); otherwise the value lies between the two samples that bracket the sample time, widened by 0.5 degC for temperature, 2 deg for roll and pitch, and 0.0001 deg for latitude and longitude."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: every CFDP transaction in the window is class 2 and finished complete at the ground; check: exactly one file arrived; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid, the values are finite; marked not valid, the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid; check, for each metric marked valid: its sample time equals, or lies between, FSW time tags of that channel's samples in the window; where a window sample has the same FSW time the values are equal (roll and pitch within 0.1 deg of the bench computation); otherwise the value lies between the two samples that bracket the sample time, widened by 0.5 degC for temperature, 2 deg for roll and pitch, and 0.0001 deg for latitude and longitude; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-6",
@@ -616,7 +618,7 @@
     "REQ-PiSensor-004",
     "REQ-PiSensor-007"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(46)",
     "piCamera.CAPTURE()",
@@ -648,7 +650,7 @@
    ],
    "rationale": [],
    "knobs": [],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 3; check: event dpWriter.FileWritten count == 3."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 3; check: event dpWriter.FileWritten count == 3; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-7",
@@ -661,7 +663,7 @@
     "REQ-PiSensor-010",
     "REQ-PiSensor-011"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(50)",
     "piCamera.CAPTURE()",
@@ -727,7 +729,7 @@
    "knobs": [
     "capture_before_xmit"
    ],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 2; check: event dpWriter.FileWritten count == 2 over the whole test (Q and D); check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: CRC of record/raw/files/<P1> and <P2>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; check: every CFDP transaction in the window is class 2 and finished complete at the ground; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-8",
@@ -737,7 +739,7 @@
     "REQ-PiSensor-012",
     "REQ-PiSensor-010"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(53)",
     "piCamera.CAPTURE()",
@@ -802,7 +804,7 @@
    "knobs": [
     "extra_noop"
    ],
-   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: every CFDP transaction in the window is class 2 and finished complete at the ground."
+   "evidence": "check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; check: every CFDP transaction in the window is class 2 and finished complete at the ground; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L2-9",
@@ -811,7 +813,7 @@
    "covers": [
     "REQ-PiSensor-012"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(56)",
     "piCamera.CAPTURE()",
@@ -862,7 +864,7 @@
     }
    ],
    "knobs": [],
-   "evidence": "check: event dpWriter.FileWritten count == 1 (in Q); check: exactly one file arrived."
+   "evidence": "check: event dpWriter.FileWritten count == 1 (in Q); check: exactly one file arrived; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   },
   {
    "id": "L7-1",
@@ -873,7 +875,7 @@
     "REQ-PiSensor-005",
     "REQ-PiSensor-008"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors answering, product directory empty.",
+   "setup": "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench ground radio to fprime-yamcs, all four sensors connected (a sensor that gives no reading is judged as REQ-PiSensor-005 states), product directory empty.",
    "procedure": [
     "MARK(60)",
     "cfdpManager.FileInDefaultKeep_PRM_SET(KEEP)",
@@ -901,7 +903,7 @@
    "metrics": [],
    "rationale": [],
    "knobs": [],
-   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check: roll and pitch are marked valid (`attitudeValid`); the directory listing names P only; check: no CFDP transaction starts after the second START_XMIT_CATALOG. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt."
+   "evidence": "check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P; checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid, the values are finite; marked not valid, the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid; the directory listing names P only; check: no CFDP transaction starts after the second START_XMIT_CATALOG. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt; check, in every window: each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it."
   }
  ]
 }

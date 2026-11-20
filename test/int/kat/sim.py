@@ -31,7 +31,10 @@ PLATFORM = ("MODEL=Raspberry Pi 5 Model B Rev 1.0\n--- os-release\nVERSION_ID=\"
 SOCKETS = "PID=4242\nEXE=/home/fprime/pisensor-campaign/sys/PiSensor\n--- sockets\n--- devices\n/dev/spidev0.0\n/dev/i2c-1\n/dev/ttyAMA0\n"
 DEFAULTS = {"capture_fails": False, "clock_offset": 0.1, "drop_frame": False, "corrupt_file": False, "class1": False,
             "telemetry_gap": False, "small_picture": False, "extra_socket": False, "slow_capture": False,
-            "stale_sample": False, "tcp_frames": False, "fatal": False, "keep_ignored": False, "fast_downlink": False, "resend": False, "wrong_time": False}
+            "stale_sample": False, "tcp_frames": False, "fatal": False, "keep_ignored": False, "fast_downlink": False, "resend": False, "wrong_time": False,
+            # GPS without a fix (REQ-PiSensor-005 placeholders) and the wrong records around it
+            "gps_silent": False, "false_invalid": False, "no_warning": False, "bad_placeholder": False,
+            "placeholder_time": False, "stray_warning": False}
 
 
 def jpeg(seed: int, size=(640, 480)) -> bytes:
@@ -46,13 +49,15 @@ def _time(t: float) -> bytes:
     return struct.pack(">HBII", 2, 0, int(t), int(round((t - int(t)) * 1e6)))
 
 
-def product(t: float, sample_t: float, acc: dict, temperature: float, picture: bytes) -> bytes:
+def product(t: float, sample_t: float, acc: dict, temperature: float, picture: bytes, location=None) -> bytes:
     """A `Capture` container as Fw::DpContainer writes it (see stimulus/pisensor_record.decode_product)."""
     import math
     roll = math.degrees(math.atan2(acc["y"], acc["z"]))
     pitch = math.degrees(math.atan2(-acc["x"], math.sqrt(acc["y"] ** 2 + acc["z"] ** 2)))
-    metrics = (_time(t) + struct.pack(">dd", LAT, LON) + _time(sample_t) + struct.pack(">ff", roll, pitch) + _time(sample_t) + bytes([1])
-               + struct.pack(">f", temperature) + _time(sample_t))
+    lat, lon, loc_t, loc_valid = location or (LAT, LON, sample_t, True)
+    metrics = (_time(t) + struct.pack(">dd", lat, lon) + _time(loc_t) + bytes([1 if loc_valid else 0])
+               + struct.pack(">ff", roll, pitch) + _time(sample_t) + bytes([1])
+               + struct.pack(">f", temperature) + _time(sample_t) + bytes([1]))
     body = struct.pack(">I", 0x10008000) + metrics + struct.pack(">IQ", 0x10008001, len(picture)) + picture
     head = struct.pack(">HII", 5, 0x10008000, 0) + _time(t) + bytes([0]) + bytes(32) + bytes([0]) + struct.pack(">Q", len(body))
     crc = lambda b: struct.pack(">I", zlib.crc32(b) & 0xFFFFFFFF)
@@ -65,6 +70,7 @@ def iso(t: float) -> str:
 
 def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
     k = dict(DEFAULTS, **(knobs or {}))
+    silent = k["gps_silent"] or k["no_warning"] or k["bad_placeholder"] or k["placeholder_time"]  # no gpsManager.Reading at all
     raw = Path(raw_dir)
     for d in ("cmd", "fprime-cli-yamcs", "files", "actions"):
         (raw / d).mkdir(parents=True, exist_ok=True)
@@ -138,8 +144,16 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
                 state["n"] += 1
                 took = 35.0 if k["slow_capture"] else 1.5
                 tc = t + 0.4 - (10.0 if k["wrong_time"] else 0.0)
-                data = product(tc, tc - (5.0 if k["stale_sample"] else 0.0) - (tc % 1.0), acc(tc), temp(tc),
-                               jpeg(state["n"], (320, 240) if k["small_picture"] else (640, 480)))
+                sample_t = tc - (5.0 if k["stale_sample"] else 0.0) - (tc % 1.0)
+                location = None
+                if silent or k["false_invalid"]:  # latitude and longitude stored as placeholders
+                    nan = float("nan")
+                    location = ((LAT, LON) if k["bad_placeholder"] else (nan, nan)) + ((sample_t if k["placeholder_time"] else 0.0), False)
+                if (location and not k["no_warning"]) or k["stray_warning"]:
+                    ev(t + 0.45, "PiSensor.piCamera.LocationUnavailable", "WARNING_LO",
+                       "Location unavailable: SENSOR_NO_DATA code 0; latitude and longitude stored as NaN")
+                data = product(tc, sample_t, acc(tc), temp(tc),
+                               jpeg(state["n"], (320, 240) if k["small_picture"] else (640, 480)), location)
                 fname = f"dp/Dp_{0x10008000:08d}_{int(tc):08d}_{int((tc % 1) * 1e6):08d}.fdp"
                 stored[fname] = data
                 made.append(fname)
@@ -205,6 +219,8 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
                             ("Bmp/bmpManager/Reading", {"pressure": 101.3, "temperature": temp(tsec), "altitude": 350.0}),
                             ("Gps/gpsManager/Reading", {"latitude": LAT, "longitude": LON, "altitude": 350.0}),
                             ("Radio/rfm69Manager/PacketsTransmitted", sent_frames), ("Radio/rfm69Manager/PacketsReceived", int(tsec - T0))):
+                if silent and nm.startswith("Gps/"):
+                    continue
                 ch.append({"name": ROOT + nm, "generationTime": iso(tsec + 1.0), "receptionTime": iso(tsec + 0.3), "value": val})
         tsec += 1.0
 

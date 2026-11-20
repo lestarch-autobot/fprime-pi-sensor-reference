@@ -7,7 +7,7 @@ deployment and there is no test component.
 
 | Path | What it is |
 |---|---|
-| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 2 (changelog below) |
+| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 3 (changelogs below) |
 | `stimulus/planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
 | `stimulus/test_pisensor.py` | the stimulus and the named checks, one function per plan test; the `--tests` directory |
 | `stimulus/pisensor_record.py` | record access for the checks: ground reception time, transfers, frames, product decoder |
@@ -98,6 +98,47 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
    (telemetry age, below); no bound changes.
 9. Scope, not-covered and decision log entries for the above. Not changed: tests, windows, commands, bounds,
    planted faults. The metrics of L2-7 and L2-8 still name window D in their text (fth gap 5).
+
+## Plan revision 3 (2026-11-20, harness builder; not yet reviewed)
+
+Follows REQ-PiSensor-005 as amended by the human ruling of 2026-11-20 (`docs/ledger.md`): a capture stores its
+product whether or not a sensor answers, with that sensor's metrics as placeholders marked not valid. Interface
+read from `comp/picam@89357e5` (`Components/PiCamera/PiCamera.fpp`): `locationValid` and `temperatureValid`
+beside `attitudeValid`; events `piCamera.TemperatureUnavailable`, `AttitudeUnavailable`, `LocationUnavailable`.
+No bound of a requirement changed. The plan has 12 tests.
+
+1. Product validity, in L2-3, L2-4, L2-5 and L7-1.
+   Old: `roll and pitch of each ground file are marked valid`.
+   New: `each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose
+   sensor was silent`. For temperature, latitude and longitude, roll and pitch: marked valid, the values are
+   finite; marked not valid, the values are NaN, the sample time is zero, and the record holds no telemetry
+   sample of that sensor (`bmpManager.Reading`, `gpsManager.Reading`, `imuManager.Reading`) with a unit time in
+   the 2 s up to the capture time record; in the window, the events of that sensor are as many as the ground
+   files with that metric not valid. The samples are taken from the whole record, not only the window.
+2. Sample times (REQ-PiSensor-014), in L2-3, L2-4 and L2-5. Text unchanged: `... |sample time - capture time
+   record| <= 2 s for each metric marked valid`. The helper now leaves out every metric marked not valid; before,
+   only roll and pitch could be left out.
+3. Agreement with the telemetry, in L2-5. Text of the two checks unchanged (`temperature, latitude and longitude
+   of the product ...`, `roll and pitch of the product ...`). A metric marked not valid is not compared; check 1
+   judges it. Before, every metric was compared.
+4. New in every window of every test: `each piCamera event that reports a sensor unavailable has no telemetry
+   sample of that sensor in the 2 s before it`. The plan had no precondition on warning events (only `severity
+   FATAL count == 0` and `event piCamera.CaptureFailed count == 0`, both unchanged), so the events trip nothing
+   when the sensor is silent, and this check fails when it was answering.
+5. GPS during a downlink. Old: `for gpsManager.Reading in D: samples >= 3, and the largest gap ... <= 10 s` in
+   window D of L2-7 and L2-8. New: the same metric, helper and bound in window D of the new test L2-9 (one
+   capture, one catalog downlink, REQ-PiSensor-012), with `event dpWriter.FileWritten count == 1`, `exactly one
+   file arrived` and the precondition `CFDP transaction duration in D >= 30 s`. L2-7 and L2-8 keep the
+   `bmpManager.Reading` and `imuManager.Reading` items. Without a fix the GPS checks fail in L2-1, L2-2
+   (REQ-PiSensor-003) and L2-9 only.
+6. Unchanged: both planted faults and their `fails` lists, the coverage minimum, every GPS period and
+   plausibility check, `event piCamera.CaptureFailed count == 0`.
+
+Known-answer cases (`kat/run_kat.py`, list `BROKEN` and the `gps_silent` replay; records made by `kat/sim.py`):
+GPS silent with placeholders and the event (only L2-1, L2-2 and L2-9 fail); marked valid with a sample 5 s old
+(`stale_sample`); marked not valid while the GPS answers (`false_invalid`); placeholder without the event
+(`no_warning`); marked not valid with values that are not NaN (`bad_placeholder`); marked not valid with a sample
+time (`placeholder_time`); the event with a product marked valid (`stray_warning`).
 
 ## Settled at the bench (2026-11-19)
 

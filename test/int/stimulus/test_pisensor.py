@@ -37,6 +37,7 @@ def absent(check):
     """The plan's ABS block."""
     check("event piCamera.CaptureFailed count == 0")
     check("severity FATAL count == 0", lambda h: (not [e for e in h.window.ev if e.severity == "FATAL"], "FATAL events in the window"))
+    check("each piCamera event that reports a sensor unavailable has no telemetry sample of that sensor in the 2 s before it", unavailable_silent)
 
 
 def metrics(w, plan, test_id, check, require):
@@ -175,12 +176,52 @@ def imu_plausible(h):
         f"acceleration {min(acc):.3f}..{max(acc):.3f} g, rate <= {max(rate):.2f} deg/s"
 
 
-def attitude_valid(h):
-    """Roll and pitch of every ground file of the window are marked valid (REQ-PiSensor-005)."""
+SILENT_S = 2.0  # REQ-PiSensor-014: a reading older than this is not stored
+
+
+def metrics_valid_or_silent(h):
+    """REQ-PiSensor-005, for every ground file of the window and each metric group (temperature; latitude and
+    longitude; roll and pitch). Marked valid: the values are finite. Marked not valid: the values are NaN, the
+    sample time is zero, and the record holds no telemetry sample of that sensor with a unit time in the 2 s up
+    to the capture time record. In the window, the events piCamera sends for a group stored as placeholders are
+    as many as the ground files with that group not valid."""
     files = rec.arrived(h.window)
     assert files, "no file arrived"
-    bad = [n for n, d in sorted(files.items()) if not rec.decode_product(d)["metrics"]["attitudeValid"]]
-    return not bad, f"{len(files)} product(s), roll and pitch not valid in: {bad or 'none'}"
+    bad, lacking = [], {g[0]: 0 for g in rec.GROUPS}
+    for n, d in sorted(files.items()):
+        m = rec.decode_product(d)["metrics"]
+        for group, flag, keys, tkey, channel, _ in rec.GROUPS:
+            values = [m[k] for k in keys]
+            if m[flag]:
+                if not all(math.isfinite(v) for v in values):
+                    bad.append(f"{n}: {group} marked valid, values {values}")
+                continue
+            lacking[group] += 1
+            if not all(math.isnan(v) for v in values):
+                bad.append(f"{n}: {group} marked not valid, values {values} are not NaN")
+            if m[tkey]["t"] != 0:
+                bad.append(f"{n}: {group} marked not valid, sample time {m[tkey]['t']:.3f} is not zero")
+            fresh = rec.sampled(channel, m["captureTime"]["t"], SILENT_S)
+            if fresh:
+                bad.append(f"{n}: {group} marked not valid, {len(fresh)} {channel} sample(s) in the {SILENT_S:g} s before the capture")
+    for group, _, _, _, _, event in rec.GROUPS:
+        seen = len([e for e in h.window.ev if e.short == event])
+        if seen != lacking[group]:
+            bad.append(f"{event}: {seen} event(s), {lacking[group]} product(s) with {group} not valid")
+    return not bad, f"{len(files)} product(s), not valid: {lacking}; wrong: {bad or 'none'}"
+
+
+def unavailable_silent(h):
+    """Each piCamera event that reports a sensor unavailable: no telemetry sample of that sensor in the record
+    with a unit time in the 2 s up to the event."""
+    bad, n = [], 0
+    for _, _, _, _, channel, event in rec.GROUPS:
+        for e in (e for e in h.window.ev if e.short == event):
+            n += 1
+            fresh = rec.sampled(channel, e.fsw, SILENT_S)
+            if fresh:
+                bad.append(f"{event} at {e.fsw:.3f}: {len(fresh)} {channel} sample(s) in the {SILENT_S:g} s before it")
+    return not bad, f"{n} event(s); sensor answering at: {bad or 'none'}"
 
 
 def _distance_km(lat1, lon1, lat2, lon2):
@@ -213,7 +254,12 @@ def metrics_match_telemetry(h, which):
              ("latitude", "locationTime", "gpsManager.Reading", lambda s: s["latitude"], 0.0001, 0.0),
              ("longitude", "locationTime", "gpsManager.Reading", lambda s: s["longitude"], 0.0001, 0.0))
     bad = []
+    flag = {c: f for _, f, _, _, c, _ in rec.GROUPS}
+    skipped = []
     for name, tkey, channel, get, widen, exact in (i for i in items if (i[2] == "imuManager.Reading") == (which == "attitude")):
+        if not m[flag[channel]]:  # a placeholder: judged by the validity check of this window
+            skipped.append(name)
+            continue
         rows, t = h.window.channel(channel), m[tkey]["t"]
         same = [r for r in rows if abs(r.fsw - t) < 0.001]  # the record keeps FSW time to the millisecond
         before, after = [r for r in rows if r.fsw <= t], [r for r in rows if r.fsw >= t]
@@ -226,7 +272,7 @@ def metrics_match_telemetry(h, which):
             good = False
         if not good:
             bad.append(name)
-    return not bad, f"metrics not matching the telemetry: {bad or 'none'}"
+    return not bad, f"metrics not matching the telemetry: {bad or 'none'}; marked not valid, not compared: {skipped or 'none'}"
 
 
 def settle(bench, limit_s=60):
@@ -354,7 +400,7 @@ def test_L2_3(window, send, bench, check, require, fth_plan):
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
-        check("roll and pitch of each ground file are marked valid", attitude_valid)
+        check("each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent", metrics_valid_or_silent)
         p = capture(send, bench, 40, 1)
         send("fileManager.CalculateCrc", [p])
         downlink(send, bench)
@@ -376,7 +422,7 @@ def test_L2_4(window, send, bench, check, require, fth_plan):
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
-        check("roll and pitch of each ground file are marked valid", attitude_valid)
+        check("each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent", metrics_valid_or_silent)
         p1 = capture(send, bench, 42, 1)
         bench.wait(5)
         p2 = capture(send, bench, 42, 2)
@@ -413,7 +459,7 @@ def test_L2_5(window, send, bench, check, require, fth_plan):
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         check("exactly one file arrived", files_arrived(1))
         check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
-        check("roll and pitch of each ground file are marked valid", attitude_valid)
+        check("each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent", metrics_valid_or_silent)
         check("temperature, latitude and longitude of the product equal, or lie between, the telemetry samples around their sample times",
               lambda h: metrics_match_telemetry(h, "other"))
         check("roll and pitch of the product equal, or lie between, the telemetry samples around their sample time",
@@ -532,7 +578,7 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
             check("event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1", completed(1))
             check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
             check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
-            check("roll and pitch of each ground file are marked valid", attitude_valid)
+            check("each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent", metrics_valid_or_silent)
             check("the directory listing names P only", listing_names_product)
             check("no CFDP transaction starts after the second START_XMIT_CATALOG", no_second_downlink)
             send("cfdpManager.FileInDefaultKeep_PRM_SET", ["KEEP"])
