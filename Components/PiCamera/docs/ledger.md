@@ -215,3 +215,17 @@ Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598
 - Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `206a68908c8b0c8ac3b5b41058e9b4e3ccfe84d4aa463367a7f1f720b734e512`.
 - `fth audit --unsealed --tests` of dry-1: ok, all 16 steps, the run-start marker step included.
 - No seed was requested and no run for record was made. The bench was not used after the coverage run.
+
+## Design change: capture without any sensor reading (2026-11-20)
+
+- Ruling of Michael Starch, 2026-11-20 10:51 PST, verbatim: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE". Passed on by the project: the GPS receiver has no fix and cannot be given sky, so every capture was refused at `LOCATION`. It is the authority for this change to the SDD.
+- Change: the rule of 2026-11-19 for the attitude now holds for the three readings. A missing, undecodable or stale temperature, acceleration or location reading does not fail a capture: its values are stored as NaN, its sample time as zero, its flag false (`temperatureValid`, `attitudeValid`, `locationValid`), and one warning is emitted per unavailable reading. The picture is always stored. REQ-PiCamera-026 is rewritten for the three readings; REQ-PiCamera-010 and 011 now define stale and missing; REQ-PiCamera-005, 008, 012 and 015 are reworded to match.
+- Record layout: `locationValid` follows `locationTime` and `temperatureValid` follows `temperatureTime`, so each flag sits with its values, as `attitudeValid` does. Members after `locationTime` move by one byte against the delivery of 2026-11-19.
+- Decision: sibling events `TemperatureUnavailable` and `LocationUnavailable` beside `AttitudeUnavailable`, not one general event, so the existing event keeps its name, identifier and text.
+- Decision: a reading that is present and fresh but invalid (non-finite temperature, latitude or longitude out of range, zero or non-finite acceleration) still fails with `METRIC_INVALID`. The rule is the same for the three readings, so the design is consistent; the ruling names missing data. `SENSOR_NO_DATA` and `SENSOR_STALE` remain in `FailReason` as warning reasons and no longer occur in `CaptureFailed`.
+- Unchanged: camera failures, `TOO_LARGE`, `NO_CONTAINER` and `BUSY` fail the capture. No sensor data is substituted anywhere.
+- System level: REQ-PiSensor-014 as written fails a capture for any stale metric; the exception is the project's to record.
+- Unit tests: 22 pass (`AttitudeUnavailable` became `ReadingUnavailable`; `StaleReading`, `MissingReading`, `FailureResponse`, `RecoveryAfterFailure`, `RandomSequences` adapted). Coverage: lines 99.3% (266 of 268), branches 84.8% (368 of 434), functions 94.1% (32 of 34).
+- Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
+- Bench plan: one check per sensor, `<sensor> warning agrees with the sensor telemetry`: the warning is expected when the window holds no sample of the sensor, no warning when samples are fresh before the start and the end of the capture, and nothing is judged between.
+- Review: none for this change; the project asked for speed and the change repeats the reviewed pattern of 2026-11-19 for two more readings.

@@ -7,8 +7,8 @@ Raspberry Pi 5. On a capture command it acquires one picture, encodes it as a
 JPEG, reads the latest temperature, acceleration and location readings with
 their sample times from the telemetry store, derives roll and pitch from the
 acceleration, and writes the picture and the metrics as one data product
-container. When the acceleration reading is missing or stale the container is
-still written, with roll and pitch marked as not valid. Storage and downlink of the container belong to the data product
+container. When a temperature, acceleration or location reading is missing or stale the container is
+still written, with the values of that reading marked as not valid. Storage and downlink of the container belong to the data product
 components it hands the container to.
 
 Camera: Raspberry Pi Camera Module 3 (Sony IMX708 sensor), which the camera
@@ -23,17 +23,17 @@ library reports as `imx708`. The component was built and run with libcamera
 | REQ-PiCamera-002 | Each stored picture shall be one JFIF file, SOI to EOI, `PICTURE_WIDTH` x `PICTURE_HEIGHT` pixels. | REQ-PiSensor-004 | Integration Test |
 | REQ-PiCamera-003 | The component shall use only Raspberry Pi OS packaged camera and JPEG libraries, not OpenCV. | REQ-PiSensor-004 | Inspection |
 | REQ-PiCamera-004 | Each successful capture shall send exactly one `Capture` container holding one `Picture` record and one `Metrics` record. | REQ-PiSensor-005 | Unit Test |
-| REQ-PiCamera-005 | The `Metrics` record shall hold the latitude, longitude and temperature of the latest Table 3 readings, unchanged. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-005 | The `Metrics` record shall hold the latitude, longitude and temperature of the latest Table 3 readings, unchanged, with `locationValid` and `temperatureValid` true, when the reading passes REQ-PiCamera-010 to 012. | REQ-PiSensor-005 | Unit Test |
 | REQ-PiCamera-006 | The `Metrics` record shall hold roll = atan2(ay, az) and pitch = atan2(-ax, sqrt(ay² + az²)) in degrees, within 0.01°, with ax, ay, az the x, y, z of the latest `MpuImu.ImuData.acceleration`, and `attitudeValid` true, when that reading passes REQ-PiCamera-010 to 012. | REQ-PiSensor-005 | Unit Test |
 | REQ-PiCamera-007 | The capture time shall be the system time read when the frame arrives from the camera, stored in the `Metrics` record and as the container time tag. | REQ-PiSensor-006 | Unit Test |
-| REQ-PiCamera-008 | The `Metrics` record shall hold, for location, attitude and temperature, the time tag the telemetry store returns with the reading. | REQ-PiSensor-006 | Unit Test |
+| REQ-PiCamera-008 | The `Metrics` record shall hold, for location, attitude and temperature, the time tag the telemetry store returns with the reading, when the reading passes REQ-PiCamera-010 to 012. | REQ-PiSensor-006 | Unit Test |
 | REQ-PiCamera-009 | Each accepted `CAPTURE` command shall get its response within `CAPTURE_MAX_MS` of its receipt. | REQ-PiSensor-007 | Integration Test |
-| REQ-PiCamera-010 | A capture shall fail with `SENSOR_STALE` when the sample time of the temperature or the location differs from the capture time by more than `METRIC_MAX_AGE_MS` or has another time base. | REQ-PiSensor-014 | Unit Test |
-| REQ-PiCamera-011 | A capture shall fail with `SENSOR_NO_DATA` when the telemetry store returns no value for the temperature or the location channel of Table 3, or a value that does not decode. | REQ-PiSensor-014 | Unit Test |
-| REQ-PiCamera-012 | A capture shall fail with `METRIC_INVALID` when a reading holds a non-finite value, a latitude outside ±90, a longitude outside ±180 or an acceleration of magnitude 0. | REQ-PiSensor-005 | Unit Test |
+| REQ-PiCamera-010 | A Table 3 reading shall be stale (`SENSOR_STALE`) when its sample time differs from the capture time by more than `METRIC_MAX_AGE_MS` or has another time base. | REQ-PiSensor-014 | Unit Test |
+| REQ-PiCamera-011 | A Table 3 reading shall be missing (`SENSOR_NO_DATA`) when the telemetry store returns no value for its channel or a value that does not decode. | REQ-PiSensor-014 | Unit Test |
+| REQ-PiCamera-012 | A capture shall fail with `METRIC_INVALID` when a reading that is neither missing nor stale holds a non-finite value, a latitude outside ±90, a longitude outside ±180 or an acceleration of magnitude 0. | REQ-PiSensor-005 | Unit Test |
 | REQ-PiCamera-013 | A failed capture shall send no container. | REQ-PiSensor-005, REQ-PiSensor-014 | Unit Test |
 | REQ-PiCamera-014 | Each `CAPTURE` command shall get exactly one command response: `OK` after the container is sent, `EXECUTION_ERROR` on failure. | Component | Unit Test |
-| REQ-PiCamera-015 | Each failed `CAPTURE` command shall emit one `CaptureFailed` (`WARNING_HI`) with the Table 1 reason and step of the failure and a code: the failing library call's return code, the sample age in ms for `SENSOR_STALE` limited to the I32 range (0 for another time base), 0 otherwise. | Component | Unit Test |
+| REQ-PiCamera-015 | Each failed `CAPTURE` command shall emit one `CaptureFailed` (`WARNING_HI`) with the Table 1 reason and step of the failure and a code: the failing library call's return code, 0 otherwise. | Component | Unit Test |
 | REQ-PiCamera-016 | A capture shall fail with `NO_CAMERA` when the camera library lists no camera, and with `CAMERA_ERROR` when a camera or JPEG library call fails or the frame is reported in error or incomplete. | Component | Integration Test, Unit Test |
 | REQ-PiCamera-017 | A capture shall fail with `TOO_LARGE` when the JPEG exceeds `PICTURE_MAX_SIZE` bytes, and with `NO_CONTAINER` when no container buffer is obtained. | Component | Unit Test |
 | REQ-PiCamera-018 | A `CAPTURE` command received before an earlier capture ended shall fail with `BUSY` and shall not change the earlier capture's result. | Component | Unit Test |
@@ -44,14 +44,15 @@ library reports as `imx708`. The component was built and run with libcamera
 | REQ-PiCamera-023 | The component shall ask the camera for a frame with a limit of `FRAME_TIMEOUT_MS` and fail a capture whose wait is reported timed out with `TIMEOUT`. | REQ-PiSensor-007 | Unit Test |
 | REQ-PiCamera-024 | After a restart during a capture, the first `CAPTURE` command shall succeed. | Component | Integration Test |
 | REQ-PiCamera-025 | Each successful capture shall emit one `CaptureCompleted` (`ACTIVITY_HI`) with the JPEG size. | Component | Unit Test |
-| REQ-PiCamera-026 | When the acceleration reading is missing, does not decode, or has a sample time that differs from the capture time by more than `METRIC_MAX_AGE_MS` or another time base, the capture shall not fail for it: the `Metrics` record shall hold roll and pitch as NaN, `attitudeTime` as zero and `attitudeValid` false, and the component shall emit one `AttitudeUnavailable` (`WARNING_LO`) with the reason `SENSOR_NO_DATA` or `SENSOR_STALE` and the REQ-PiCamera-015 code. | REQ-PiSensor-005, ruling of 2026-11-19 | Unit Test |
+| REQ-PiCamera-026 | A capture shall not fail for a Table 3 reading that is missing or stale. For each such reading the `Metrics` record shall hold its values as NaN (temperature; roll and pitch; latitude and longitude), its sample time as zero and its flag (`temperatureValid`, `attitudeValid`, `locationValid`) false, and the component shall emit one warning (`TemperatureUnavailable`, `AttitudeUnavailable`, `LocationUnavailable`, `WARNING_LO`) with the reason `SENSOR_NO_DATA` or `SENSOR_STALE` and a code: the sample age in ms for `SENSOR_STALE`, limited to the I32 range (0 for another time base), 0 otherwise. The picture shall be stored whatever readings are unavailable. | REQ-PiSensor-005, rulings of 2026-11-19 and 2026-11-20 | Unit Test, Integration Test |
 
 `Traces to` names the system requirement a row derives from. `Component` marks
 fault, warning and reporting behaviour the system design assigns to this
-component without a system requirement. REQ-PiCamera-026, and the limit of
-REQ-PiCamera-010 and 011 to the temperature and the location, follow the
-Captain's ruling of 2026-11-19 on a capture without the MPU6050; before it a
-missing or stale acceleration failed the capture.
+component without a system requirement. REQ-PiCamera-026, and the wording of
+REQ-PiCamera-010 and 011 as conditions of a reading, follow the rulings of
+2026-11-19 (a capture without the MPU6050) and 2026-11-20 (missing data
+allowed for all sensors); before them a missing or stale reading failed the
+capture.
 
 Table 1: failure reasons and steps. `BUSY` is decided on receipt of the command, before any other reason; the others are decided in the order of the steps: `DETECT`, `OPEN`, `CONFIGURE`, `START`, `FRAME`, `TEMPERATURE`, `ATTITUDE`, `LOCATION`, `ENCODE`, `CONTAINER`.
 
@@ -61,8 +62,8 @@ Table 1: failure reasons and steps. `BUSY` is decided on receipt of the command,
 | `NO_CAMERA` | The camera library lists no camera | `DETECT` |
 | `CAMERA_ERROR` | A camera or JPEG library call failed, or the frame is reported in error or incomplete | `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE` |
 | `TIMEOUT` | No frame within `FRAME_TIMEOUT_MS` | `FRAME` |
-| `SENSOR_NO_DATA` | No usable reading in the telemetry store | `TEMPERATURE`, `LOCATION`; at `ATTITUDE` it does not fail the capture (REQ-PiCamera-026) |
-| `SENSOR_STALE` | Sample time too far from the capture time | `TEMPERATURE`, `LOCATION`; at `ATTITUDE` it does not fail the capture (REQ-PiCamera-026) |
+| `SENSOR_NO_DATA` | No usable reading in the telemetry store | None: not a failure. Reported by the warnings of REQ-PiCamera-026 |
+| `SENSOR_STALE` | Sample time too far from the capture time | None: not a failure. Reported by the warnings of REQ-PiCamera-026 |
 | `METRIC_INVALID` | A reading holds a value outside its range | `TEMPERATURE`, `ATTITUDE`, `LOCATION` |
 | `TOO_LARGE` | JPEG larger than `PICTURE_MAX_SIZE` | `ENCODE` |
 | `NO_CONTAINER` | No container buffer obtained | `CONTAINER` |
@@ -219,7 +220,7 @@ Ending a capture is one guarded section: count the success or failure, publish t
 1. Detect, open, configure and start the camera (`DETECT`, `OPEN`, `CONFIGURE`, `START`).
 2. Wait for the frame, at most `FRAME_TIMEOUT_MS` (`FRAME`). The camera interface discards `SETTLE_FRAMES` frames and hands over the next one; a frame reported in error or shorter than a full frame fails the step. The wait is measured on a monotonic clock, not on system time.
 3. Read the system time: the capture time.
-4. Read the three Table 3 channels through `tlmGetOut` and check each one in the order `TEMPERATURE`, `ATTITUDE`, `LOCATION`: a value is present and decodes, its time tag is within `METRIC_MAX_AGE_MS` of the capture time, its fields are in range. Compute roll and pitch. An acceleration that is absent, does not decode or is too old does not fail the step: roll and pitch are stored as NaN, `attitudeTime` as zero and `attitudeValid` false, and `AttitudeUnavailable` is emitted once the three readings are complete, so a capture that fails at `LOCATION` does not emit it. An acceleration that is present and fresh but not finite or of magnitude 0 fails the step with `METRIC_INVALID`.
+4. Read the three Table 3 channels through `tlmGetOut` and check each one in the order `TEMPERATURE`, `ATTITUDE`, `LOCATION`: a value is present and decodes, its time tag is within `METRIC_MAX_AGE_MS` of the capture time, its fields are in range. Compute roll and pitch. A reading that is absent, does not decode or is too old does not fail the step: its values are stored as NaN, its sample time as zero and its flag false. A reading that is present and fresh but out of range (REQ-PiCamera-012) fails the step with `METRIC_INVALID`. Once the three readings are complete, one warning is emitted for each unavailable reading, in the order of the steps; a capture that fails with `METRIC_INVALID` emits none.
 5. Encode the frame as a JPEG into `m_jpeg` (`ENCODE`), then stop and close the camera.
 6. Get a `Capture` container buffer for the two records through `productGetOut` (`CONTAINER`).
 7. Write the `Metrics` record and the `Picture` record, set the container time tag to the capture time and send the container through `productSendOut`.
@@ -253,15 +254,17 @@ One container per successful capture, no processing. Its time tag is the capture
 | Field | Type | Unit | Content |
 |---|---|---|---|
 | `captureTime` | `Fw.TimeValue` | — | Time the frame arrived |
-| `latitude` | F64 | degrees, north positive | From `NmeaGps.GpsData` |
-| `longitude` | F64 | degrees, east positive | From `NmeaGps.GpsData` |
-| `locationTime` | `Fw.TimeValue` | — | Sample time of latitude and longitude |
+| `latitude` | F64 | degrees, north positive | From `NmeaGps.GpsData`; NaN when `locationValid` is false |
+| `longitude` | F64 | degrees, east positive | From `NmeaGps.GpsData`; NaN when `locationValid` is false |
+| `locationTime` | `Fw.TimeValue` | — | Sample time of latitude and longitude; zero when `locationValid` is false |
+| `locationValid` | bool | — | True when latitude and longitude are a location reading |
 | `roll` | F32 | degrees | Derived from the acceleration; NaN when `attitudeValid` is false |
 | `pitch` | F32 | degrees | Derived from the acceleration; NaN when `attitudeValid` is false |
 | `attitudeTime` | `Fw.TimeValue` | — | Sample time of the acceleration; zero when `attitudeValid` is false |
 | `attitudeValid` | bool | — | True when roll and pitch are derived from an acceleration reading |
-| `temperature` | F32 | °C | From `Bmp280.Bmp280Data` |
-| `temperatureTime` | `Fw.TimeValue` | — | Sample time of the temperature |
+| `temperature` | F32 | °C | From `Bmp280.Bmp280Data`; NaN when `temperatureValid` is false |
+| `temperatureTime` | `Fw.TimeValue` | — | Sample time of the temperature; zero when `temperatureValid` is false |
+| `temperatureValid` | bool | — | True when the temperature is a temperature reading |
 
 ## 5. Ground Interface
 
@@ -279,8 +282,10 @@ One container per successful capture, no processing. Its time tag is the capture
 |---|---|---|---|
 | `CaptureStarted` | `ACTIVITY_LO` | — | A `CAPTURE` command is accepted; acquisition begins |
 | `CaptureCompleted` | `ACTIVITY_HI` | `bytes` | The container was sent; `bytes` is the JPEG size |
-| `CaptureFailed` | `WARNING_HI` | `reason`, `step`, `code` | A `CAPTURE` command failed; `code` is the library return code, the sample age in ms (capture time minus sample time, limited to the I32 range, 0 for another time base) for `SENSOR_STALE`, else 0 |
-| `AttitudeUnavailable` | `WARNING_LO` | `reason`, `code` | The acceleration reading is missing (`SENSOR_NO_DATA`) or stale (`SENSOR_STALE`, `code` as for `CaptureFailed`); the capture goes on and stores roll and pitch as NaN |
+| `CaptureFailed` | `WARNING_HI` | `reason`, `step`, `code` | A `CAPTURE` command failed; `code` is the library return code, else 0 |
+| `TemperatureUnavailable` | `WARNING_LO` | `reason`, `code` | The temperature reading is missing (`SENSOR_NO_DATA`) or stale (`SENSOR_STALE`); the capture goes on and stores the temperature as NaN. `code` is the sample age in ms (capture time minus sample time, limited to the I32 range, 0 for another time base) for `SENSOR_STALE`, else 0 |
+| `AttitudeUnavailable` | `WARNING_LO` | `reason`, `code` | The same for the acceleration reading; roll and pitch are stored as NaN |
+| `LocationUnavailable` | `WARNING_LO` | `reason`, `code` | The same for the location reading; latitude and longitude are stored as NaN |
 
 The component has no parameters.
 
@@ -306,15 +311,15 @@ sequenceDiagram
     C-->>G: event CaptureCompleted, response OK
 ```
 
-A capture with the GPS receiver silent ends after step 4 with `CaptureFailed(SENSOR_STALE, LOCATION, age)` or, when the receiver never reported, `CaptureFailed(SENSOR_NO_DATA, LOCATION, 0)`, a command response `EXECUTION_ERROR` and no container.
+A capture with the GPS receiver silent, or without a fix, emits `LocationUnavailable(SENSOR_STALE, age)` or, when the receiver never reported, `LocationUnavailable(SENSOR_NO_DATA, 0)`, and ends with `CaptureCompleted`, a response `OK` and a container whose `locationValid` is false.
 
-A capture with the MPU6050 silent emits `AttitudeUnavailable(SENSOR_STALE, age)` or, when the sensor never reported, `AttitudeUnavailable(SENSOR_NO_DATA, 0)`, and ends with `CaptureCompleted`, a response `OK` and a container whose `attitudeValid` is false.
+A capture with the MPU6050 or the BMP280 silent does the same with `AttitudeUnavailable` and `attitudeValid`, or `TemperatureUnavailable` and `temperatureValid`. With all three silent the container holds the picture, the capture time and three false flags.
 
 ## 7. Idiosyncrasies
 
 - The command response `OK` means the container was handed to the data product components. The file is written later by `dpWriter`, which reports `FileWritten` or a write error with its own events; the component does not learn of a write failure.
-- `NmeaGps.GpsData` has no fix flag. Without a fix the receiver's channel is not updated, so a capture fails with `SENSOR_STALE` or `SENSOR_NO_DATA` at `LOCATION`.
-- A reader of the product must test `attitudeValid` before using roll and pitch; NaN is the stored value when it is false.
+- `NmeaGps.GpsData` has no fix flag. Without a fix the receiver's channel is not updated, so the location becomes stale and is stored as not valid.
+- A reader of the product must test `temperatureValid`, `attitudeValid` and `locationValid` before using the values; NaN is the stored value when a flag is false.
 - Roll and pitch assume the sensor is at rest; under acceleration they are wrong by the angle between the measured acceleration and gravity. Yaw is not available.
 - A `CAPTURE` command is refused with `BUSY` from its acceptance until the earlier capture's response, at most `CAPTURE_MAX_MS`.
 - The health ping is not answered during a capture; the ping limits of 3.4 cover the longest capture. A camera library call that does not return blocks the component thread: health then reports the ping and later `CAPTURE` commands get `BUSY`.
@@ -342,14 +347,14 @@ Unit tests substitute the camera interface, the telemetry store and the data pro
 | Unit test | Description | Requirements |
 |---|---|---|
 | NominalCapture | A capture sends one container with one `Metrics` and one `Picture` record holding the substitute's JPEG, and responds `OK` once. | REQ-PiCamera-004, REQ-PiCamera-014 |
-| MetricsCopied | Latitude, longitude and temperature in the record equal the readings in the store. | REQ-PiCamera-005 |
+| MetricsCopied | Latitude, longitude and temperature in the record equal the readings in the store, with their flags true. | REQ-PiCamera-005 |
 | RollPitch | Roll and pitch equal the formula within 0.01° for accelerations along +x, -x, +y, -y, +z, -z and one oblique vector. | REQ-PiCamera-006 |
 | CaptureTime | The capture time in the record and the container time tag equal the time set when the substitute hands over the frame, not the command time. | REQ-PiCamera-007 |
 | SampleTimes | The three sample times in the record equal three different time tags in the store. | REQ-PiCamera-008 |
 | FrameTimeout | No frame: the wait is asked for `FRAME_TIMEOUT_MS` and the capture fails with `TIMEOUT` at `FRAME`. | REQ-PiCamera-023, REQ-PiCamera-015 |
-| StaleReading | For each channel: a time tag `METRIC_MAX_AGE_MS` from the capture time passes; for the temperature and the location 1 ms more fails with `SENSOR_STALE` and the age as code, earlier and later, another time base fails with code 0, and an age beyond the I32 range gives the range limit; for the acceleration the same cases succeed with `AttitudeUnavailable` carrying that reason and code. | REQ-PiCamera-010, REQ-PiCamera-013, REQ-PiCamera-026 |
-| MissingReading | For the temperature and the location: invalid status, empty value and a value too short to decode fail with `SENSOR_NO_DATA` at its step; for the acceleration the same cases succeed with `AttitudeUnavailable(SENSOR_NO_DATA, 0)`. | REQ-PiCamera-011, REQ-PiCamera-013, REQ-PiCamera-026 |
-| AttitudeUnavailable | A missing and a stale acceleration each give `OK`, one container with the other metrics unchanged, roll and pitch NaN, `attitudeTime` zero, `attitudeValid` false and one `AttitudeUnavailable`; a fresh acceleration gives `attitudeValid` true and no warning; a fresh acceleration of magnitude 0 fails; with the acceleration missing a missing location or a stale temperature still fails, without the warning. | REQ-PiCamera-026, REQ-PiCamera-006, REQ-PiCamera-010, REQ-PiCamera-011 |
+| StaleReading | For each channel: a time tag `METRIC_MAX_AGE_MS` from the capture time is stored as valid; 1 ms more, earlier and later, another time base, and an age beyond the I32 range each give `OK`, the placeholder and the warning of that channel with `SENSOR_STALE` and the age, 0 or the range limit as code. | REQ-PiCamera-010, REQ-PiCamera-026 |
+| MissingReading | For each channel: invalid status, empty value and a value too short to decode each give `OK`, the placeholder and the warning of that channel with `SENSOR_NO_DATA` and code 0. | REQ-PiCamera-011, REQ-PiCamera-026 |
+| ReadingUnavailable | One reading missing or stale, for each of the three in turn: `OK`, one container with the two other readings unchanged, NaN, zero time and false flag for the third, and its warning. All three missing: the picture and the capture time are stored with three false flags and three warnings in the order of the steps. All fresh: three true flags, no warning. With a reading missing, an invalid other reading, a camera failure and a failed container request still fail, without a warning. | REQ-PiCamera-026, REQ-PiCamera-006, REQ-PiCamera-012 |
 | InvalidMetric | NaN and infinity in each field, latitude ±90 passes and beyond fails, longitude ±180 passes and beyond fails, acceleration (0, 0, 0) fails, with `METRIC_INVALID`. | REQ-PiCamera-012, REQ-PiCamera-013 |
 | NoCamera | No camera listed fails with `NO_CAMERA` at `DETECT`. | REQ-PiCamera-016, REQ-PiCamera-015 |
 | CameraErrors | A failure at each of `OPEN`, `CONFIGURE`, `START`, `FRAME`, `ENCODE`, and a frame in error or incomplete, fails with `CAMERA_ERROR`, that step and the substitute's return code, and closes the camera. | REQ-PiCamera-016, REQ-PiCamera-015 |

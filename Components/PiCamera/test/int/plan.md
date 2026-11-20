@@ -59,7 +59,7 @@ Planted faults:c3_capture_after_restart
 | REQ-PiCamera-019 | C-2 | Capture after the camera is freed. |
 | REQ-PiCamera-020 | C-1 |  |
 | REQ-PiCamera-024 | C-3 (restart after a capture), unit test RecoveryAfterFailure | Not verified as written on the bench: the restart of C-3 follows a completed capture, not one in progress (not covered list). |
-| REQ-PiCamera-026 | C-1, C-2, C-3 (a capture completes whatever the MPU6050 does; it warns when the window holds no MPU6050 sample, and does not warn when the samples are fresh around it), unit test AttitudeUnavailable (record content) | The bench does not read the stored record. A capture with some MPU6050 samples in the window but none fresh around it is not judged: channel samples are lost on the downlink, so a gap in the record does not show the unit had no reading. |
+| REQ-PiCamera-026 | C-1, C-2, C-3 (a capture completes whatever the three sensors do; for each sensor it warns when the window holds no sample of it, and does not warn when its samples are fresh around the capture), unit tests ReadingUnavailable, StaleReading, MissingReading (record content) | The bench does not read the stored record. A capture with some samples of a sensor in the window but none fresh around it is not judged for that sensor: channel samples are lost on the downlink, so a gap in the record does not show the unit had no reading. |
 
 ## 5 Metrics
 - C-1: t(event piCamera.CaptureCompleted) - t(piCamera.CAPTURE sent) <= 15 s
@@ -71,7 +71,7 @@ Generated from `planted_faults.py` planted fault declarations (`fth planted-faul
 ## 7 Not covered
 - No camera attached (REQ-PiCamera-016, `NO_CAMERA`): needs the cable removed; unit test `NoCamera`.
 - Restart during a capture: the restart of C-3 comes after a completed capture; a capture lasts under 1 s on the bench and the bench action takes longer.
-- Content of the `Metrics` record (`attitudeValid`, NaN for roll and pitch): the component plan does not read the product file; unit test `AttitudeUnavailable` and the project system tests that read the downlinked product.
+- Content of the `Metrics` record (the three flags, NaN for the values of an unavailable reading): the component plan does not read the product file; unit test `ReadingUnavailable` and the project system tests that read the downlinked product.
 
 ## 8 Decision log
 - (none)
