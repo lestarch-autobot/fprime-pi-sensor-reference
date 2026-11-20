@@ -129,6 +129,10 @@ def cmd_flash(args) -> None:
     subprocess.run(["scp", "-q", "-o", "BatchMode=yes", args.image, f"{args.pi}:{args.pi_dir}/PiSensor"], check=True,
                    timeout=300)
     ssh(args.pi, f"chmod +x {shlex.quote(args.pi_dir)}/PiSensor")
+    if args.prm:  # the parameter file is read from the working directory when the image starts
+        ssh(args.pi, f"mkdir -p {shlex.quote(args.pi_dir)}/run")
+        subprocess.run(["scp", "-q", "-o", "BatchMode=yes", args.prm, f"{args.pi}:{args.pi_dir}/run/PrmDb.dat"],
+                       check=True, timeout=60)
     pi_start(args)
     serial = ssh(args.pi, "awk '/^Serial/ {print $3}' /proc/cpuinfo").strip()
     # The target has no debugger: the serial number of the Pi identifies the unit
@@ -364,7 +368,7 @@ def main() -> None:
     parser.add_argument("--instance", default="fprime-project")
     parser.add_argument("--space-system", default="PiSensor_PiSensor")
     sub = parser.add_subparsers(dest="sub", required=True)
-    p = sub.add_parser("flash"); p.add_argument("image"); p.set_defaults(fn=cmd_flash)
+    p = sub.add_parser("flash"); p.add_argument("image"); p.add_argument("--prm"); p.set_defaults(fn=cmd_flash)
     p.add_argument("--gcov", action="store_true", help="image built for coverage: keep its counts on the Pi")
     p = sub.add_parser("collect-gcda"); p.add_argument("out"); p.set_defaults(fn=cmd_collect_gcda)
     p = sub.add_parser("dump"); p.add_argument("readback"); p.set_defaults(fn=cmd_dump)

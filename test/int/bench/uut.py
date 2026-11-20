@@ -22,8 +22,8 @@ PLATFORM = ("echo MODEL=$(tr -d '\\0' </proc/device-tree/model); echo '--- os-re
 SOCKETS = ("pid=$(cat {d}/fsw.pid); echo PID=$pid; echo EXE=$(readlink /proc/$pid/exe); echo '--- sockets'; "
            "ss -H -tuanp | grep \"pid=$pid,\" || true; echo '--- devices'; "
            "for f in /proc/$pid/fd/*; do t=$(readlink $f); [ -c \"$t\" ] && echo \"$t\"; done | sort -u")
-CLEAN = "rm -f {d}/run/DpCat/*.fdp; ls -A {d}/run/DpCat | wc -l"
-FINAL = "cd {d}/run && ls -A DpCat && for f in DpCat/*.fdp; do [ -e \"$f\" ] && sha256sum \"$f\"; done; true"
+CLEAN = "rm -f {d}/run/dp/*.fdp; ls -A {d}/run/dp | wc -l"
+FINAL = "cd {d}/run && ls -A dp && for f in dp/*.fdp; do [ -e \"$f\" ] && sha256sum \"$f\"; done; true"
 
 
 def ssh(host: str, command: str, timeout: float = 60) -> subprocess.CompletedProcess:

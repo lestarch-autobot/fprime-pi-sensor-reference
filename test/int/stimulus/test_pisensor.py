@@ -14,7 +14,7 @@ import pytest
 import pisensor_record as rec
 
 R = lambda *n: [f"REQ-PiSensor-{i:03d}" for i in n]
-DP_DIR = "./DpCat"  # DataProductsConfig.Paths.dpDir
+DP_DIR = "dp"  # DataProductsConfig.Paths.dpDir
 DEVICES = re.compile(r"^/dev/(spidev\d+\.\d+|i2c-\d+|ttyACM\d+|ttyAMA\d+|video\d+|media\d+|dma_heap/\S+|null|urandom)$")
 BENCH_POSITION = (34.130442, -118.058840)  # surveyed bench position (latitude, longitude), degrees: docs/ledger.md 2026-11-19
 DISPATCH = "commands sent, marker commands apart, == count of cmdDisp.OpCodeDispatched events of other opcodes (resends logged by the bench allowed for)"
@@ -229,7 +229,7 @@ def metrics_match_telemetry(h, which):
     return not bad, f"metrics not matching the telemetry: {bad or 'none'}"
 
 
-def settle(bench, limit_s=900):
+def settle(bench, limit_s=60):
     """Last step of every window: wait until the telemetry sampled up to now has reached the ground. The
     radio downlink carries telemetry later than events, and later the longer the unit runs; fth judges a
     window right after its END marker over the samples whose unit time lies in it."""
@@ -256,8 +256,14 @@ def downlink(send, bench, wait_s=30):
     send("dpCat.START_XMIT_CATALOG", ["NO_WAIT", "false"])
 
 
-def downlinked(bench):
-    bench.wait_event("dpCat.CatalogXmitCompleted", 900)
+# Limit for one product on the link: 128 file bytes a second, pictures seen up to 90 kB (about 710 s), a
+# 127 kB product measured at 938 s; lost PDUs are sent again at one a second. A test waits this long for each
+# product it stores, and one more where a planted capture can add one.
+PRODUCT_DOWNLINK_S = 1200
+
+
+def downlinked(bench, products=1):
+    bench.wait_event("dpCat.CatalogXmitCompleted", PRODUCT_DOWNLINK_S * products)
     bench.action("wait_cfdp")
 
 
@@ -352,7 +358,7 @@ def test_L2_3(window, send, bench, check, require, fth_plan):
         p = capture(send, bench, 40, 1)
         send("fileManager.CalculateCrc", [p])
         downlink(send, bench)
-        downlinked(bench)
+        downlinked(bench, 2)
         settle(bench)
 
 
@@ -377,7 +383,7 @@ def test_L2_4(window, send, bench, check, require, fth_plan):
         send("fileManager.CalculateCrc", [p1])
         send("fileManager.CalculateCrc", [p2])
         downlink(send, bench)
-        downlinked(bench)
+        downlinked(bench, 3)
         settle(bench)
 
 
@@ -416,7 +422,7 @@ def test_L2_5(window, send, bench, check, require, fth_plan):
         capture(send, bench, 44, 1)
         bench.wait(10)
         downlink(send, bench)
-        downlinked(bench)
+        downlinked(bench, 1)
         settle(bench)
 
 
@@ -457,7 +463,7 @@ def test_L2_7(window, send, bench, check, require, fth_plan):
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         downlink(send, bench)
-        downlinked(bench)
+        downlinked(bench, 3)
         settle(bench)
 
 
@@ -483,7 +489,7 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
         downlink(send, bench, wait_s=0)
         bench.wait(15)
         send("cmdDisp.CMD_NO_OP", [])
-        downlinked(bench)
+        downlinked(bench, 2)
         settle(bench)
 
 
@@ -513,7 +519,7 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
             p = capture(send, bench, 60, 1)
             send("fileManager.CalculateCrc", [p])
             downlink(send, bench)
-            downlinked(bench)
+            downlinked(bench, 1)
             send("fileManager.ListDirectory", [DP_DIR])
             downlink(send, bench, wait_s=0)
             bench.wait(30)

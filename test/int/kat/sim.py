@@ -140,7 +140,7 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
                 tc = t + 0.4 - (10.0 if k["wrong_time"] else 0.0)
                 data = product(tc, tc - (5.0 if k["stale_sample"] else 0.0) - (tc % 1.0), acc(tc), temp(tc),
                                jpeg(state["n"], (320, 240) if k["small_picture"] else (640, 480)))
-                fname = f"./DpCat/Dp_{0x10008000:08d}_{int(tc):08d}_{int((tc % 1) * 1e6):08d}.fdp"
+                fname = f"dp/Dp_{0x10008000:08d}_{int(tc):08d}_{int((tc % 1) * 1e6):08d}.fdp"
                 stored[fname] = data
                 made.append(fname)
                 ev(t + took, "DataProducts.dpWriter.FileWritten", "ACTIVITY_LO", f"Wrote {len(data)} bytes to file {fname}")

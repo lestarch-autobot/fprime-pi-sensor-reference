@@ -124,3 +124,19 @@ Revision 1 is the plan approved with Gate 1 (`c7953c9`). Pass rules stay as stri
   a command frame above 67 bytes does not arrive whole, so `fileManager.CalculateCrc` of a product path
   (44 characters) ends in `FORMAT_ERROR`; a picture downlink does not complete; one telemetry sample was lost
   on board in the second run; telemetry stops for minutes while a file is sent.
+
+## Flight configuration of 2026-11-19 (`fix/link-budget`, `docs/link-budget.md`)
+
+- Product directory is `dp` (`DP_DIR`, the `clean_products` and `final_state` actions).
+- `flash --prm inputs/PrmDb.dat` copies the parameter file into the working directory of the image before it
+  starts. Build it with `fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary of
+  the image> -o inputs/PrmDb.dat`. fth does not pin this file; its hash is in the report of a run.
+- The bench YAMCS configuration carries the CFDP timers of `docs/link-budget.md` (bench set-up, not in this
+  repository).
+- A test waits 1200 s for each product it downlinks (and for one more where a planted capture can add one):
+  128 file bytes a second, pictures up to 90 kB (about 710 s), 127 kB measured at 938 s, lost PDUs sent again.
+  `wait_cfdp` waits 1200 s.
+- The wait at the end of a window stays, with a limit of 60 s instead of 900 s: telemetry is one to two seconds
+  behind, and fth judges a window right after its END marker, so the samples of the last second would be missing.
+- Link counters (`rfm69Manager.PacketsTransmitted`, `PacketsReceived`) arrive every 5 s. The one check that
+  reads them needs two samples in a downlink window of minutes; unchanged.

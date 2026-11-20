@@ -3,7 +3,7 @@
   "dictionary": "inputs/PiSensorTopologyDictionary.json",
   "serial": "81493bc1e640bea9",
   "notes": "PiSensor system bench: Raspberry Pi 5 `soakee` (ssh host `pi`) <-RFM69-> Feather M0 ground radio on the workstation /dev/ttyACM0 -> ground/feather_bridge.py -> fprime-yamcs (HTTP 8190, instance fprime-project). Run fth from the campaign root on the workstation: `uut` is the checkout of this repository, `yamcs-config` the YAMCS configuration directory of ground/README.md, `inputs` holds the image and its dictionary; python3 (yamcs-client, pyserial, requests) and fprime-yamcs are on PATH. The unit has no debugger: flash copies the image over ssh and starts it, and the serial is the Pi serial number of /proc/cpuinfo. Image, ground system and sender are those of test/int/bench/yamcs_bench.py; the recorder is test/int/bench/yamcs_recorder.py (ground reception time, CFDP transfers, frames, received files); the actions are test/int/bench/uut.py.",
-  "flash": "{python} {adapter} flash {image}",
+  "flash": "{python} {adapter} flash --prm inputs/PrmDb.dat {image}",
   "dump": "{python} {adapter} dump {readback}",
   "gds": "{python} {adapter} gds --dictionary {dictionary} --logs {logs} --bridge {bridge} --uart {uart} --yamcs-config {yamcs_config}",
   "recorder": "{python} {bench}/yamcs_recorder.py --url {yamcs_url} --instance {yamcs_instance} --root {yamcs_root} --deployment PiSensor --dictionary {dictionary} --logs {logs} --gen-offset {gen_offset}",
@@ -14,7 +14,7 @@
     "clock": "{python} {bench}/uut.py action clock --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
     "clean_products": "{python} {bench}/uut.py action clean_products --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
     "final_state": "{python} {bench}/uut.py action final_state --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs}",
-    "wait_cfdp": "{python} {bench}/uut.py action wait_cfdp --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs} --timeout 900",
+    "wait_cfdp": "{python} {bench}/uut.py action wait_cfdp --ssh {uut_ssh} --remote-dir {uut_dir} --logs {logs} --timeout 1200",
     "bench_release": "{python} {adapter} stop"
   },
   "vars": {

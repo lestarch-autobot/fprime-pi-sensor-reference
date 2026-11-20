@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 STEP = re.compile(r"^(MARK|[A-Za-z_]\w*\.\w+)\((.*)\)$")
-CHOSEN = re.compile(r"^(P\d*|<P\d+>|product directory|\./DpCat)$")  # named by the UUT or the configuration
+CHOSEN = re.compile(r"^(P\d*|<P\d+>|product directory|\./DpCat|dp)$")  # named by the UUT or the configuration
 
 
 def plan_steps(plan: dict, marker: str) -> dict:
