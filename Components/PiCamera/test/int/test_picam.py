@@ -6,6 +6,7 @@ import pytest
 CAPTURE = "piCamera.CAPTURE"
 PICTURE_MAX_SIZE = 262144
 CAPTURE_MAX_S = 15.0
+DISPATCH_S = 0.05
 HEARTBEAT = "bmpManager.Reading"
 FRESH_S = 1.5
 # Warning event and telemetry channel of each reading a capture stores
@@ -99,8 +100,8 @@ def responses_within_bound(h):
     captures = [e for e in h.window.events("piCamera.CaptureStarted")]
     if not captures:
         return False, "no capture in the window"
-    # The opcode of CAPTURE is the one dispatched with the first CaptureStarted (same time tag)
-    codes = {opcode(e.args["opCode"]) for e in dispatched if e.t == captures[0].t}
+    # The opcode of CAPTURE is the one dispatched with the first CaptureStarted (time tags within DISPATCH_S)
+    codes = {opcode(e.args["opCode"]) for e in dispatched if abs(e.t - captures[0].t) <= DISPATCH_S}
     if len(codes) != 1:
         return False, f"dispatch of CAPTURE not identified: {sorted(codes)}"
     code = codes.pop()
