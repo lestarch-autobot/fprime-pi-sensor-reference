@@ -133,6 +133,9 @@ No bound of a requirement changed. The plan has 12 tests.
    file arrived` and the precondition `CFDP transaction duration in D >= 30 s`. L2-7 and L2-8 keep the
    `bmpManager.Reading` and `imuManager.Reading` items. Without a fix the GPS checks fail in L2-1, L2-2
    (REQ-PiSensor-003) and L2-9 only.
+7. Plausibility, in L2-1 and L2-2. Old: `BMP280 and GPS readings plausible for a bench at rest`. New: two checks
+   with the same bounds, `BMP280 readings plausible for a bench at rest` and `GPS readings plausible for a bench
+   at rest`, so that a GPS failure declared as known cannot cover a BMP280 failure. Made after the review.
 6. Unchanged: both planted faults and their `fails` lists, the coverage minimum, every GPS period and
    plausibility check, `event piCamera.CaptureFailed count == 0`.
 

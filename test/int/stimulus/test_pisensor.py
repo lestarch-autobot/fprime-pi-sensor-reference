@@ -155,15 +155,19 @@ def versions(h):
     return not missing, f"describe strings absent from the version events: {missing or 'none'}"
 
 
-def sensors_plausible(h):
-    """BMP280 temperature and GPS position of the window."""
-    w = h.window
-    temps = [rec.value(r)["temperature"] for r in w.channel("bmpManager.Reading")]
-    gps = [rec.value(r) for r in w.channel("gpsManager.Reading")]
-    assert temps and gps, f"samples: bmp {len(temps)}, gps {len(gps)}"
+def bmp_plausible(h):
+    """BMP280 temperature of the window."""
+    temps = [rec.value(r)["temperature"] for r in h.window.channel("bmpManager.Reading")]
+    assert temps, "no bmpManager.Reading sample in the window"
+    return all(-20 <= t <= 60 for t in temps), f"temperature {min(temps):.2f}..{max(temps):.2f} degC"
+
+
+def gps_plausible(h):
+    """GPS position of the window against the bench position in the manifest."""
+    gps = [rec.value(r) for r in h.window.channel("gpsManager.Reading")]
+    assert gps, "no gpsManager.Reading sample in the window"
     far = max(_distance_km(s["latitude"], s["longitude"], *BENCH_POSITION) for s in gps)
-    return all(-20 <= t <= 60 for t in temps) and far <= 1.0, \
-        f"temperature {min(temps):.2f}..{max(temps):.2f} degC; GPS within {far:.3f} km of the bench position"
+    return far <= 1.0, f"GPS within {far:.3f} km of the bench position"
 
 
 def imu_plausible(h):
@@ -373,7 +377,8 @@ def test_L2_1(window, send, bench, check, require, fth_plan):
         metrics(w, fth_plan, "L2-1", check, require)
         bench.wait(60)
         absent(check)
-        check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
+        check("BMP280 readings plausible for a bench at rest", bmp_plausible)
+        check("GPS readings plausible for a bench at rest", gps_plausible)
         check("MPU6050 readings plausible for a bench at rest", imu_plausible)
         settle(bench)
 
@@ -388,7 +393,8 @@ def test_L2_2(window, send, bench, check, require, fth_plan):
             send("cmdDisp.CMD_NO_OP", [])
             bench.wait(10)
         absent(check)
-        check("BMP280 and GPS readings plausible for a bench at rest", sensors_plausible)
+        check("BMP280 readings plausible for a bench at rest", bmp_plausible)
+        check("GPS readings plausible for a bench at rest", gps_plausible)
         check("MPU6050 readings plausible for a bench at rest", imu_plausible)
         check("event cmdDisp.NoOpReceived count == 3")
         settle(bench)
