@@ -42,7 +42,7 @@
           "event cmdDisp.NoOpReceived count == 3"
         ],
         "L2-8": [
-          "event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted"
+          "event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted"
         ]
       },
       "mechanism": "cmdDisp.CMD_NO_OP() is sent twice in a row (inserted copy): one more command is served than the test expects",
