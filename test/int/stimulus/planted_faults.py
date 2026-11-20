@@ -125,7 +125,7 @@ def capture_before_xmit(test_id, command_name, args):
 @planted_fault("extra_noop", applies_to=["L2-2", "L2-8"], cls="stimulus", kind="insert",
                mechanism="cmdDisp.CMD_NO_OP() is sent twice in a row (inserted copy): one more command is served than the test expects",
                fails={"L2-2": ["event cmdDisp.NoOpReceived count == 3"],
-                      "L2-8": ["event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted"]})
+                      "L2-8": ["event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted"]})
 def extra_noop(test_id, command_name, args):
     if _is(command_name, "CMD_NO_OP"):
         return [(command_name, args), (command_name, args)]

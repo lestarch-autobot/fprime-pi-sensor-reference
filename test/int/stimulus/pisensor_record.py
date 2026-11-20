@@ -211,8 +211,14 @@ def frame_gaps(rows):
 
 # ---------------------------------------------------------------- the product container
 def crc(data):
-    """F Prime file CRC (Os::File::calculateCrc): CRC-32, as zlib computes it."""
+    """CRC-32 as zlib computes it: the header and data hashes of a product container."""
     return zlib.crc32(data) & 0xFFFFFFFF
+
+
+def file_crc(data):
+    """F Prime file CRC as fileManager.CalculateCrc reports it: the CRC-32 that zlib computes, without the
+    final inversion (seen on the first live product: 0x67b852b1 on board, 0x9847ad4e from zlib)."""
+    return ~zlib.crc32(data) & 0xFFFFFFFF
 
 
 def _time(buf, off):

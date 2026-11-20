@@ -18,7 +18,7 @@ NOM = "Deployment running on the Raspberry Pi 5, RFM69 link up through the bench
 CAP30 = H("event_after_command_within", "t(event dpWriter.FileWritten) - t(cmdDisp.OpCodeDispatched of piCamera.CAPTURE) <= 30 s, for each CAPTURE (FSW clock)", command="piCamera.CAPTURE", event="dpWriter.FileWritten", bound_s=30)
 CRC = "check: CRC of record/raw/files/<P>, computed by the bench with the F Prime file CRC, == value in the fileManager.CalculateCrcSucceeded event of P"
 REC = ("checks on the ground file: it parses as an F Prime data product container; the picture record decodes with the bench JPEG decoder, decoded width >= 640 and height >= 480; "
-       "one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid (flag byte 0xFF), the values are finite and the record holds a sample of that channel within 0.1 s of the stated sample time; marked not valid (flag byte 0x00), the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid")
+       "one latitude, one longitude, one roll, one pitch and one temperature record; check, for each of temperature (`temperatureValid`, `bmpManager.Reading`, `piCamera.TemperatureUnavailable`), latitude and longitude (`locationValid`, `gpsManager.Reading`, `piCamera.LocationUnavailable`), roll and pitch (`attitudeValid`, `imuManager.Reading`, `piCamera.AttitudeUnavailable`): marked valid (flag byte 0xFF), the values are finite and the record holds a sample of that channel within 1 s of the stated sample time; marked not valid (flag byte 0x00), the values are NaN, the sample time is zero and the record holds no sample of that channel with a unit time in the 2 s up to the capture time record; in the window, the events of that name are as many as the ground files with that metric not valid")
 TIMES = [H("product_time_within", "bench time of CAPTURE sent - 2 s <= capture time record <= bench time at which the OpCodeCompleted row of piCamera.CAPTURE was received + 2 s", tol_s=2),
          H("product_sample_times_within", "the latitude, longitude, roll, pitch and temperature records each carry a sample time, and |sample time - capture time record| <= 2 s for each metric marked valid", bound_s=2)]
 XMIT = ["wait 30 s", "dpCat.BUILD_CATALOG()", "dpCat.START_XMIT_CATALOG(NO_WAIT, false)", "wait event dpCat.CatalogXmitCompleted and every CFDP transaction of the window finished at the ground"]
@@ -62,7 +62,7 @@ t("L2-7", "Telemetry during a downlink", "Proves sensor telemetry continues ever
 t("L2-8", "Telemetry and commands during a downlink", "Proves telemetry continues and a command is served during a downlink.", R(12, 10),
   ["MARK(53)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "MARK(54)", "dpCat.BUILD_CATALOG()", "dpCat.START_XMIT_CATALOG(NO_WAIT, false)", "wait 15 s", "cmdDisp.CMD_NO_OP()", "wait event dpCat.CatalogXmitCompleted and both CFDP transactions finished at the ground", "MARK(55)"], [W(53, 54, "Q"), W(54, 55, "D")],
   metrics=gap(10, "D", 3, SENS[:2]) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)],
-  knobs=["extra_noop"], evidence="check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; " + CLS2 + ".", rationale=[("CFDP transaction duration in D >= 30 s", "as L2-7")])
+  knobs=["extra_noop"], evidence="check: event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted; check: exactly two files arrived; check: rfm69Manager.PacketsTransmitted and rfm69Manager.PacketsReceived each rise in D, and TM frames whose ground reception time is after that of the first rfm69Manager.PacketsTransmitted sample of D and not after that of the last <= (last value - first value) + 2; " + CLS2 + ".", rationale=[("CFDP transaction duration in D >= 30 s", "as L2-7")])
 t("L2-9", "GPS telemetry during a downlink", "Proves GPS telemetry continues every 10 s during a downlink.", R(12),
   ["MARK(56)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten", "MARK(57)"] + XMIT + ["MARK(58)"], [W(56, 57, "Q"), W(57, 58, "D")],
   metrics=gap(10, "D", 3, SENS[2:]) + [H("downlink_duration_at_least", "CFDP transaction duration in D >= 30 s", bound_s=30)],
@@ -70,7 +70,7 @@ t("L2-9", "GPS telemetry during a downlink", "Proves GPS telemetry continues eve
   rationale=[("CFDP transaction duration in D >= 30 s", "a precondition (require): a downlink shorter than 30 s cannot show the 10 s bound")])
 t("L7-1", "Final state", "Leaves one known product on board for the independent final-state check.", R(9, 5, 8),
   ["MARK(60)", "cfdpManager.FileInDefaultKeep_PRM_SET(KEEP)", "piCamera.CAPTURE()", "wait event dpWriter.FileWritten (names P)", "fileManager.CalculateCrc(P)"] + XMIT + ["fileManager.ListDirectory(product directory)", "dpCat.BUILD_CATALOG()", "dpCat.START_XMIT_CATALOG(NO_WAIT, false)", "wait 30 s", "MARK(61)"], [W(60, 61)],
-  evidence="check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; " + CRC + "; " + REC + "; the directory listing names P only; check: no CFDP transaction starts after the second START_XMIT_CATALOG. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt.")
+  evidence="check: event cmdDisp.OpCodeCompleted of piCamera.CAPTURE count == 1; " + CRC + "; " + REC + "; the directory listing names P and DpState.dat only; check: no CFDP transaction starts after the second START_XMIT_CATALOG. After the run the bench runs sha256sum on the product file over ssh into record/raw/final-state.txt.")
 
 ids = [x["id"] for x in T]; assert len(ids) == len(set(ids))
 cov = collections.defaultdict(list)
@@ -85,12 +85,18 @@ STD = ["both markers present", "event cmdDisp.OpCodeError count == 0 for every o
 GPS_REASON = "GPS receiver has no fix on the bench; the human cannot give it sky view"
 GPS_PLAUSIBLE = "GPS readings plausible for a bench at rest"
 gps_metric = lambda test_id: [m["text"] for x in T if x["id"] == test_id for m in x["metrics"] if m["text"].startswith("for gpsManager.Reading in")]
+IMU_REASON = "MPU6050 does not answer on I2C (SDA stuck low); the human ordered to continue without it"
+IMU_PLAUSIBLE = "MPU6050 readings plausible for a bench at rest"
+imu_metric = lambda test_id: [m["text"] for x in T if x["id"] == test_id for m in x["metrics"] if m["text"].startswith("for imuManager.Reading in")]
 KNOWN = {"ruling": 'Michael Starch, 2026-11-18 19:52 PST: "If GPS doesn\'t fix, wait 30min, try again, and if not deliver the RDD with the failing tests and I\'ll source a new GPS"; '
-                   '2026-11-20 10:51 PST: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE"',
-         "tests": {"L2-1": {"checks": gps_metric("L2-1") + [GPS_PLAUSIBLE], "reason": GPS_REASON},
-                   "L2-2": {"checks": gps_metric("L2-2") + [GPS_PLAUSIBLE], "reason": GPS_REASON},
+                   '2026-11-20 10:51 PST: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE"; '
+                   '2026-11-19 10:50 PST: "You are just going to have to continue without it.  Put placeholder values in the data product and move on"',
+         "tests": {"L2-1": {"checks": gps_metric("L2-1") + [GPS_PLAUSIBLE] + imu_metric("L2-1") + [IMU_PLAUSIBLE], "reason": GPS_REASON + ". " + IMU_REASON},
+                   "L2-2": {"checks": gps_metric("L2-2") + [GPS_PLAUSIBLE] + imu_metric("L2-2") + [IMU_PLAUSIBLE], "reason": GPS_REASON + ". " + IMU_REASON},
+                   "L2-7": {"checks": imu_metric("L2-7"), "reason": IMU_REASON},
+                   "L2-8": {"checks": imu_metric("L2-8"), "reason": IMU_REASON},
                    "L2-9": {"checks": gps_metric("L2-9"), "reason": GPS_REASON}}}
-assert [len(v["checks"]) for v in KNOWN["tests"].values()] == [2, 2, 1]
+assert [len(v["checks"]) for v in KNOWN["tests"].values()] == [4, 4, 1, 1, 1]
 plan = {
  "name": "PiSensor system test plan",
  "markers": {"command": "cmdDisp.CMD_NO_OP_STRING", "event": "cmdDisp.NoOpStringReceived", "arg": "arg1", "reserved_min": 4294901760},
@@ -145,7 +151,7 @@ plan = {
                  "- Revision 3. REQ-PiSensor-003 has no passing test while the GPS has no fix: L2-1 and L2-2 are its only tests and both fail.",
                  "- Revision 3. A silent BMP280 leaves every window unverified: the Heartbeat is `bmpManager.Reading`. The temperature placeholder is then judged by the component campaign only.",
                  "- Revision 3. Sensor silence is read from the telemetry. The frame count precondition of a window covers the frames between its markers; the 2 s up to a capture can begin before the START marker (a capture follows it by under 1 s), and a frame lost there is not seen by that window. To show a 1 Hz sensor silent that was answering, two consecutive samples of it would have to be lost; about 1 TM frame in 650 is lost on this link.",
-                 "- Revision 3. The unit time of a telemetry sample is taken as the time the sensor was read (`Svc.TlmPacketizer` stamps a packet with the last write to one of its channels). Assumed, to be confirmed on the first record with a product."],
+                 "- Revision 3. The unit time of a telemetry sample on the ground is the time of its packet, not the time the sensor was read: `Svc.TlmPacketizer` sends one packet a second and stamps it with the last write to one of its channels, while a product carries the sensor's own sample time (first live record, 2026-11-20: 0.10 to 0.40 s apart over 10 products). So a metric marked valid is matched to a telemetry sample within 1 s, the telemetry period, and the record cannot show which reading of that second the product holds."],
  "decision_log": ["1. 2026-11-18 designer — test deployment = the deployment as flown; no test component (human direction).",
                   "2. 2026-11-18 designer — product content is judged on the ground copy of the file; `fileManager.CalculateCrc` gives the on-board check and the bench `sha256sum` the independent final state.",
                   "3. 2026-11-18 designer — planted faults insert commands of existing components only; a grown or altered product file is not usable as a fault because `Svc.DpCatalog` refuses it (size check).",

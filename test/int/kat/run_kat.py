@@ -44,7 +44,7 @@ BROKEN = [
     ("stale_sample", True, "L2-5", "sample time"),
     ("tcp_frames", True, "L2-7", "TM frames received <= PacketsTransmitted rise + 2"),
     ("fatal", True, "L0-2", "severity FATAL count == 0"),
-    ("keep_ignored", True, "L7-1", "the directory listing names P only"),
+    ("keep_ignored", True, "L7-1", "the directory listing names P and DpState.dat only"),
     ("resend", True, "L7-1", "no CFDP transaction starts after the second START_XMIT_CATALOG"),
     ("fast_downlink", True, "L2-7", "CFDP transaction duration in D >= 30 s"),
     # REQ-PiSensor-005 placeholders: the wrong records, per metric group

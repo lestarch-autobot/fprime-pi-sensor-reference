@@ -111,7 +111,7 @@ No bound of a requirement changed. The plan has 12 tests.
    Old: `roll and pitch of each ground file are marked valid`.
    New: `each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose
    sensor was silent`. For temperature, latitude and longitude, roll and pitch: marked valid (flag byte
-   0xFF), the values are finite and the record holds a telemetry sample of that sensor within 0.1 s of the stated
+   0xFF), the values are finite and the record holds a telemetry sample of that sensor within 1 s (0.1 s until the first live products, see below) of the stated
    sample time; marked not valid (flag byte 0x00), the values are NaN, the sample time is zero, and the record holds no telemetry
    sample of that sensor (`bmpManager.Reading`, `gpsManager.Reading`, `imuManager.Reading`) with a unit time in
    the 2 s up to the capture time record; in the window, the events of that sensor are as many as the ground
@@ -143,7 +143,7 @@ Review of 2026-11-20 (Mode B, one round, of `7a83d34`): not accepted on one must
 otherwise sound. The must-fix and the four could-fix items were edited in `466c827`; the edit was read by the
 project anchor and not reviewed again. All taken: a flag byte is 0xFF for true and 0x00 for false as F Prime
 writes a `bool` (`FW_SERIALIZE_TRUE_VALUE`), any other value is refused; a metric marked valid needs its telemetry
-sample (0.1 s: the sensors sample once a second, and the component and the channel are stamped apart); the
+sample (0.1 s then, 1 s since the first live products, see below); the
 unavailable event is judged at the capture time; wrong-record cases for each metric group. The frame count
 precondition was already in every window, so none was added; what it does not cover is in the plan's not-covered
 list, with the other limits of this revision.
@@ -155,6 +155,27 @@ marked not valid while the sensor answers (`false_invalid`), placeholder without
 valid without a telemetry sample at the sample time (`valid_absent`); for location also values that are not NaN
 (`bad_placeholder`), a sample time that is not zero (`placeholder_time`), the event with a product marked valid
 (`stray_warning`).
+
+### After the first live products (2026-11-20, run `clean-3`; ordered by the project anchor, not reviewed)
+
+The first record with products showed four faults of the harness. The changes below were made after the Mode B
+review closed and were not reviewed.
+
+1. File CRC helper. `fileManager.CalculateCrc` reports the CRC-32 without the final inversion (0x67b852b1 on
+   board, 0x9847ad4e from zlib, for the same file). The helper now compares that value. No check text changed.
+2. A metric marked valid. Old: a telemetry sample of its sensor within 0.1 s of the stated sample time. New:
+   within 1 s. A sample on the ground carries the time of its packet (one a second), the product carries the
+   sensor's own sample time; they were 0.10 to 0.40 s apart over 10 products. The not-covered note of the plan
+   that assumed packet time equals sample time is corrected.
+3. L2-8. Old: `event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted`.
+   New: `event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted`
+   (also the `fails` text of `extra_noop`). `dpCat` emits `CatalogXmitRangeStarted` only.
+4. L7-1. Old: `the directory listing names P only`. New: `the directory listing names P and DpState.dat only`.
+   `DpState.dat` is the state file `dpCat` keeps in the product directory.
+5. `known_failures` (fth `linux-host-coverage@3c4ab8e`): besides the GPS checks of L2-1, L2-2 and L2-9, the
+   MPU6050 checks are declared: the `imuManager.Reading` period check and `MPU6050 readings plausible for a bench
+   at rest` in L2-1 and L2-2, the `imuManager.Reading` item of window D in L2-7 and L2-8. The ruling string
+   carries the three rulings of the human verbatim.
 
 ## Settled at the bench (2026-11-19)
 

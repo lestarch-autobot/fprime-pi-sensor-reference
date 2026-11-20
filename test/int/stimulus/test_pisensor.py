@@ -98,7 +98,7 @@ def crc_matches(h):
             if m:
                 onboard[m.group(1).rsplit("/", 1)[-1]] = int(m.group(2), 16)
     files = {k: v for w in h.windows.values() for k, v in rec.arrived(w).items()}
-    same = [n for n in onboard if n in files and rec.crc(files[n]) == onboard[n]]
+    same = [n for n in onboard if n in files and rec.file_crc(files[n]) == onboard[n]]
     return bool(onboard) and len(same) == len(onboard), \
         f"{len(onboard)} on-board CRC, {len(files)} ground file(s), {len(same)} equal"
 
@@ -181,13 +181,15 @@ def imu_plausible(h):
 
 
 SILENT_S = 2.0  # REQ-PiSensor-014: a reading older than this is not stored
-SAMPLE_MATCH_S = 0.1  # a metric marked valid has a telemetry sample this close to its sample time (sensors sample once a second)
+SAMPLE_MATCH_S = 1.0  # a metric marked valid has a telemetry sample this close to its sample time: the telemetry period. A ground
+# sample carries the time of its packet, one a second; the product carries the sensor's own sample time (first live record:
+# 0.10 to 0.40 s apart)
 
 
 def metrics_valid_or_silent(h):
     """REQ-PiSensor-005, for every ground file of the window and each metric group (temperature; latitude and
     longitude; roll and pitch). Marked valid: the values are finite and the record holds a telemetry sample of
-    that sensor within 0.1 s of the stated sample time. Marked not valid: the values are NaN, the
+    that sensor within 1 s of the stated sample time. Marked not valid: the values are NaN, the
     sample time is zero, and the record holds no telemetry sample of that sensor with a unit time in the 2 s up
     to the capture time record. In the window, the events piCamera sends for a group stored as placeholders are
     as many as the ground files with that group not valid."""
@@ -543,7 +545,7 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
         std(require, fth_plan)
         metrics(w, fth_plan, "L2-8", check, require)
         absent(check)
-        check("event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitStarted and dpCat.CatalogXmitCompleted", noop_during_downlink)
+        check("event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted", noop_during_downlink)
         check("exactly two files arrived", files_arrived(2))
         check("rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2", radio_only)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
@@ -556,9 +558,9 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
 
 def noop_during_downlink(h):
     ev = h.window.ev
-    a = [i for i, e in enumerate(ev) if e.short == "dpCat.CatalogXmitStarted"]
+    a = [i for i, e in enumerate(ev) if e.short == "dpCat.CatalogXmitRangeStarted"]
     b = [i for i, e in enumerate(ev) if e.short == "dpCat.CatalogXmitCompleted"]
-    assert a and b, f"CatalogXmitStarted {len(a)}, CatalogXmitCompleted {len(b)}"
+    assert a and b, f"CatalogXmitRangeStarted {len(a)}, CatalogXmitCompleted {len(b)}"
     n = len([e for e in ev[a[0]:b[0]] if e.short == "cmdDisp.NoOpReceived"])
     return n == 1, f"{n} NoOpReceived between them"
 
@@ -594,7 +596,7 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
             check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
             check("each ground file is a product container with one Metrics and one Picture record; the JPEG decodes, >= 640x480", product_content)
             check("each metric of each ground file is a finite value marked valid, or a placeholder marked not valid whose sensor was silent", metrics_valid_or_silent)
-            check("the directory listing names P only", listing_names_product)
+            check("the directory listing names P and DpState.dat only", listing_names_product)
             check("no CFDP transaction starts after the second START_XMIT_CATALOG", no_second_downlink)
             send("cfdpManager.FileInDefaultKeep_PRM_SET", ["KEEP"])
             p = capture(send, bench, 60, 1)
@@ -609,11 +611,14 @@ def test_L7_1(window, send, bench, check, require, fth_plan):
         bench.action("final_state")
 
 
+STATE_FILE = "DpState.dat"  # the state file dpCat keeps in the product directory
+
+
 def listing_names_product(h):
     listed = [m.group(1) for e in h.window.events("fileManager.DirectoryListing")
               for m in [re.match(r"Directory \S+: (\S+) \(\d+ bytes\)$", e.text)] if m]
     written = [e.text.rsplit("/", 1)[-1] for e in h.window.events("dpWriter.FileWritten")]
-    return len(written) == 1 and listed == written, f"listed {listed}, written {written}"
+    return len(written) == 1 and sorted(listed) == sorted(written + [STATE_FILE]), f"listed {listed}, written {written}"
 
 
 def no_second_downlink(h):

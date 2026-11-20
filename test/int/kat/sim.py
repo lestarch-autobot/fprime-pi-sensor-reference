@@ -174,16 +174,16 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
             if data is None:
                 ok = False
             else:
-                ev(t + 0.15, "FileHandling.fileManager.CalculateCrcSucceeded", "ACTIVITY_HI", f"{args[0]} has CRC value 0x{zlib.crc32(data) & 0xFFFFFFFF:x}")
+                ev(t + 0.15, "FileHandling.fileManager.CalculateCrcSucceeded", "ACTIVITY_HI", f"{args[0]} has CRC value 0x{~zlib.crc32(data) & 0xFFFFFFFF:x}")
         elif name == "fileManager.ListDirectory":
             ev(t + 0.15, "FileHandling.fileManager.ListDirectoryStarted", "ACTIVITY_HI", f"Listing contents of directory {args[0]}")
-            for i, (fname, data) in enumerate(sorted(stored.items())):
+            for i, (fname, data) in enumerate([("dp/DpState.dat", b"\0" * 31)] + sorted(stored.items())):
                 ev(t + 0.16 + i * 0.01, "FileHandling.fileManager.DirectoryListing", "ACTIVITY_HI", f"Directory {args[0]}: {fname.rsplit('/', 1)[-1]} ({len(data)} bytes)")
-            ev(t + 0.19, "FileHandling.fileManager.ListDirectorySucceeded", "ACTIVITY_HI", f"Directory {args[0]} contains {len(stored)} files")
+            ev(t + 0.19, "FileHandling.fileManager.ListDirectorySucceeded", "ACTIVITY_HI", f"Directory {args[0]} contains {len(stored) + 1} files")
         elif name == "cfdpManager.FileInDefaultKeep_PRM_SET":
             state["keep"] = not k["keep_ignored"]
         elif name == "dpCat.START_XMIT_CATALOG":
-            ev(t + 0.15, "DataProducts.dpCat.CatalogXmitStarted", "ACTIVITY_LO", "Catalog transmission started")
+            ev(t + 0.15, "DataProducts.dpCat.CatalogXmitRangeStarted", "ACTIVITY_HI", "Catalog transmission started for priorities 0 through 4294967295")
             at, each = t + 1.0, (2.0 if k["fast_downlink"] else 35.0)
             for fname, data in sorted(stored.items()):
                 if fname in downlinked and not k["resend"]:
