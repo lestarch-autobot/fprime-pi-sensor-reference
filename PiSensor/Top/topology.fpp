@@ -4,6 +4,7 @@ module PiSensor {
     rateGroup1KHz
     rateGroup10Hz
     rateGroup1Hz
+    rateGroup1HzFlush
   }
 
   @ Base deployment: inherited elements only, TM and TC frames over the RFM69
@@ -23,6 +24,7 @@ module PiSensor {
     instance rateGroup1KHz
     instance rateGroup10Hz
     instance rateGroup1Hz
+    instance rateGroup1HzFlush
     instance posixTime
     instance comRetry
     instance piCamera
@@ -35,6 +37,8 @@ module PiSensor {
     param connections instance FileHandlingCfdp.prmDb
     time connections instance posixTime
 
+    include "PiSensorPackets.fppi"
+
     connections RateGroups {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
 
@@ -43,10 +47,15 @@ module PiSensor {
 
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
       rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
-      rateGroup10Hz.RateGroupMemberOut[1] -> ComCcsds.aggregator.timeout
-      rateGroup10Hz.RateGroupMemberOut[2] -> CdhCore.Subtopology.cmdDispRun
-      rateGroup10Hz.RateGroupMemberOut[3] -> Bmp280.bmpManager.run
-      rateGroup10Hz.RateGroupMemberOut[4] -> MpuImu.imuManager.run
+      rateGroup10Hz.RateGroupMemberOut[1] -> CdhCore.Subtopology.cmdDispRun
+      rateGroup10Hz.RateGroupMemberOut[2] -> Bmp280.bmpManager.run
+      rateGroup10Hz.RateGroupMemberOut[3] -> MpuImu.imuManager.run
+
+      # A frame that is not full is sent once per second, 250 ms after the telemetry packets of that
+      # second were produced (rateGroup1Hz); a full frame is sent at once. With the catalog rate
+      # (10 Hz) a burst of events put two frames ahead of the sensor packets (docs/link-budget.md).
+      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1HzFlush] -> rateGroup1HzFlush.CycleIn
+      rateGroup1HzFlush.RateGroupMemberOut[0] -> ComCcsds.aggregator.timeout
 
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
       rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.Subtopology.tlmSendRun

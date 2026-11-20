@@ -1,0 +1,30 @@
+{
+    "FileHandlingCfdp.cfdpManager": {
+        "ChannelConfig": [
+            {
+                "ack_limit": 10,
+                "nack_limit": 10,
+                "ack_timer": 10,
+                "inactivity_timer": 120,
+                "dequeue_enabled": "ENABLED",
+                "move_dir": "",
+                "max_outgoing_pdus_per_cycle": 1,
+                "tmp_dir": "/tmp",
+                "fail_dir": "/fail",
+                "rx_dir": ""
+            },
+            {
+                "ack_limit": 10,
+                "nack_limit": 10,
+                "ack_timer": 10,
+                "inactivity_timer": 120,
+                "dequeue_enabled": "ENABLED",
+                "move_dir": "",
+                "max_outgoing_pdus_per_cycle": 1,
+                "tmp_dir": "/tmp",
+                "fail_dir": "/fail",
+                "rx_dir": ""
+            }
+        ]
+    }
+}
