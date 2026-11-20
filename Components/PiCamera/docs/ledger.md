@@ -251,3 +251,11 @@ Written after the freeze; the package pins `comp/picam`@c2b6adbe50652d6f152face3
 - `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `77bf3d450b4ca54742dbb46fe5cd5ec7532b26c47f631bc7a8a88aa7d8103127`, manifest sha256 `34191a02a361ee8d062fd7fcb826c7187d7f2f9d6f017fb5801cc577975cea69`, 33 pinned files.
 - Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `c2b412e93b152346404d667218aed689f5bd2bb71020028055b703577a33d9d4`.
 - No seed was requested and no run for record was made.
+
+## Picture size for the downlink (2026-11-20)
+
+- Instruction of the project, 2026-11-20 11:39 PST: the link carries 128 file bytes per second and the pictures were 60 to 127 kB, 10 to 16 minutes each; reduce a typical bench picture to about 20 kB, under 32 kB as design target.
+- Change: `JPEG_QUALITY` 90 to 20. Nothing else: the resolution stays 640 x 480, because the approved scope and REQ-PiCamera-002 say at least 640 x 480; the project's suggestion of 640 x 360 was not taken for that reason and the project was told.
+- Basis for 20 [V]: `rpicam-still` at 640 x 480 on the bench scene gave 21.9 kB at quality 90 and 7.2 kB at quality 30, a factor of 0.33; the target needs about 0.25 of the sizes seen at 90. Measured sizes of the component are in the release section below.
+- `PICTURE_MAX_SIZE` (262144) is unchanged: it is the bound that fails a capture, not the typical size.
+- The runs and the delivery of this morning are superseded.

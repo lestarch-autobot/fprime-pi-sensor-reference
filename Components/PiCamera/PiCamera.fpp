@@ -82,8 +82,8 @@ module PiSensor {
     @ Frames discarded while exposure settles
     constant SETTLE_FRAMES = 10
 
-    @ libjpeg quality setting, 1 to 100
-    constant JPEG_QUALITY = 90
+    @ libjpeg quality setting, 1 to 100; low, so that a picture fits the downlink budget
+    constant JPEG_QUALITY = 20
 
     @ Largest difference between a sample time and the capture time, in milliseconds
     constant METRIC_MAX_AGE_MS = 2000
