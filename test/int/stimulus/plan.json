@@ -189,6 +189,31 @@
    "note": ""
   }
  },
+ "known_failures": {
+  "ruling": "Michael Starch, 2026-11-18 19:52 PST: \"If GPS doesn't fix, wait 30min, try again, and if not deliver the RDD with the failing tests and I'll source a new GPS\"; 2026-11-20 10:51 PST: \"I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE\"",
+  "tests": {
+   "L2-1": {
+    "checks": [
+     "for gpsManager.Reading in the window: samples >= 30, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
+     "GPS readings plausible for a bench at rest"
+    ],
+    "reason": "GPS receiver has no fix on the bench; the human cannot give it sky view"
+   },
+   "L2-2": {
+    "checks": [
+     "for gpsManager.Reading in the window: samples >= 15, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 2 s",
+     "GPS readings plausible for a bench at rest"
+    ],
+    "reason": "GPS receiver has no fix on the bench; the human cannot give it sky view"
+   },
+   "L2-9": {
+    "checks": [
+     "for gpsManager.Reading in D: samples >= 3, and the largest gap between ground reception times, counting window start to first sample and last sample to window end, <= 10 s"
+    ],
+    "reason": "GPS receiver has no fix on the bench; the human cannot give it sky view"
+   }
+  }
+ },
  "scope": [
   "L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(arg1)` -> event `cmdDisp.NoOpStringReceived`, the id sent as a decimal string. Link budget [I]: RFM69 at the catalog default data rate 19200 bit/s carries about 2400 byte/s; sensor telemetry at 1 Hz leaves the rest to CFDP, so a 100 kB product takes on the order of a minute.",
   "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS.",

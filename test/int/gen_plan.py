@@ -82,6 +82,15 @@ for i in range(1, 15):
     assert len(cov[k]) >= 2, (k, cov[k]); req[k] = {"tests": cov[k], "verification": ", ".join(cov[k]), "note": ""}
 STD = ["both markers present", "event cmdDisp.OpCodeError count == 0 for every opcode but piCamera.CAPTURE (a failed capture is judged by the test, as FAIL)", "no gap, modulo 256, in the virtual channel frame count received by YAMCS between the markers (record/raw/frames.json)",
        "event cmdDisp.TooManyCommands count == 0", "event comQueue.QueueOverflow count == 0", "Heartbeat samples >= 2"]
+GPS_REASON = "GPS receiver has no fix on the bench; the human cannot give it sky view"
+GPS_PLAUSIBLE = "GPS readings plausible for a bench at rest"
+gps_metric = lambda test_id: [m["text"] for x in T if x["id"] == test_id for m in x["metrics"] if m["text"].startswith("for gpsManager.Reading in")]
+KNOWN = {"ruling": 'Michael Starch, 2026-11-18 19:52 PST: "If GPS doesn\'t fix, wait 30min, try again, and if not deliver the RDD with the failing tests and I\'ll source a new GPS"; '
+                   '2026-11-20 10:51 PST: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE"',
+         "tests": {"L2-1": {"checks": gps_metric("L2-1") + [GPS_PLAUSIBLE], "reason": GPS_REASON},
+                   "L2-2": {"checks": gps_metric("L2-2") + [GPS_PLAUSIBLE], "reason": GPS_REASON},
+                   "L2-9": {"checks": gps_metric("L2-9"), "reason": GPS_REASON}}}
+assert [len(v["checks"]) for v in KNOWN["tests"].values()] == [2, 2, 1]
 plan = {
  "name": "PiSensor system test plan",
  "markers": {"command": "cmdDisp.CMD_NO_OP_STRING", "event": "cmdDisp.NoOpStringReceived", "arg": "arg1", "reserved_min": 4294901760},
@@ -100,6 +109,7 @@ plan = {
  "final_state": {"accepted_evidence": "bench sha256sum of the L7-1 product file, taken over ssh after the run into record/raw/final-state.txt, compared by the auditor with the sha256 of the ground file in record/raw/files/",
                  "rationale": "The on-board CRC command runs inside the UUT process; the bench reads the file itself, outside the UUT's reporting path."},
  "requirements": req,
+ "known_failures": KNOWN,
  "scope": ["L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(arg1)` -> event `cmdDisp.NoOpStringReceived`, the id sent as a decimal string. Link budget [I]: RFM69 at the catalog default data rate 19200 bit/s carries about 2400 byte/s; sensor telemetry at 1 Hz leaves the rest to CFDP, so a 100 kB product takes on the order of a minute.",
            "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS.",
            "- Test deployment: the deployment itself. No component is added for testing. Markers use `cmdDisp`, the on-board file check uses `fileManager.CalculateCrc`, the directory listing uses `fileManager.ListDirectory`, product names come from `dpWriter.FileWritten`, platform identity is a bench action over ssh.",
