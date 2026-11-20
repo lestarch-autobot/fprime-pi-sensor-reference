@@ -229,3 +229,25 @@ Written after the freeze; the package pins `comp/picam`@3e2290f729784914e1d9d598
 - Checklist, implementation stage, re-stamped: YES 30, N/A 3, UNCHECKED 37 (no clang-tidy plugin), NO 3 (3.12, 3.33, 5.3).
 - Bench plan: one check per sensor, `<sensor> warning agrees with the sensor telemetry`: the warning is expected when the window holds no sample of the sensor, no warning when samples are fresh before the start and the end of the capture, and nothing is judged between.
 - Review: none for this change; the project asked for speed and the change repeats the reviewed pattern of 2026-11-19 for two more readings.
+
+## Release, fourth delivery (2026-11-20)
+
+Written after the freeze; the package pins `comp/picam`@c2b6adbe50652d6f152face3f7a8dc094e4e4cb3, the commit before this section. It supersedes the deliveries of 2026-11-19.
+
+- Images, built from scratch on the workstation [V]: pure sha256 `cc287e1d0cbae1dc8efe89491e017e848c326a5b561aff7a679c5a5342d867f9`; built for coverage `a51e1b2420c1b7244189a76d731bb279f32f5ec1fd6fb5e8fbe35bc97e907b8b`; dictionary `3d6bc63bfc51715de1f19b52100433694f91791a805c00f4ca9b1e6a488cd472`. `fth deliver` rebuilt the pure image and the dictionary to the same hashes.
+- Sensors on the day [V]: BMP280 answering (no `TemperatureUnavailable` in any run); GPS without a fix (`LocationUnavailable(SENSOR_NO_DATA, 0)` in every capture); MPU6050 failed again about 15 s after the first image start (`imuManager.I2cError`), so every capture carried `AttitudeUnavailable`. A valid attitude was not seen on the bench.
+- A first clean run at 62ca8b0 failed the response-time check of C-1 and C-2 in the harness: `CaptureStarted` and the dispatch event of `CAPTURE` were 1 ms apart and the check matched equal time tags. Fixed in c2b6adb (50 ms); the unit was not at fault.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `c88e696e…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `9b32c188…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `56caa615…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `ab2dfa21…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `f554007f…` |
+
+- `fth audit --unsealed --tests`: dry-1 ok, every step (15 OK lines, the run-start markers among them; the "16 steps" of the third delivery was a miscount of the same 15). dry-2 to dry-4: runner and replay agree on every test; the two failing steps are the ones a planted development run must fail (plant present, the planted command not replayed).
+- Coverage: unit tests, lines 99.3% (266 of 268); on the target, `Components/PiCamera/`, 284 count files: lines 76.1% (429 of 564), functions 83.0% (39 of 47), branches 56.8% (319 of 562). Plan minimum 95 and 75. `fth dev-campaign --gcda-dir`: clean.
+- `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `77bf3d450b4ca54742dbb46fe5cd5ec7532b26c47f631bc7a8a88aa7d8103127`, manifest sha256 `34191a02a361ee8d062fd7fcb826c7187d7f2f9d6f017fb5801cc577975cea69`, 33 pinned files.
+- Seed-free rehearsal `fth rfr rfr-input.zip --dry-run`: OK, 39 preflight checks, 12 command lines, 47 path tokens; `rfr.log` sha256 `c2b412e93b152346404d667218aed689f5bd2bb71020028055b703577a33d9d4`.
+- No seed was requested and no run for record was made.
