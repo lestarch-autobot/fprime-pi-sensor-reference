@@ -259,3 +259,25 @@ Written after the freeze; the package pins `comp/picam`@c2b6adbe50652d6f152face3
 - Basis for 20 [V]: `rpicam-still` at 640 x 480 on the bench scene gave 21.9 kB at quality 90 and 7.2 kB at quality 30, a factor of 0.33; the target needs about 0.25 of the sizes seen at 90. Measured sizes of the component are in the release section below.
 - `PICTURE_MAX_SIZE` (262144) is unchanged: it is the bound that fails a capture, not the typical size.
 - The runs and the delivery of this morning are superseded.
+
+## Release, fifth delivery (2026-11-20)
+
+Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db5136890cd9516fd8932, the commit before this section. It supersedes every earlier delivery.
+
+- Images, built from scratch on the workstation [V]: pure sha256 `05d483517031a537010372a96d339cc3a1297f9789222bd4c4c4d23960f8a7d1`; built for coverage `50140d61b353350476c5b0443738e483271d445b1500a43e8c60f3ae64438782`; dictionary `bd66b80e75c91baf121d5ba7dc6ca98b129cd23fd6e19aca970cdee8d9a89a80`. `fth deliver` rebuilt the pure image and the dictionary to the same hashes.
+- Picture size at `JPEG_QUALITY` 20 [V]: 9 491 to 11 666 bytes over the 22 captures of the five runs. One stored picture was read back from its product file and decodes as a 640 x 480 picture of the bench scene, a textured surface with little detail; a scene with more detail will be larger.
+- Sensors: BMP280 answering (no `TemperatureUnavailable`); GPS without a fix and MPU6050 silent, so every capture carried `LocationUnavailable` and `AttitudeUnavailable`.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `d7987c5d…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `74d01e04…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `e0c8e00a…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `2f1f83db…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `eef38518…` |
+
+- `fth audit --unsealed --tests`: dry-1 ok, every step; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed.
+- Coverage: unit tests, lines 99.3% (266 of 268), report at `ut-coverage/` of the campaign root and `inputs/coverage/ut/` of the package; on the target, lines 76.1% (429 of 564), functions 83.0%, branches 56.8%. `fth dev-campaign --gcda-dir`: clean.
+- `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `33f7f126f693d20104d18634f02c851e07a8a83e78b96dcf3a07502b5ca553a9`, manifest sha256 `b63e0625535abff90fb249b27b41d01707e3e2e1db5072bf785aac4f8c05e6b5`, 33 pinned files.
+- Seed-free rehearsal: OK, 39 preflight checks; `rfr.log` sha256 `0dc39b6aff07694150f34ddc3eaac64b4d06d6df1e384438fb73393c1146f531`.
+- No seed was requested and no run for record was made.
