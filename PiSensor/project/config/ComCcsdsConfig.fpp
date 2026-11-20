@@ -1,5 +1,5 @@
 # PiSensor override of Svc/Subtopologies/ComCcsds/ComCcsdsConfig/ComCcsdsConfig.fpp (nasa/fprime devel 83221ba).
-# One change: Aggregator.enablePacketSpanning = true.
+# Changes: Aggregator.enablePacketSpanning = true; QueuePriorities.
 module ComCcsdsConfig {
     #Base ID for the ComCcsds Subtopology, all components are offsets from this base ID
     constant BASE_ID = 0x02000000
@@ -32,11 +32,12 @@ module ComCcsdsConfig {
     }
 
     module QueuePriorities {
-        # PiSensor: 0 is served first (Svc.ComQueue). Telemetry goes before file data so that a
-        # CFDP downlink does not hold the sensor telemetry back (REQ-PiSensor-012); the file
-        # source is limited to the link share left by docs/link-budget.md.
-        constant events      = 0
-        constant tlm         = 1
+        # PiSensor: 0 is served first (Svc.ComQueue). Sensor telemetry goes first: one frame per
+        # second that must not wait behind a burst of event frames (REQ-PiSensor-001 to -003),
+        # nor behind file data (REQ-PiSensor-012). Events follow, file data takes what is left
+        # (docs/link-budget.md).
+        constant tlm         = 0
+        constant events      = 1
         constant file        = 2
     }
 
