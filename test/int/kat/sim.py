@@ -30,8 +30,8 @@ PLATFORM = ("MODEL=Raspberry Pi 5 Model B Rev 1.0\n--- os-release\nVERSION_ID=\"
             "--- rpi-issue\nRaspberry Pi reference 2025-10-01\n--- long-bit\n64\n")
 SOCKETS = "PID=4242\nEXE=/home/fprime/pisensor-campaign/sys/PiSensor\n--- sockets\n--- devices\n/dev/spidev0.0\n/dev/i2c-1\n/dev/ttyAMA0\n"
 DEFAULTS = {"capture_fails": False, "clock_offset": 0.1, "drop_frame": False, "corrupt_file": False, "class1": False,
-            "telemetry_gap": False, "small_picture": False, "extra_socket": False, "slow_capture": False,
-            "stale_sample": False, "tcp_frames": False, "fatal": False, "keep_ignored": False, "fast_downlink": False, "resend": False, "wrong_time": False,
+            "telemetry_gap": False, "small_picture": False, "slow_capture": False,
+            "stale_sample": False, "fatal": False, "keep_ignored": False, "fast_downlink": False, "resend": False, "wrong_time": False,
             # GPS without a fix (REQ-PiSensor-005 placeholders) and the wrong records around it
             # each of the others names a metric group (temperature, location, attitude) or is False
             "gps_silent": False, "false_invalid": False, "no_warning": False, "bad_placeholder": False,
@@ -133,7 +133,7 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
             if str(args[0]) == "10":
                 act(t + 0.5, "clock", json.dumps({"offset_s": k["clock_offset"], "uncertainty_s": 0.02}))
                 act(t + 1.2, "platform", PLATFORM)
-                act(t + 2.0, "sockets", SOCKETS.replace("--- sockets\n", "--- sockets\nudp UNCONN 0 0 0.0.0.0:50000 users:((\"PiSensor\",pid=4242,fd=9))\n") if k["extra_socket"] else SOCKETS)
+                act(t + 2.0, "sockets", SOCKETS)
             if str(args[0]) == "20":
                 act(t + 1.2, "platform", PLATFORM)
             if str(args[0]) == "42405" and k["fatal"]:
@@ -220,13 +220,10 @@ def build(commands: list, raw_dir, knobs: dict | None = None) -> None:
             sent_frames += 1
             if not (k["drop_frame"] and sent_frames % 97 == 0):
                 frames.append({"rx": tf + 0.3, "len": 255, "scid": 68, "vcid": 0, "mc_count": sent_frames % 256, "vc_count": sent_frames % 256})
-            if k["tcp_frames"]:
-                frames.append({"rx": tf + 0.31, "len": 255, "scid": 68, "vcid": 1, "mc_count": 0, "vc_count": sent_frames % 256})
         if not gap:
             for nm, val in (("MpuImu/imuManager/Reading", {"acceleration": acc(tsec), "rotation": {"x": 0.1, "y": 0.0, "z": 0.2}, "temperature": 25.0}),
                             ("Bmp/bmpManager/Reading", {"pressure": 101.3, "temperature": temp(tsec), "altitude": 350.0}),
-                            ("Gps/gpsManager/Reading", {"latitude": LAT, "longitude": LON, "altitude": 350.0}),
-                            ("Radio/rfm69Manager/PacketsTransmitted", sent_frames), ("Radio/rfm69Manager/PacketsReceived", int(tsec - T0))):
+                            ("Gps/gpsManager/Reading", {"latitude": LAT, "longitude": LON, "altitude": 350.0})):
                 if k["gps_silent"] and nm.startswith("Gps/"):
                     continue
                 if any(nm.startswith(GROUP[g][0]) and any(tc - 3.0 <= tsec <= tc + 1.0 for tc in captured) for g in quiet - ({"location"} if k["gps_silent"] else set()) | ({k["valid_absent"]} if k["valid_absent"] else set())):

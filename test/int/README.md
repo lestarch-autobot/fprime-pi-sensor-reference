@@ -2,17 +2,19 @@
 
 The harness of the 11 tests of `stimulus/plan.json` (approved with Gate 1). It runs on the bench workstation with
 [fprime-testing-harness](https://github.com/LeStarch/fprime-testing-harness) (`fth`) v0.1.2; the ground
-system is fprime-yamcs and the ground radio is the Feather M0 RFM69. Nothing here is part of the flight
+system is fprime-yamcs. Since 2026-11-23 the link is TCP (`bench/tcp_bridge.py`); before that it was the RFM69
+with the Feather M0 ground radio (section "TCP link" below). Nothing here is part of the flight
 deployment and there is no test component.
 
 | Path | What it is |
 |---|---|
-| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 3 (changelogs below) |
+| `stimulus/plan.json`, `stimulus/plan.md`, `stimulus/faults-menu.json`, `gen_plan.py` | the plan, revision 4 (changelogs below) |
 | `stimulus/planted_faults.py` | the plan's helper predicates (its metrics) and planted faults |
 | `stimulus/test_pisensor.py` | the stimulus and the named checks, one function per plan test; the `--tests` directory |
 | `stimulus/pisensor_record.py` | record access for the checks: ground reception time, transfers, frames, product decoder |
 | `bench.json` | the bench: command lines of the ground side, the sender, the recorder, the UUT actions |
-| `bench/yamcs_bench.py` | of the `piCamera` component tests: image on the Pi, fprime-yamcs and `ground/feather_bridge.py`, command sending with resend |
+| `bench/yamcs_bench.py` | of the `piCamera` component tests: image on the Pi, fprime-yamcs and the bench bridge, command sending with resend |
+| `bench/tcp_bridge.py` | bench bridge: TCP server for the deployment, TM and TC frames to and from the fprime-yamcs UDP links, frame log |
 | `bench/yamcs_recorder.py` | records events, telemetry, transfers, frames and received files from YAMCS |
 | `bench/uut.py` | the bench actions on the Pi over ssh |
 | `bench/verify_stimulus.py` | stimulus against the plan procedures, from a dry run |
@@ -208,6 +210,49 @@ The change below follows the second ruling. It was made after the Mode B review 
    correct unit. Nothing bounds how many frames a judged window may have lost.
 4. Known-answer tests: a record with lost frames is judged, every test passes, and exactly the tests with a lost
    frame carry the count and the note.
+
+### TCP link, plan revision 4 (2026-11-23; human ruling, not reviewed)
+
+The flight RFM69 on `soakee` stays in transmit mode and takes neither a mode write nor a reset pulse
+(`docs/ledger.md`). Ruling of the human, verbatim, Michael Starch, 2026-11-23 13:18 PST: "Ok, please switch to
+TCP, and continue development w/o the radio". The project anchor ordered the changes below; none is reviewed.
+
+- **Link.** The image (`PISENSOR_COM=TCP`, the default) is the TCP client: `Drv.TcpClient` connects to
+  `192.168.10.1:50000` on the ground host, given as `PiSensor -a 192.168.10.1 -p 50000` (`bench.json`,
+  `--image-args`). `bench/tcp_bridge.py` listens there, cuts the downlink stream into 255-byte TM frames for
+  the fprime-yamcs TM link (UDP 51000) and writes each TC frame of the TC link (UDP 51001) to the connection.
+  It writes the frame log (`bridge.log`) in the format of `ground/feather_bridge.py`, so `frames.json` and
+  the lost-frame count are made as before. `ground/feather_bridge.py` is not used.
+- **REQ-PiSensor-010 is not verified** by any test (plan, Not covered). It is out of the `covers` of L0-1,
+  L2-7 and L2-8. Checks removed, with nothing in their place:
+
+| Test | Removed check |
+|---|---|
+| L0-1 | `the process holds no TCP or UDP socket` |
+| L2-7, L2-8 | `rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2` |
+
+- **How the plan says it.** fth has one form for a requirement without a test and prints it as "waived"
+  (`1 waived requirements`, `waived: Not verified: ...` in `plan.md`). Nobody waived the requirement: it is
+  not verified.
+- **Known-answer cases removed** with those checks: `extra_socket`, `tcp_frames`.
+- **Texts corrected** (old, new):
+
+| Where | Old | New |
+|---|---|---|
+| L0-1 purpose | Proves the image is the manifest's, on a Pi 5, reached only by RFM69. | Proves the image is the manifest's, on a Pi 5. |
+| L0-1 setup | Deployment running on the Raspberry Pi 5; RFM69 link up. | Deployment running on the Raspberry Pi 5; TCP link up. |
+| Setup of the other tests | ... RFM69 link up through the bench ground radio to fprime-yamcs ... | ... TCP link up through the bench bridge to fprime-yamcs ... |
+| Scope, link | Link budget [I]: RFM69 at the catalog default data rate 19200 bit/s carries about 2400 byte/s; ... | Link (revision 4): TCP between the Pi and the ground host; the link budget of the RFM69 does not apply and the downlink time of a product over TCP is measured, not budgeted. |
+| Scope, ground system | ... joined to the RFM69 link by the bench ground radio ... | ... joined to the TCP connection of the deployment by the bench bridge `test/int/bench/tcp_bridge.py` ... |
+| Scope, telemetry gaps | ... margin for radio delay. | ... margin for link delay. |
+| Scope, devices | the SPI devices of the RFM69 and the BMP280 | the SPI device of the BMP280 |
+| Bench recipe | RFM69 ground radio joined to fprime-yamcs on the ground host (supplied with the bench) | the Pi 5 and the ground host on one Ethernet network, the deployment started with the address and TCP port of the bench bridge on the ground host |
+| Not covered | Radio interference and range: the RFM69 link is tested at bench range only. | the REQ-PiSensor-010 entry |
+
+- **Unchanged:** every other check, the 11 known failures, the lost-frame rule and its precondition (no lost
+  frame is expected over TCP), the 75 % coverage minimum.
+- **Not true any more, left as history:** "Settled at the bench" and "Flight configuration of 2026-11-19"
+  below describe the radio link (telemetry age, link counters, downlink rate).
 
 ## Settled at the bench (2026-11-19)
 

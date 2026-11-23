@@ -242,19 +242,6 @@ def _distance_km(lat1, lon1, lat2, lon2):
     return 2 * 6371.0 * math.asin(math.sqrt(a))
 
 
-def radio_only(h):
-    """PacketsTransmitted and PacketsReceived rise in D; TM frames received between the first and last
-    PacketsTransmitted sample <= (last - first) + 2."""
-    w = h.window
-    tx, rxs = w.channel("rfm69Manager.PacketsTransmitted"), w.channel("rfm69Manager.PacketsReceived")
-    assert len(tx) >= 2 and len(rxs) >= 2, f"samples: PacketsTransmitted {len(tx)}, PacketsReceived {len(rxs)}"
-    t0, t1 = rec.rx(tx[0]), rec.rx(tx[-1])
-    n = len([f for f in rec.frames(w) if t0 < f["rx"] <= t1])
-    rise = tx[-1].value - tx[0].value
-    return rise > 0 and rxs[-1].value > rxs[0].value and n <= rise + 2, \
-        f"PacketsTransmitted +{rise}, PacketsReceived +{rxs[-1].value - rxs[0].value}, {n} TM frames"
-
-
 def metrics_match_telemetry(h, which):
     """Each metric of the product against the telemetry samples of its channel around its sample time."""
     files = rec.arrived(h.window)
@@ -290,7 +277,7 @@ def metrics_match_telemetry(h, which):
 
 def settle(bench, limit_s=60):
     """Last step of every window: wait until the telemetry sampled up to now has reached the ground. The
-    radio downlink carries telemetry later than events, and later the longer the unit runs; fth judges a
+    downlink carried telemetry later than events over the radio, and later the longer the unit runs; fth judges a
     window right after its END marker over the samples whose unit time lies in it."""
     if not rec.live():
         return
@@ -329,7 +316,7 @@ def downlinked(bench, products=1):
 
 
 # ---------------------------------------------------------------- the tests, in plan order
-@pytest.mark.req(*R(13, 10))
+@pytest.mark.req(*R(13))
 def test_L0_1(window, send, bench, check, require, fth_plan):
     with window(10, 11) as w:
         std(require, fth_plan)
@@ -342,7 +329,6 @@ def test_L0_1(window, send, bench, check, require, fth_plan):
         absent(check)
         check("Version events equal the manifest describe strings", versions)
         check("platform is a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (trixie)", platform)
-        check("the process holds no TCP or UDP socket", lambda h: (not _sockets(h)[0], f"sockets: {_sockets(h)[0]}"))
         check("character devices held by the process are a subset of the list in Scope",
               lambda h: (all(DEVICES.match(d) for d in _sockets(h)[1]), f"devices: {_sockets(h)[1]}"))
         check("LibraryVersions names fprime-sensors only",
@@ -503,7 +489,7 @@ def test_L2_6(window, send, bench, check, require, fth_plan):
         settle(bench)
 
 
-@pytest.mark.req(*R(12, 8, 9, 10, 11))
+@pytest.mark.req(*R(12, 8, 9, 11))
 def test_L2_7(window, send, bench, check, require, fth_plan):
     bench.action("clean_products")
     with window(50, 51) as w:
@@ -522,7 +508,6 @@ def test_L2_7(window, send, bench, check, require, fth_plan):
         absent(check)
         check("event dpWriter.FileWritten count == 2 over the whole test (Q and D)", two_names)
         check("exactly two files arrived", files_arrived(2))
-        check("rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2", radio_only)
         check("CRC of each ground file == value in the fileManager.CalculateCrcSucceeded event of its product", crc_matches)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         downlink(send, bench)
@@ -530,7 +515,7 @@ def test_L2_7(window, send, bench, check, require, fth_plan):
         settle(bench)
 
 
-@pytest.mark.req(*R(12, 10))
+@pytest.mark.req(*R(12))
 def test_L2_8(window, send, bench, check, require, fth_plan):
     bench.action("clean_products")
     with window(53, 54) as w:
@@ -547,7 +532,6 @@ def test_L2_8(window, send, bench, check, require, fth_plan):
         absent(check)
         check("event cmdDisp.NoOpReceived count == 1 between dpCat.CatalogXmitRangeStarted and dpCat.CatalogXmitCompleted", noop_during_downlink)
         check("exactly two files arrived", files_arrived(2))
-        check("rfm69Manager.PacketsTransmitted and PacketsReceived rise in D; TM frames received <= PacketsTransmitted rise + 2", radio_only)
         check("every CFDP transaction in the window is class 2 and finished complete at the ground", class2_complete)
         downlink(send, bench, wait_s=0)
         bench.wait(15)
