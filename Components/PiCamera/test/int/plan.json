@@ -122,7 +122,7 @@
     "REQ-PiCamera-020",
     "REQ-PiCamera-026"
    ],
-   "setup": "Deployment running on the Raspberry Pi 5, camera free, GPS fix, RFM69 link up.",
+   "setup": "Deployment running on the Raspberry Pi 5, camera free, TCP link to the ground workstation up.",
    "procedure": [
     "MARK(10)",
     "bracket (2 Heartbeat samples)",

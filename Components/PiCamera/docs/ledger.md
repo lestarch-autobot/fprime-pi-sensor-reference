@@ -281,3 +281,25 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 - `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `33f7f126f693d20104d18634f02c851e07a8a83e78b96dcf3a07502b5ca553a9`, manifest sha256 `b63e0625535abff90fb249b27b41d01707e3e2e1db5072bf785aac4f8c05e6b5`, 33 pinned files.
 - Seed-free rehearsal: OK, 39 preflight checks; `rfr.log` sha256 `0dc39b6aff07694150f34ddc3eaac64b4d06d6df1e384438fb73393c1146f531`.
 - No seed was requested and no run for record was made.
+
+## Link changed to TCP (2026-11-23)
+
+- Ruling of Michael Starch, 2026-11-23 13:18 PST, relayed by the project: "Ok, please switch to TCP, and continue development w/o the radio" and "Yes, close this out." The flight RFM69 of the bench failed, so the fifth delivery, whose runs went over the radio, cannot be run for record.
+- `comp/picam` was fast-forwarded from 57c31ec to `deploy/base`@c7c1e96 (the deployment with `PISENSOR_COM=TCP` as default) by instruction of the project; the bench changes are on top. The UUT pin moves from 4a10a1a to the head of this branch because the image must be built from a tree that has the TCP topology.
+- The component did not change: `git diff --stat 4a10a1a c7c1e96 -- Components/PiCamera` lists `Components/PiCamera/docs/ledger.md` only. Unit tests and their coverage were not rerun.
+- Bench files taken by path from `sys/harness`@aed818d, as instructed (`git checkout aed818d -- <path>`): `test/int/bench/tcp_bridge.py` and `test/int/bench/yamcs_bench.py`. Nothing else of the system harness or plan was taken.
+- Bench description (`bench.json`, `bench-coverage.json`): the bridge is `test/int/bench/tcp_bridge.py` on TCP port 50000, the image is started with `-a 192.168.10.1 -p 50000`, and `flash` copies `inputs/PrmDb.dat` as the system bench does, so the image runs with the project parameters.
+- Tool: fth `linux-host-coverage`@3c4ab8e. `fth verify-plan --tests` passes with both bench files (31 named checks); the 4 known-answer checks pass; the replay of the last radio clean-run record passes 3 of 3.
+- Texts that named the radio, corrected; not reviewed:
+
+| File | Old | New |
+|---|---|---|
+| `plan.json`, `plan.md`, setup of C-1 | "camera free, GPS fix, RFM69 link up." | "camera free, TCP link to the ground workstation up." |
+| `README.md` | "fprime-yamcs behind the RFM69 bridge" | "fprime-yamcs behind the TCP bridge `test/int/bench/tcp_bridge.py`, which the image connects to" |
+| `README.md` | "The radio uplink has no retransmission. The sender sends a command again, ..." | "The link is TCP and loses no command. The sender still sends a command again, ..." |
+| `README.md` | "`python3` (with `yamcs-client` and `pyserial`)" | "`python3` (with `yamcs-client`)" |
+| `README.md` | "`inputs/`: the image and its dictionary." | adds `PrmDb.dat` and how it is built |
+| `bench.json`, `bench-coverage.json`, notes | "soakee behind the RFM69 link; ground is fprime-yamcs on the workstation." | "soakee on a TCP link: the image connects to the bench bridge on the workstation, which passes its frames to fprime-yamcs; ..." |
+
+- Left as written: the SDD rationale of `JPEG_QUALITY` speaks of "the radio link" and 128 file bytes per second. The constant is unchanged and the project said not to change the component; the sentence describes why the value was chosen.
+- The setup text of C-1 also said "GPS fix", untrue since the ruling of 2026-11-20; it is removed with the radio wording.

@@ -22,7 +22,7 @@ ID:        C-1
 Title:     Capture on the target
 Purpose:   Proves one capture command stores one product through the real camera within the response bound.
 Covers:    REQ-PiCamera-009, REQ-PiCamera-020, REQ-PiCamera-026
-Setup:     Deployment running on the Raspberry Pi 5, camera free, GPS fix, RFM69 link up.
+Setup:     Deployment running on the Raspberry Pi 5, camera free, TCP link to the ground workstation up.
 Procedure: MARK(10); bracket (2 Heartbeat samples); piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(11).
 Window:    Marker(id=10) … Marker(id=11)
 Pass rule: named checks declared in the integration test (test_C_1). metrics: t(event piCamera.CaptureCompleted) - t(piCamera.CAPTURE sent) <= 15 s.

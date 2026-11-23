@@ -8,19 +8,20 @@ stimulus and its named checks are `test_picam.py`, the planted faults are
 The tests run with [fprime-testing-harness](https://github.com/LeStarch/fprime-testing-harness)
 (`fth`) from the ground workstation. `bench.json` describes the bench: the
 image is copied to the Raspberry Pi over ssh and started there, the ground
-system is fprime-yamcs behind the RFM69 bridge. Every bench command line calls
+system is fprime-yamcs behind the TCP bridge `test/int/bench/tcp_bridge.py`,
+which the image connects to. Every bench command line calls
 `test/int/bench/yamcs_bench.py` of this repository.
 
 Run `fth` from a campaign root on the workstation that holds:
 
 - `uut/`: the checkout of this repository;
 - `yamcs-config/`: the YAMCS configuration directory of `ground/README.md`;
-- `inputs/`: the image and its dictionary.
+- `inputs/`: the image, its dictionary and `PrmDb.dat` (`fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary> -o inputs/PrmDb.dat`).
 
-`python3` (with `yamcs-client` and `pyserial`) and `fprime-yamcs` are on `PATH`.
+`python3` (with `yamcs-client`) and `fprime-yamcs` are on `PATH`.
 The Pi is the ssh host `pi`.
 
-The radio uplink has no retransmission. The sender sends a command again, at
+The link is TCP and loses no command. The sender still sends a command again, at
 most twice, when the unit does not report its dispatch within 6 s, and writes
 each resend to `record/raw/cmd/resend.log`. Ground link events of YAMCS are
 kept in `record/raw/ground-events.log`.

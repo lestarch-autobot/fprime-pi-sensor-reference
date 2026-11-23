@@ -3,14 +3,15 @@
 
 fth drives a bench through the command lines of ``bench.json`` and reads the
 recorder and sender logs in the fprime-cli log format. This bench has no
-fprime-gds: the ground system is fprime-yamcs behind the RFM69 bridge and the
+fprime-gds: the ground system is fprime-yamcs behind a bench bridge (TCP since
+2026-11-23, tcp_bridge.py; before that the RFM69 ground radio) and the
 unit under test is a Linux process on the Raspberry Pi. Each subcommand below is
 one ``bench.json`` line:
 
   flash     copy the image to the Pi, stop the image this adapter started
             before, start the new one, print the Pi serial number
   dump      copy the image file back from the Pi (read-back)
-  gds       run the RFM69 bridge and fprime-yamcs until terminated
+  gds       run the bench bridge and fprime-yamcs until terminated
   recorder  write the events and channels YAMCS receives as event.log and
             channel.log
   send      send one command through YAMCS and write command.log; a command the
@@ -115,10 +116,12 @@ def pi_stop(args) -> None:
 
 
 def pi_start(args) -> None:
+    # Arguments of the image (the ground address and port of the TCP variant), a comma separated list
+    image_args = " ".join(shlex.quote(part) for part in args.image_args.split(",") if part)
     # An image built for coverage writes its counts under gcda/ when it ends (flash --gcov)
     ssh(args.pi, f"cd {shlex.quote(args.pi_dir)} && mkdir -p run && "
                  f"if [ -d {GCDA_DIR} ]; then export GCOV_PREFIX=$PWD/{GCDA_DIR}; fi; cd run && "
-                 f"(nohup ../PiSensor >> fsw.log 2>&1 < /dev/null & echo $! > ../{PI_PID}); sleep 1")
+                 f"(nohup ../PiSensor {image_args} >> fsw.log 2>&1 < /dev/null & echo $! > ../{PI_PID}); sleep 1")
     confirm_running(args, PI_PID, "the image")
 
 
@@ -129,6 +132,10 @@ def cmd_flash(args) -> None:
     subprocess.run(["scp", "-q", "-o", "BatchMode=yes", args.image, f"{args.pi}:{args.pi_dir}/PiSensor"], check=True,
                    timeout=300)
     ssh(args.pi, f"chmod +x {shlex.quote(args.pi_dir)}/PiSensor")
+    if args.prm:  # the parameter file is read from the working directory when the image starts
+        ssh(args.pi, f"mkdir -p {shlex.quote(args.pi_dir)}/run")
+        subprocess.run(["scp", "-q", "-o", "BatchMode=yes", args.prm, f"{args.pi}:{args.pi_dir}/run/PrmDb.dat"],
+                       check=True, timeout=60)
     pi_start(args)
     serial = ssh(args.pi, "awk '/^Serial/ {print $3}' /proc/cpuinfo").strip()
     # The target has no debugger: the serial number of the Pi identifies the unit
@@ -205,10 +212,13 @@ def cmd_gds(args) -> None:
     environment = dict(os.environ)
     if os.sep in args.fprime_yamcs:
         environment["PATH"] = str(Path(args.fprime_yamcs).resolve().parent) + os.pathsep + environment.get("PATH", "")
+    if (args.uart is None) == (args.tcp_port is None):
+        raise SystemExit("gds: give --uart (ground/feather_bridge.py) or --tcp-port (tcp_bridge.py), not both")
+    link = ["--uart-device", args.uart] if args.uart else ["--tcp-port", str(args.tcp_port)]
     # Same process group as this process: fth stops the group
     children.append(subprocess.Popen(
-        [args.bridge_python, args.bridge, "--uart-device", args.uart, "--tm-port", str(args.tm_port), "--tc-port",
-         str(args.tc_port), "--log", str(logs / "bridge.log")],
+        [args.bridge_python, args.bridge] + link + ["--tm-port", str(args.tm_port), "--tc-port", str(args.tc_port),
+                                                    "--log", str(logs / "bridge.log")],
         stdout=open(logs / "bridge.out", "wb"), stderr=subprocess.STDOUT))
     children.append(subprocess.Popen(
         [args.fprime_yamcs, "-n", "--dictionary", str(Path(args.dictionary).resolve()), "--communication-selection",
@@ -359,12 +369,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--pi", default="pi", help="ssh host of the Raspberry Pi")
     parser.add_argument("--pi-dir", default="pisensor-campaign/fth-uut", help="directory on the Pi, owned by the adapter")
+    parser.add_argument("--image-args", default="", help="arguments of the image on the Pi, comma separated")
     parser.add_argument("--deployment", default="PiSensor")
     parser.add_argument("--yamcs", default="localhost:8190")
     parser.add_argument("--instance", default="fprime-project")
     parser.add_argument("--space-system", default="PiSensor_PiSensor")
     sub = parser.add_subparsers(dest="sub", required=True)
-    p = sub.add_parser("flash"); p.add_argument("image"); p.set_defaults(fn=cmd_flash)
+    p = sub.add_parser("flash"); p.add_argument("image"); p.add_argument("--prm"); p.set_defaults(fn=cmd_flash)
     p.add_argument("--gcov", action="store_true", help="image built for coverage: keep its counts on the Pi")
     p = sub.add_parser("collect-gcda"); p.add_argument("out"); p.set_defaults(fn=cmd_collect_gcda)
     p = sub.add_parser("dump"); p.add_argument("readback"); p.set_defaults(fn=cmd_dump)
@@ -373,7 +384,9 @@ def main() -> None:
     p.set_defaults(fn=cmd_action)
     p = sub.add_parser("gds")
     p.add_argument("--dictionary", required=True); p.add_argument("--logs", required=True)
-    p.add_argument("--bridge", required=True); p.add_argument("--uart", required=True)
+    p.add_argument("--bridge", required=True)
+    p.add_argument("--uart", help="serial device of the ground radio (ground/feather_bridge.py)")
+    p.add_argument("--tcp-port", type=int, help="TCP port the image connects to (tcp_bridge.py)")
     p.add_argument("--bridge-python", default=sys.executable, help="interpreter with pyserial")
     p.add_argument("--fprime-yamcs", default="fprime-yamcs"); p.add_argument("--yamcs-config", required=True)
     p.add_argument("--tm-port", type=int, default=51000); p.add_argument("--tc-port", type=int, default=51001)
@@ -386,7 +399,8 @@ def main() -> None:
     p = sub.add_parser("send")
     p.add_argument("--dictionary", required=True); p.add_argument("--logs", required=True)
     p.add_argument("--resend", type=int, default=2, help="times a command not reported as dispatched is sent again")
-    p.add_argument("--dispatch-s", type=float, default=6.0, help="wait for the dispatch report before a resend")
+    # not a whole number of seconds: the unit sends a frame every second and hears nothing meanwhile
+    p.add_argument("--dispatch-s", type=float, default=6.4, help="wait for the dispatch report before a resend")
     p.add_argument("command"); p.add_argument("args", nargs="*")
     p.set_defaults(fn=cmd_send)
     args = parser.parse_args()
