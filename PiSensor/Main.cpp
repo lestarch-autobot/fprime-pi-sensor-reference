@@ -29,7 +29,11 @@
  * @param app: name of application
  */
 void print_usage(const char* app) {
+#ifdef PISENSOR_COM_TCP
+    Fw::Logger::log("Usage: ./%s -a <ground address> -p <ground TCP port>\n-h\tHelp\n", app);
+#else
     Fw::Logger::log("Usage: ./%s [options]\n-h\tHelp\n", app);
+#endif
 }
 
 /**
@@ -57,10 +61,25 @@ static void signalHandler(int signum) {
 int main(int argc, char* argv[]) {
     Os::init();
     I32 option = 0;
+#ifdef PISENSOR_COM_TCP
+    const char* const options = "ha:p:";
+    const char* hostname = nullptr;
+    U16 port = 0;
+#else
+    const char* const options = "h";
+#endif
 
     // Loop while reading the getopt supplied options
-    while ((option = getopt(argc, argv, "h")) != -1) {
+    while ((option = getopt(argc, argv, options)) != -1) {
         switch (option) {
+#ifdef PISENSOR_COM_TCP
+            case 'a':
+                hostname = optarg;
+                break;
+            case 'p':
+                port = static_cast<U16>(atoi(optarg));
+                break;
+#endif
             // Cascade intended: help output
             case 'h':
             // Cascade intended: help output
@@ -78,10 +97,20 @@ int main(int argc, char* argv[]) {
     inputs.mpu.device = "/dev/i2c-1";
     inputs.gps.device = "/dev/ttyACM0";  // USB GPS receiver
     inputs.gps.baud = 9600;
+#ifdef PISENSOR_COM_TCP
+    // The ground address and port are bench facts: required, no default
+    if ((hostname == nullptr) || (port == 0)) {
+        print_usage(argv[0]);
+        return 1;
+    }
+    inputs.hostname = hostname;
+    inputs.port = port;
+#else
     inputs.rfm69.device.device = 0;  // SPI bus 0
     inputs.rfm69.device.select = 1;  // chip select 1 (the BMP280 has chip select 0)
     inputs.rfm69.device.resetGpioChip = "/dev/gpiochip0";
     inputs.rfm69.device.resetGpioPin = 26;
+#endif
 
     // Setup program shutdown via Ctrl-C
     signal(SIGINT, signalHandler);

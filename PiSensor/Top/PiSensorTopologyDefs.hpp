@@ -17,7 +17,9 @@
 #include "fprime-sensors/Bmp280/Subtopology/SubtopologyTopologyDefs.hpp"
 #include "fprime-sensors/MpuImu/Subtopology/SubtopologyTopologyDefs.hpp"
 #include "fprime-sensors/NmeaGps/Subtopology/SubtopologyTopologyDefs.hpp"
+#ifdef PISENSOR_COM_RFM69
 #include "fprime-sensors/Rfm69/Subtopology/SubtopologyTopologyDefs.hpp"
+#endif
 
 #include "Svc/Subtopologies/ComCcsds/Ports_ComBufferQueueEnumAc.hpp"
 #include "Svc/Subtopologies/ComCcsds/Ports_ComPacketQueueEnumAc.hpp"
@@ -56,7 +58,12 @@ struct TopologyState {
     Bmp280::SubtopologyState bmp;          //!< BMP280 SPI bus and chip select
     MpuImu::SubtopologyState mpu;          //!< MPU6050 I2C device
     NmeaGps::SubtopologyState gps;         //!< GPS UART device and baud rate
+#ifdef PISENSOR_COM_RFM69
     Rfm69::SubtopologyState rfm69;         //!< RFM69 SPI device and reset line
+#else
+    const char* hostname = nullptr;        //!< Ground address the TCP driver connects to
+    U16 port = 0;                          //!< Ground TCP port
+#endif
 };
 
 namespace PingEntries = ::PingEntries;

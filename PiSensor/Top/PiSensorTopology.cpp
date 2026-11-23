@@ -21,11 +21,20 @@ Svc::ActiveRateGroup::ContextArray rateGroup1HzFlushContext(0);
 
 namespace PiSensor {
 
+#ifdef PISENSOR_COM_TCP
+// Priority of the TCP driver task, as in the F Prime Ref deployment
+constexpr FwTaskPriorityType COMM_PRIORITY = 34;
+#endif
+
 void setupTopology(const TopologyState& state) {
     initComponents(state);
     setBaseIds();
     connectComponents();
     configComponents(state);
+#ifdef PISENSOR_COM_TCP
+    FW_ASSERT(state.hostname != nullptr);
+    (void)comDriver.configure(state.hostname, state.port);
+#endif
     rateGroupDriver.configure(rateGroupDivisorsSet);
     rateGroup1KHz.configure(rateGroup1KHzContext);
     rateGroup10Hz.configure(rateGroup10HzContext);
@@ -35,6 +44,11 @@ void setupTopology(const TopologyState& state) {
     readParameters();
     loadParameters();
     startTasks(state);
+#ifdef PISENSOR_COM_TCP
+    // Task of the TCP driver: opens the connection, opens it again when it is lost, and reads the uplink
+    Os::TaskString name("ReceiveTask");
+    comDriver.start(name, COMM_PRIORITY, Default::STACK_SIZE);
+#endif
 }
 
 void startRateGroups(const Fw::TimeInterval& interval) {
@@ -47,6 +61,10 @@ void stopRateGroups() {
 
 void teardownTopology(const TopologyState& state) {
     stopTasks(state);
+#ifdef PISENSOR_COM_TCP
+    comDriver.stop();
+    (void)comDriver.join();
+#endif
     freeThreads(state);
     tearDownComponents(state);
     deinitComponents(state);

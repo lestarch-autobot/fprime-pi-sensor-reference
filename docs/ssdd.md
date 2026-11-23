@@ -31,6 +31,8 @@ package), 🟨 new (built by this project).
 | REQ-PiSensor-013 | The system shall meet REQ-PiSensor-001 to -012 and -014 on a Raspberry Pi 5 under 64-bit Raspberry Pi OS 13 (Trixie). | Integration Test |
 | REQ-PiSensor-014 | While REQ-PiSensor-001 to -003 are met, each metric in a data product that is marked valid shall have a sample time within 2 s of the capture time. | Integration Test |
 
+> **Deviation for this campaign (human ruling, Michael Starch, 2026-11-23 13:18 PST: "Ok, please switch to TCP, and continue development w/o the radio"; not re-reviewed).** The flight RFM69 failed on the bench (stuck in transmit mode; takes neither a mode write nor a reset pulse). The qualified configuration is built with `PISENSOR_COM=TCP`: `Drv.TcpClient` behind `Svc.ComStub` replaces `Rfm69.Subtopology`; frames, `comRetry`, telemetry packets, CFDP settings and fprime-yamcs are unchanged. The RFM69 configuration described below remains selectable (`PISENSOR_COM=RFM69`) and is not qualified. REQ-PiSensor-010 is not verified in this campaign; the radio measurements in `docs/link-budget.md` are development evidence only.
+
 ## Architecture
 
 ### Overview
