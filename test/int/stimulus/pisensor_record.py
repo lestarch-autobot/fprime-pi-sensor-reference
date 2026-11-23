@@ -198,15 +198,25 @@ def frames(w):
     return [f for f in data["frames"] if t0 <= f["rx"] <= t1]
 
 
+LOST_FRAME_NOTE = "THIS TEST'S REPORT MAY BE ERRONEOUS: lost frames"
+
+
 def frame_gaps(rows):
-    """(holds, seen): no gap, modulo 256, in the frame count of each virtual channel."""
-    last, gaps = {}, []
+    """(holds, seen): frames arrived; the frames lost, modulo 256, in the frame counts of the virtual channels are
+    counted, never refused (human ruling of 2026-11-23). With one or more lost, `seen` carries the count and
+    LOST_FRAME_NOTE, so both are in the check outcomes of the test (junit.xml, quick-look page)."""
+    last, gaps, lost = {}, [], 0
     for f in rows:
         prev = last.get(f["vcid"])
         if prev is not None and (f["vc_count"] - prev) % 256 != 1:
             gaps.append(f"vc {f['vcid']}: {prev} -> {f['vc_count']} at {f['rx']:.3f}")
+            lost += (f["vc_count"] - prev - 1) % 256
         last[f["vcid"]] = f["vc_count"]
-    return (not gaps and bool(rows)), (f"{len(rows)} frames, {len(gaps)} gap(s)" + (": " + "; ".join(gaps[:3]) if gaps else ""))
+    return (
+        bool(rows),
+        f"{len(rows)} frames, {lost} lost in {len(gaps)} gap(s)"
+        + (f". {LOST_FRAME_NOTE} (" + "; ".join(gaps[:3]) + ")" if gaps else ""),
+    )
 
 
 # ---------------------------------------------------------------- the product container

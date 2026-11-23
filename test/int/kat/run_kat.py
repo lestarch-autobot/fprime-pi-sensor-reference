@@ -19,6 +19,7 @@ HERE = Path(__file__).resolve().parent
 INT = HERE.parent
 sys.path[:0] = [str(HERE), str(INT / "bench"), str(INT / "stimulus")]
 import sim  # noqa: E402
+import lost_frames  # noqa: E402
 import verify_stimulus  # noqa: E402
 import yamcs_recorder as recorder  # noqa: E402
 import pisensor_record as rec  # noqa: E402
@@ -32,7 +33,6 @@ BROKEN = [
     ("capture_fails", True, "L2-3", "event piCamera.CaptureFailed count == 0"),
     ("capture_fails", True, "L2-6", "event dpWriter.FileWritten count == 3"),
     ("clock_offset", 2.0, "L0-1", "Pi clock - bench clock"),
-    ("drop_frame", True, "L2-1", "no gap, modulo 256"),
     ("corrupt_file", True, "L2-3", "CRC of each ground file"),
     ("corrupt_file", True, "L2-5", "each ground file is a product container"),
     ("class1", True, "L2-4", "class 2 and finished complete"),
@@ -84,7 +84,7 @@ def replay(commands, knobs, tmp, tag):
     manifest = Path(tmp) / "manifest.json"
     manifest.write_text(json.dumps(MANIFEST), encoding="utf-8")
     r = pytest(["-p", "kat_position", "--fth-run-dir", str(Path(tmp) / tag / "run"), "--fth-replay-record", str(record),
-                "--fth-manifest", str(manifest), "-rA"], {"PYTHONPATH": str(HERE)})
+                "--fth-manifest", str(manifest), "-rA", f"--junitxml={Path(tmp) / tag / 'junit.xml'}"], {"PYTHONPATH": str(HERE)})
     out = {}
     for m in re.finditer(r"^(PASSED|FAILED|ERROR) \S+::test_(L\d)_(\d)", r.stdout, re.M):
         out[f"{m.group(2)}-{m.group(3)}"] = "" if m.group(1) == "PASSED" else "?"
@@ -110,8 +110,11 @@ def units():
     frames = recorder.parse_bridge("100.5 down 255 0443fe07c000\n100.6 up 255 000000000000\nnoise\n100.7 down 255 0443ff08c000\n")
     yield "parse_bridge", frames == [{"rx": 100.5, "len": 255, "scid": 0x44, "vcid": 1, "mc_count": 0xfe, "vc_count": 7},
                                      {"rx": 100.7, "len": 255, "scid": 0x44, "vcid": 1, "mc_count": 0xff, "vc_count": 8}]
-    yield "frame_gaps none", rec.frame_gaps([{"rx": 1.0, "vcid": 0, "vc_count": 255}, {"rx": 2.0, "vcid": 0, "vc_count": 0}])[0] is True
-    yield "frame_gaps one", rec.frame_gaps([{"rx": 1.0, "vcid": 0, "vc_count": 255}, {"rx": 2.0, "vcid": 0, "vc_count": 1}])[0] is False
+    yield "frame_gaps none", rec.frame_gaps([{"rx": 1.0, "vcid": 0, "vc_count": 255}, {"rx": 2.0, "vcid": 0, "vc_count": 0}]) == (True, "2 frames, 0 lost in 0 gap(s)")
+    one = rec.frame_gaps([{"rx": 1.0, "vcid": 0, "vc_count": 255}, {"rx": 2.0, "vcid": 0, "vc_count": 1}])
+    yield "frame_gaps one lost: judged and flagged", one[0] is True and "1 lost in 1 gap(s)" in one[1] and rec.LOST_FRAME_NOTE in one[1]
+    many = rec.frame_gaps([{"rx": 1.0, "vcid": 0, "vc_count": 1}, {"rx": 2.0, "vcid": 0, "vc_count": 3}, {"rx": 3.0, "vcid": 0, "vc_count": 200}])
+    yield "frame_gaps many lost: judged and flagged", many[0] is True and "197 lost in 2 gap(s)" in many[1] and rec.LOST_FRAME_NOTE in many[1]
     yield "frame_gaps empty", rec.frame_gaps([])[0] is False
     known = recorder.merge_transfers({}, [{"id": 3, "state": "RUNNING"}], 10.0)
     known = recorder.merge_transfers(known, [{"id": 3, "state": "COMPLETED"}], 12.0)
@@ -173,6 +176,14 @@ def main() -> int:
                 answer(f"GPS without a fix: {test_id} fails, naming `for gpsManager.Reading in`", "for gpsManager.Reading in" in text, text[:600])
             else:
                 answer(f"GPS without a fix, products with placeholders and the event: {test_id} passes", text == "", text[:600])
+        dropped = replay(commands, {"drop_frame": True}, tmp, "drop_frame")
+        rows = lost_frames.lost(Path(tmp) / "drop_frame" / "junit.xml")
+        flagged = {t for t, _, _, k, seen in rows if k and rec.LOST_FRAME_NOTE in seen}
+        answer("lost frames: every test is judged and passes", all(text == "" for text in dropped.values()), str(dropped)[:600])
+        answer("lost frames: the tests with a lost frame carry the count and the note, the others do not",
+               len(rows) >= 12 and flagged and flagged == {t for t, _, _, k, _ in rows if k} and len(flagged) < 12, str(rows)[:600])
+        clean = lost_frames.lost(Path(tmp) / "nominal" / "junit.xml")
+        answer("no lost frame: no test carries the note", len(clean) >= 12 and not any(k or rec.LOST_FRAME_NOTE in seen for *_, k, seen in clean), str(clean)[:600])
         done = {}
         for knob, value, test_id, needle in BROKEN:
             if (knob, value) not in done:

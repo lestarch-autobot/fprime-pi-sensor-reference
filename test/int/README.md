@@ -146,7 +146,8 @@ writes a `bool` (`FW_SERIALIZE_TRUE_VALUE`), any other value is refused; a metri
 sample (0.1 s then, 1 s since the first live products, see below); the
 unavailable event is judged at the capture time; wrong-record cases for each metric group. The frame count
 precondition was already in every window, so none was added; what it does not cover is in the plan's not-covered
-list, with the other limits of this revision.
+list, with the other limits of this revision. Since 2026-11-23 that precondition counts lost frames and no longer
+refuses them, see "Lost frames" below.
 
 Known-answer cases (`kat/run_kat.py`, list `BROKEN` and the `gps_silent` replay; records made by `kat/sim.py`):
 GPS silent over the run with placeholders and the event (only L2-1, L2-2 and L2-9 fail); marked valid with a
@@ -176,6 +177,37 @@ review closed and were not reviewed.
    MPU6050 checks are declared: the `imuManager.Reading` period check and `MPU6050 readings plausible for a bench
    at rest` in L2-1 and L2-2, the `imuManager.Reading` item of window D in L2-7 and L2-8. The ruling string
    carries the three rulings of the human verbatim.
+
+### Lost frames (2026-11-23; human ruling, not reviewed)
+
+Rulings of the human, verbatim, in the order given:
+
+- Michael Starch, 2026-11-20, in answer to the project anchor's question:
+  "A. Tolerate 1 lost frame per test window; report the count and state the residual in the RDD"
+- Michael Starch, 2026-11-23 12:42 PST, superseding it:
+  "Just run the test.  If it drops a frame, not it, and then indicate that that specific test report may be erroneous."
+  ("not it" is read as "note it".)
+
+The change below follows the second ruling. It was made after the Mode B review closed and was not reviewed.
+
+1. Precondition of every window. Old: `no gap, modulo 256, in the virtual channel frame count received by YAMCS
+   between the markers (record/raw/frames.json)`. New: `TM frames received by YAMCS between the markers; the frames
+   lost, modulo 256, in the virtual channel frame count are counted and noted on the test, never refused
+   (record/raw/frames.json)`. It holds when any frame arrived. A lost frame no longer leaves a window unverified,
+   whatever the count; the test is judged on what arrived. No run is repeated for lost frames.
+2. The note. With one or more frames lost in a window, the value seen of that precondition reads
+   `<n> frames, <k> lost in <g> gap(s). THIS TEST'S REPORT MAY BE ERRONEOUS: lost frames (...)`.
+   - It appears in `record/junit.xml` (property `fth_checks` of the test) and in section 4, "Rule verdict", of the
+     auditor's quick-look page of the test.
+   - It does not appear in `runner/report.md`, `runner/verdicts.json`, or the tables of `fth dev-campaign`,
+     `fth deliver` and `fth rfr`: fth lists failed checks only there and has no note field. fth was not changed.
+   - `bench/lost_frames.py <run directory> --write` therefore writes the count and the note per test window into
+     `README.md` of the run directory, from the junit.
+3. Residual, also in the not-covered list of the plan: a lost frame can hide about 1 s of telemetry or an event,
+   so a `count == 0` check can pass with the event in the lost frame, and a count or period check can fail on a
+   correct unit. Nothing bounds how many frames a judged window may have lost.
+4. Known-answer tests: a record with lost frames is judged, every test passes, and exactly the tests with a lost
+   frame carry the count and the note.
 
 ## Settled at the bench (2026-11-19)
 
