@@ -1,14 +1,5 @@
-module PiSensor {
-
-  enum Ports_RateGroups {
-    rateGroup1KHz
-    rateGroup10Hz
-    rateGroup1Hz
-    rateGroup1HzFlush
-  }
-
-  @ Base deployment: inherited elements only, TM and TC frames over the RFM69
-  deployment topology PiSensor {
+# Members of the PiSensor topology that do not depend on the link: included by topologyTcp.fpp and
+# topologyRfm69.fpp (PiSensor/CMakeLists.txt, PISENSOR_COM).
 
     instance CdhCore.Subtopology
     instance ComCcsds.FramingSubtopology
@@ -17,7 +8,6 @@ module PiSensor {
     instance Bmp280.Subtopology
     instance MpuImu.Subtopology
     instance NmeaGps.Subtopology
-    instance Rfm69.Subtopology
 
     instance linuxTimer
     instance rateGroupDriver
@@ -37,13 +27,10 @@ module PiSensor {
     param connections instance FileHandlingCfdp.prmDb
     time connections instance posixTime
 
-    include "PiSensorPackets.fppi"
-
     connections RateGroups {
       linuxTimer.CycleOut -> rateGroupDriver.CycleIn
 
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1KHz] -> rateGroup1KHz.CycleIn
-      rateGroup1KHz.RateGroupMemberOut[0] -> Rfm69.rfm69Manager.run
 
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
       rateGroup10Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
@@ -76,18 +63,10 @@ module PiSensor {
     }
 
     connections Communications {
-      Rfm69.rfm69Manager.allocate -> ComCcsds.commsBufferManager.bufferGetCallee
-      Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
-      # Downlink: TM frames through the retry component to the radio
+      # Downlink: TM frames to the retry component; from there to the link of the variant
       ComCcsds.FramingSubtopology.dataOut -> comRetry.dataIn
       comRetry.dataReturnOut -> ComCcsds.FramingSubtopology.dataReturnIn
       comRetry.comStatusOut -> ComCcsds.FramingSubtopology.comStatusIn
-      comRetry.dataOut -> Rfm69.rfm69Manager.dataIn
-      Rfm69.rfm69Manager.dataReturnOut -> comRetry.dataReturnIn
-      Rfm69.rfm69Manager.comStatusOut -> comRetry.comStatusIn
-      # Uplink: one TC frame per radio packet
-      Rfm69.rfm69Manager.dataOut -> ComCcsds.FramingSubtopology.dataIn
-      ComCcsds.FramingSubtopology.dataReturnOut -> Rfm69.rfm69Manager.dataReturnIn
     }
 
     connections DataProducts {
@@ -113,5 +92,3 @@ module PiSensor {
       FileHandlingCfdp.cfdpManager.bufferAllocate[0] -> ComCcsds.commsBufferManager.bufferGetCallee
       FileHandlingCfdp.cfdpManager.bufferDeallocate[0] -> ComCcsds.commsBufferManager.bufferSendIn
     }
-  }
-}
