@@ -140,7 +140,7 @@ class Recorder:
         dictionary = json.loads(Path(a.dictionary).read_text(encoding="utf-8"))
         (self.raw / "dictionary.json").write_bytes(Path(a.dictionary).read_bytes())
         self.ids = channel_ids(dictionary)
-        self.root = a.root.rstrip("/") + "/"
+        self.root = "/" + a.root.strip("/") + "/"  # YAMCS space system; the bench recipe names it without the leading /
 
     # -- callbacks (YAMCS client threads)
     def on_event(self, event):

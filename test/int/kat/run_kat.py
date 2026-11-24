@@ -94,7 +94,28 @@ def replay(commands, knobs, tmp, tag):
     return out
 
 
+def recipe_paths(path):
+    """True when no line of a bench recipe names a path that `fth rfr --dry-run` refuses on a clean runner: every
+    path-like piece is a fth placeholder, under uut/ and present in this checkout, or a device."""
+    bench = json.loads(Path(path).read_text(encoding="utf-8"))
+    lines = [bench[k] for k in ("flash", "dump", "gds", "recorder", "send")] + list(bench["actions"].values())
+    fill = dict.fromkeys(("image", "readback", "dictionary", "logs", "command", "args"), "X")
+    for line in lines:
+        for piece in line.format(**{**bench["vars"], **fill}).split():
+            piece = piece.split("=", 1)[1] if piece.startswith("--") and "=" in piece else piece
+            if "/" not in piece and not piece.endswith((".cfg", ".json", ".bin", ".txt", ".md", ".py", ".log", ".xml", ".zip")):
+                continue
+            if piece.startswith("/dev/") or (piece.startswith("uut/") and (INT.parent.parent / piece[4:]).exists()):
+                continue
+            return False
+    return True
+
+
 def units():
+    for name in ("bench.json", "bench-coverage.json"):
+        yield f"recipe_paths {name}", recipe_paths(INT / name)
+    yield "PrmDb.dat is the file of the runs since 2026-11-19", __import__("hashlib").sha256(
+        (INT / "bench" / "PrmDb.dat").read_bytes()).hexdigest() == "a31359bad537b7ce62b055d72068068884d39c63f1d775df32ca27e575f47527"
     ev = {"type": "CdhCore.cmdDisp.NoOpStringReceived", "message": "[NoOpStringReceived] Received a NO-OP string=10",
           "generationTime": "2026-11-18T00:00:01.500Z", "receptionTime": "2026-11-18T00:00:02.250Z",
           "extra": {"fprime_severity": "ACTIVITY_HI", "fprime_event_id": 7}}

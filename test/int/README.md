@@ -283,9 +283,16 @@ TCP, and continue development w/o the radio". The project anchor ordered the cha
 ## Flight configuration of 2026-11-19 (`fix/link-budget`, `docs/link-budget.md`)
 
 - Product directory is `dp` (`DP_DIR`, the `clean_products` and `final_state` actions).
-- `flash --prm inputs/PrmDb.dat` copies the parameter file into the working directory of the image before it
-  starts. Build it with `fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary of
-  the image> -o inputs/PrmDb.dat`. fth does not pin this file; its hash is in the report of a run.
+- `flash --prm uut/test/int/bench/PrmDb.dat` copies the parameter file into the working directory of the image
+  before it starts. The file is committed (`test/int/bench/PrmDb.dat`, sha256 `a31359ba...f47527`, the file of
+  every run since 2026-11-19), because `fth rfr` accepts only paths in the package or the pinned checkouts.
+  Rebuild it after a change of `PiSensor/project/config/PrmDb.json` with `fprime-prm-write dat
+  PiSensor/project/config/PrmDb.json --dictionary <dictionary of the image> -o test/int/bench/PrmDb.dat`.
+- The directory on the Pi (`pisensor-campaign/sys-run`) is the default of `yamcs_bench.py --pi-dir` and of
+  `uut.py --remote-dir`, and the recorder takes the YAMCS space system without its leading `/`
+  (`--root PiSensor_PiSensor`): `fth rfr --dry-run` refuses both spellings in a recipe as host paths.
+- `"vars": {"uart": null}` in both recipes declares to fth that this bench has no serial device (the link is
+  TCP); without it `fth rfr` refuses a recipe that names no UART.
 - The bench YAMCS configuration carries the CFDP timers of `docs/link-budget.md` (bench set-up, not in this
   repository).
 - A test waits 600 s for each product it downlinks (and for one more where a planted capture can add one):

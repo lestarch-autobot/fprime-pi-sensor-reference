@@ -368,7 +368,8 @@ def cmd_send(args) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--pi", default="pi", help="ssh host of the Raspberry Pi")
-    parser.add_argument("--pi-dir", default="pisensor-campaign/fth-uut", help="directory on the Pi, owned by the adapter")
+    parser.add_argument("--pi-dir", default="pisensor-campaign/sys-run",
+                        help="directory on the Pi, owned by the adapter (the default of --remote-dir of uut.py)")
     parser.add_argument("--image-args", default="", help="arguments of the image on the Pi, comma separated")
     parser.add_argument("--deployment", default="PiSensor")
     parser.add_argument("--yamcs", default="localhost:8190")
