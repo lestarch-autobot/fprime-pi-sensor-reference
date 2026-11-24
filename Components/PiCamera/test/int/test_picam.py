@@ -227,6 +227,7 @@ def test_C_3(window, send, bench, check, require):
         bracket(bench)
         send(CAPTURE, [])
         bench.wait_event("dpWriter.FileWritten", 30)
+        bench.wait_samples("piCamera.CapturesCompleted", 1, 30)
         bracket(bench)
         complete(bench, require)
         check("ABS")

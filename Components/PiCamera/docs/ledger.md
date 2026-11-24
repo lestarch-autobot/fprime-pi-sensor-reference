@@ -335,3 +335,13 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 - `fth rfr --dry-run`: rehearsal OK, 37 preflight checks, the three serial checks "not applicable: bench declares no serial device"; `rfr.log` sha256 `f6cf93246e69d2f6190a1b9a04ff2ec5fd0c42f28c6481f01256e7f9b93fa093`.
 - `fth audit --unsealed --tests`: dry-1 ok, 15 steps; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed.
 - No seed was requested and no run for record was made.
+
+
+## Sample timing of `CapturesCompleted` (2026-11-23)
+
+- Ruling of the project anchor on dry-4 above: fix, do not accept; a declared check that depends on where a 5 s telemetry sample falls is a racy declaration. The release over TCP at 45b0059 is superseded.
+- `planted_faults.py`: `c3_capture_after_restart` no longer declares `last(piCamera.CapturesCompleted) == 1`; it declares the two event counts. `c1_second_capture` and `c2_capture_before_hold` declare event counts only and are unchanged. `faults-menu.json` regenerated.
+- The same check in the clean C-3 had the same dependence: in the four runs at 45b0059 the second capture completed 24.5 s after start, the sample came at 25.0 s and the end marker at 27.7 s. C-3 now waits for one sample of `piCamera.CapturesCompleted` after the second capture (`test_picam.py`, procedure of C-3 in `plan.json`, `plan.md`). The check itself is unchanged. Not reviewed.
+- SDD: the rationale of `JPEG_QUALITY` names the CFDP downlink (about 128 file bytes per second on either link) in place of the radio link.
+- Offline checks with fth `linux-host-coverage`@ecbd11f: known-answer checks 4 pass; `verify-plan --tests` ok with `bench.json` and `bench-coverage.json` (31 named checks); `render-sdd-tests --check` agrees. No bench run.
+- Contract 9.4: the component and system packages are to be delivered from one project commit. The system session merges this branch into `sys/harness`; the recipe is run again at that commit, with the unit-test coverage regenerated there.

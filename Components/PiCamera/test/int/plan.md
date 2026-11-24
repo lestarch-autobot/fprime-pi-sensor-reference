@@ -45,7 +45,7 @@ Title:     Capture after a restart
 Purpose:   Proves the component captures again after the deployment is stopped and started.
 Covers:    REQ-PiCamera-024, REQ-PiCamera-026
 Setup:     As C-1. The bench action `fsw_restart` stops the deployment process on the Pi and starts it again.
-Procedure: MARK(30); bracket (2 Heartbeat samples); piCamera.CAPTURE(); wait event dpWriter.FileWritten; action: fsw_restart; wait 20 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten; bracket (2 Heartbeat samples); MARK(31).
+Procedure: MARK(30); bracket (2 Heartbeat samples); piCamera.CAPTURE(); wait event dpWriter.FileWritten; action: fsw_restart; wait 20 s; piCamera.CAPTURE(); wait event dpWriter.FileWritten; wait 1 sample of piCamera.CapturesCompleted; bracket (2 Heartbeat samples); MARK(31).
 Window:    Marker(id=30) … Marker(id=31)
 Pass rule: named checks declared in the integration test (test_C_3).
 Evidence:  

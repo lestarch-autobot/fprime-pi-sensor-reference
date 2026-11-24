@@ -26,6 +26,15 @@ most twice, when the unit does not report its dispatch within 6 s, and writes
 each resend to `record/raw/cmd/resend.log`. Ground link events of YAMCS are
 kept in `record/raw/ground-events.log`.
 
+`piCamera.CapturesCompleted` is sent every 5 s on this image, so a check of its last value
+depends on where a sample falls. Two changes follow from that (not reviewed):
+the planted fault `c3_capture_after_restart` no longer declares
+`last(piCamera.CapturesCompleted) == 1` as a check it fails (it declares the two event counts
+only; the check stays a check of C-3), and C-3 waits for one sample of
+`piCamera.CapturesCompleted` after its second capture, before the closing bracket, so the
+check reads a sample taken after that capture. The planted faults of C-1 and C-2 declare event
+counts only.
+
 The bracket channel is `bmpManager.Reading`. No sensor reading is needed for a capture:
 without the BMP280, the MPU6050 or a GPS fix a capture completes with the warning of that
 reading (`TemperatureUnavailable`, `AttitudeUnavailable`, `LocationUnavailable`).
