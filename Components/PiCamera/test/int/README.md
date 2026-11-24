@@ -44,7 +44,7 @@ reading (`TemperatureUnavailable`, `AttitudeUnavailable`, `LocationUnavailable`)
 
 ```bash
 python -m pytest checks_kat.py     # known answers of the check functions
-PYTHONDONTWRITEBYTECODE=1 fth verify-plan plan.json --tests . --bench bench.json
+PYTHONDONTWRITEBYTECODE=1 fth verify-plan plan.json --tests . --bench bench.json --skip-stimulus-check
 fth render-plan plan.json -o plan.md
 fth planted-faults-menu plan.json -o faults-menu.json --max-count 1
 ```
@@ -86,5 +86,11 @@ sh test/int/bench/build_image.sh -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--
 fth run --unsealed ... --bench bench-coverage.json   # flash --gcov: counts stay on the Pi under gcda/
 python3 uut/test/int/bench/yamcs_bench.py stop       # the image ends and writes the counts
 python3 uut/test/int/bench/yamcs_bench.py collect-gcda <dir>
-fth dev-campaign ... --gcda-dir <dir> --gcno-root <build tree> --gcov gcov
+fth dev-campaign ... --gcda-dir <dir> --gcno-root <build tree> --gcov gcov --gcovr <gcovr 8.8> --sdd <SDD in the pinned checkout>
 ```
+
+With fth `no-serial-device`@`ad79b65` (2026-11-24, system session, not reviewed):
+`--skip-stimulus-check` because the static stimulus check of fth does not see a send made inside a helper;
+`--gcovr` because gcovr 8.2 stops on a negative count and 8.8 takes it as 0; the system minimum is judged
+over `coverage.system.scope` of the plan (`Components/PiCamera`), so no `--filter`; `--sdd` ships the files
+the SDD links from the pinned checkout.

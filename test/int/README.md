@@ -23,10 +23,13 @@ deployment and there is no test component.
 ## Offline checks (no bench)
 
 ```
-fth verify-plan test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
+fth verify-plan test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json --skip-stimulus-check
 python -B test/int/bench/verify_stimulus.py test/int/stimulus/plan.json --tests test/int/stimulus --bench test/int/bench.json
 python -B test/int/kat/run_kat.py        # needs Pillow
 ```
+
+`--skip-stimulus-check`: the static stimulus check of fth does not see a send made inside a helper and reports
+every test as missing; `verify_stimulus.py` on the next line is the stimulus check of this plan.
 
 `--tests` is `test/int/stimulus`, not `test/int`: fth lints every Python file under the tests directory
 and refuses `gen_plan.py` there. Run Python with `-B`: a `__pycache__` under the stimulus changes its pin.
@@ -324,3 +327,25 @@ changed. The coverage build is left as it was: its `-DCMAKE_C_FLAGS=--coverage -
 the place of the exported flags, so the coverage image, its `.gcno` files and the `.gcda` paths keep the absolute
 directory that `gcov` and `fth dev-campaign --gcda-dir` read. Keep the directory the coverage image was built in
 until the counts are read. Two coverage builds of one commit in one directory already differ in sha256.
+
+### fth `no-serial-device`@`ad79b65` (2026-11-24; ordered by the project anchor, not reviewed)
+
+The tool is [fprime-testing-harness](https://github.com/lestarch-autobot/fprime-testing-harness), branch
+`no-serial-device` at `ad79b654ad45807472b1285d940f1dea887fbb4f`. Against the command lines used before:
+
+```
+fth verify-plan … --tests test/int/stimulus --bench test/int/bench.json --skip-stimulus-check
+fth dev-campaign … --gcda-dir <dir> --gcno-root <build tree>/build-fprime-automatic-native --project-root <build tree> \
+    --gcov gcov --gcovr <gcovr 8.8> --sdd uut/docs/ssdd.md
+fth deliver … --sdd uut/docs/ssdd.md
+```
+
+- `--skip-stimulus-check`: see "Offline checks".
+- `--gcovr`: the system report is made by `fprime-util check --coverage --existing`. gcovr 8.2 stops on these
+  counts with `AssertionError: count must not be a negative value.`; gcovr 8.8 takes a negative count as 0 and
+  fth lists the files in `system/gcovr-warnings.txt`.
+- No `--filter`: the system minimum is judged over `coverage.system.scope` of the plan (`Components`, `PiSensor`).
+  `system/summary.txt` is the sum over the scope, `system/scope.md` the table, `system/summary-whole.txt` the
+  whole image with `lib/`. Generated files in the build cache (`PiSensorTopologyAc.cpp`) are not in the scope.
+- `--sdd` on `fth dev-campaign`: the files that `docs/ssdd.md` links, also those reached with `..` inside the
+  pinned checkout, are shipped in the package.

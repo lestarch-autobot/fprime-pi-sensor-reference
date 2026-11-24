@@ -345,3 +345,29 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 - SDD: the rationale of `JPEG_QUALITY` names the CFDP downlink (about 128 file bytes per second on either link) in place of the radio link.
 - Offline checks with fth `linux-host-coverage`@ecbd11f: known-answer checks 4 pass; `verify-plan --tests` ok with `bench.json` and `bench-coverage.json` (31 named checks); `render-sdd-tests --check` agrees. No bench run.
 - Contract 9.4: the component and system packages are to be delivered from one project commit. The system session merges this branch into `sys/harness`; the recipe is run again at that commit, with the unit-test coverage regenerated there.
+
+
+## Release over TCP at the shared project commit (2026-11-23)
+
+- Project commit: `sys/harness`@78e12dda5fae945d8a1eacc28dfa09b7c82e130b (Y3), used as unit under test and as harness of the tests; tool `linux-host-coverage`@ecbd11f. The system package is to be delivered from the same commit (Contract 9.4). This section was handed to the project anchor as a patch file; it is not part of that commit.
+- History of the commit: Y (`b636ab3`) stopped because the pure image embedded its build directory (483 path strings) and so differed from the system session's build; Y2 (`e45a7a8`) made the build path-independent and the pure image and dictionary then equalled the system session's (`92821f72…96d4`, `ec6937f3…8f3a`). At Y2 dry-4 failed `last(piCamera.CapturesCompleted) == 1` beside the two declared event counts: with the wait step of C-3 the check reads a sample after the captures, so the fault does fail it. Ruling of the project anchor: declare it again.
+- Y3 changes six files under `Components/PiCamera/test/int/` (not reviewed): `c3_capture_after_restart` declares `last(piCamera.CapturesCompleted) == 1` again, and C-3 waits for two samples of `piCamera.CapturesCompleted` in place of one. The recorder takes events and channels on separate subscriptions, so the first sample logged after the `dpWriter.FileWritten` of the capture may have been sent before the capture completed (not excluded by the Y2 record, which has no ground reception times); the second is sent 5 s later. Offline checks at ecbd11f: known-answer checks 4 pass, `verify-plan --tests` ok with both bench files (31 named checks), `render-sdd-tests --check` agrees.
+- From-scratch builds on the hub: pure image `fd7fe3bc68078dd19f7cfceac05bc694aed0865849631173ddf1dc155783d99f`, dictionary `d5e08558796c17b5c8ccde419134e0c7aa61afe1bc35f77b5f14f3f983997178`, `PrmDb.dat` `a31359ba…7527` (committed file equals the rebuilt one), coverage image `136c0e59dc6158bf89132bbb4075894fd3fb2b95ea32f73774b06f05f516e757` (the coverage build is not bit-reproducible). Cross-check of the pure image and dictionary against the system session's build at Y3: not done by this session.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `f73a9aa7…d1f2` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `bda67b4b…c2f8` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `020bca8a…88e2` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, its 3 declared checks | `b5b8034b…0cc6` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `528e7811…de17` |
+
+- Link: every command was sent once (no resend); the only sequence count jumps on the ground are the two of the restart of C-3 in each run.
+- Sensors: no `TemperatureUnavailable`; `AttitudeUnavailable` and `LocationUnavailable` in every capture (MPU6050 `I2cError` 85 to 105 per run, GPS without fix). Valid attitude and location are proven by unit tests only.
+- Pictures: 5 499 to 5 518 bytes over 22 captures. One product of dry-1 (`Dp_268468224_1795494236_00735875.fdp`, 5 666 bytes) was decoded: JPEG of 5 504 bytes, 640x480, RGB; the scene is dark (mean level about 12, 10, 21 of 255; maximum 70).
+- `fth dev-campaign --gcda-dir`: CLEAN; on the target lines 76.1% (429 of 564), functions 83.0% (39 of 47), branches 56.8% (319 of 562), 289 `.gcda` files. Unit tests at this commit: 22 pass, lines 99.3% (266 of 268), functions 94.1% (32 of 34), branches 84.8% (368 of 434); that report is in the package under `inputs/coverage/ut/` with the commit recorded.
+- `fth deliver --harness uut --tool harness`: OK, 34 pinned files; `rfr-input.zip` sha256 `f425a052737fa9fa9a03b35c01fcf141bcc9f35462970b9c5e87fad718410d95`, manifest sha256 `11b43ceecc3c532a851ffa4e1ce3fac607622290963b85c93d9b2ffe3018635b`.
+- `fth rfr --dry-run`: rehearsal OK, 37 preflight checks, the three serial checks "not applicable: bench declares no serial device"; `rfr.log` sha256 `8da2a0eecbfd4f9d0dc09e4b397dfdf06e47bf88ba0ed21fc034b299a4085de4`.
+- `fth audit --unsealed --tests`: dry-1 ok, 15 steps; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed. cov-1 was not audited.
+- Unverified, as before: the content of the stored record, REQ-PiCamera-024 as written, and the case without a camera.
+- No seed was requested and no run for record was made. The bench was released and checked: no image on the Pi, no process of this campaign on the hub, ports 50000, 51000, 51001 and 8190 free.

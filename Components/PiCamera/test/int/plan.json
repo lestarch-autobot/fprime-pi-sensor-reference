@@ -43,7 +43,10 @@
    "lines_min": 95
   },
   "system": {
-   "lines_min": 75
+   "lines_min": 75,
+   "scope": [
+    "Components/PiCamera"
+   ]
   },
   "not_covered_ack": [
    "METRIC_INVALID (a reading present and fresh but out of range): the bench sensors are not disturbed; unit test InvalidMetric.",

@@ -113,7 +113,7 @@ plan = {
  "helpers": [],
  "uut": "PiSensor deployment (docs/ssdd.md)",
  "deployment": "PiSensor full system deployment, as flown: no test component",
- "coverage": {"ut": {"lines_min": 95}, "system": {"lines_min": 75},
+ "coverage": {"ut": {"lines_min": 95}, "system": {"lines_min": 75, "scope": ["Components", "PiSensor"]},
               "not_covered_ack": ["Error branches of inherited components that need a bus or driver fault not plantable on this bench: unit tests of the catalog cover them."],
               "rationale": "Baselines of the skill; thresholds apply to the new component piCamera, whose campaign reports unit-test coverage."},
  "image_version": {"policy": "required"},
@@ -164,7 +164,8 @@ plan = {
                   "4. 2026-11-18 designer — every test makes its own product; no test depends on a product of another test.",
                   "5. 2026-11-19 harness builder, revision 2 — see the changelog in `test/int/README.md`: per-channel telemetry period metrics, Heartbeat on `bmpManager.Reading`, command count with marker commands apart and logged resends, clock action in the L0-1 procedure, IMU bounds stated in the units of the channel, roll and pitch validity as a check of its own.",
                   "6. 2026-11-20 harness builder, revision 3 (REQ-PiSensor-005 as amended by the human ruling of 2026-11-20) — see the changelog in `test/int/README.md`: product metrics judged valid or not valid per sensor, the sensor-unavailable event check in every window, the GPS item of REQ-PiSensor-012 in its own test L2-9.",
-                  "7. 2026-11-23 harness builder, revision 4, not reviewed (human ruling of 2026-11-23 13:18 PST: TCP link, no radio) — see the changelog in `test/int/README.md`: the three checks of REQ-PiSensor-010 removed and the requirement not verified; texts that named the RFM69 or the radio corrected."],
+                  "7. 2026-11-23 harness builder, revision 4, not reviewed (human ruling of 2026-11-23 13:18 PST: TCP link, no radio) — see the changelog in `test/int/README.md`: the three checks of REQ-PiSensor-010 removed and the requirement not verified; texts that named the RFM69 or the radio corrected.",
+                  "8. 2026-11-24 harness builder, not reviewed (order of the project anchor of 2026-11-24, fth `no-serial-device`@`ad79b65`) — `coverage.system.scope` declared as `Components` and `PiSensor`: the system minimum is judged over the sources of this project, the same directories the report was filtered to before (`--filter Components/ --filter PiSensor/`); generated files in the build cache are not counted, and the inherited libraries under `lib/` stay in the whole-image figures. No test, check or threshold changed."],
  "tests": T,
 }
 json.dump(plan, open("stimulus/plan.json", "w"), indent=1, ensure_ascii=False)
