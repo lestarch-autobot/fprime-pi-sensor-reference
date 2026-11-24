@@ -16,7 +16,7 @@ Run `fth` from a campaign root on the workstation that holds:
 
 - `uut/`: the checkout of this repository;
 - `yamcs-config/`: the YAMCS configuration directory of `ground/README.md`;
-- `inputs/`: the image, its dictionary and `PrmDb.dat` (`fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary> -o inputs/PrmDb.dat`).
+- `inputs/`: the image and its dictionary. The parameter file the image reads is committed as `test/int/bench/PrmDb.dat` (`fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary>`); `flash` copies it to the Pi.
 
 `python3` (with `yamcs-client`) and `fprime-yamcs` are on `PATH`.
 The Pi is the ssh host `pi`.

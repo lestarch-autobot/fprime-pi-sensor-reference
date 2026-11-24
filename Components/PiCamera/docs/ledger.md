@@ -303,3 +303,14 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 
 - Left as written: the SDD rationale of `JPEG_QUALITY` speaks of "the radio link" and 128 file bytes per second. The constant is unchanged and the project said not to change the component; the sentence describes why the value was chosen.
 - The setup text of C-1 also said "GPS fix", untrue since the ruling of 2026-11-20; it is removed with the radio wording.
+
+## Bench recipes made to pass the rehearsal on a TCP bench (2026-11-23)
+
+- The project reported four refusals `fth rfr` gives a TCP bench at 3c4ab8e. Checked against `fth/rfr.py` and the two bench files: two apply here.
+  - Applies: the preflight requires a serial device. Both bench files now declare `"vars": {"uart": null}`, the syntax of fth `linux-host-coverage`@ecbd11f; no recipe line uses `{uart}`.
+  - Applies: `flash --prm inputs/PrmDb.dat` names a path outside the package roots. `test/int/bench/PrmDb.dat` is taken by path from `sys/harness`@8432b44 (sha256 `a31359bad537b7ce62b055d72068068884d39c63f1d775df32ca27e575f47527`, the same bytes the hub built from `PiSensor/project/config/PrmDb.json` and the dictionary of d50ceb1), and `flash` names it as `uut/test/int/bench/PrmDb.dat`.
+  - Does not apply: no recipe line passes `--pi-dir` (the adapter default `pisensor-campaign/fth-uut` is used), and the recorder line has no `--root`.
+- `test/int/bench/yamcs_bench.py` stays as taken from aed818d; the later change on `sys/harness` only moves the default Pi directory to that of the system campaign.
+- Runs made at d50ceb1 with fth 3c4ab8e before this change, for information only and superseded: clean run 3 of 3 PASS (record `84b7b0f2…`); planted `c1_second_capture`, C-1 FAIL as declared (`ac8a39a1…`); planted `c2_capture_before_hold`, C-2 FAIL on its 2 declared checks (`c1715a4f…`). First runs over TCP: the image, the bridge and the recorder work together.
+- Tool from here: fth `linux-host-coverage`@ecbd11f.
+
