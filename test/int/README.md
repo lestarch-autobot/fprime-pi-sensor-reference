@@ -313,3 +313,14 @@ TCP, and continue development w/o the radio". The project anchor ordered the cha
   writes a row more than 4 s behind the newest unit time to `fprime-cli-yamcs/channel-late.log`, which is in
   the record and which fth does not read. A sensor sample that late is then missing from its window and the
   2 s rule fails, as it should.
+
+### Image independent of the checkout directory (2026-11-23; ordered by the project anchor, not reviewed)
+
+`test/int/bench/build_image.sh` exports `CFLAGS` and `CXXFLAGS` with `-ffile-prefix-map=<checkout>=.` before
+`fprime-util generate`, so the file names in the image (those of assertions) read `./Components/PiCamera/PiCamera.cpp`
+and the pure image and the dictionary are the same bytes from any checkout directory. Before, the image held the
+absolute directory about 480 times, and a build in another directory gave another sha256. Nothing under `lib/` is
+changed. The coverage build is left as it was: its `-DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage` take
+the place of the exported flags, so the coverage image, its `.gcno` files and the `.gcda` paths keep the absolute
+directory that `gcov` and `fth dev-campaign --gcda-dir` read. Build the coverage image in the directory of the
+campaign checkout.

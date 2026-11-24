@@ -135,6 +135,10 @@ def units():
         yield f"recipe_paths PiCamera {name}", recipe_paths(picam / name)
         yield f"Pi directory of {name}", recipe_pi_dir(INT / name) == "pisensor-campaign/sys-run"
         yield f"Pi directory of PiCamera {name}", recipe_pi_dir(picam / name) == "pisensor-campaign/fth-uut"
+    build = (INT / "bench" / "build_image.sh").read_text(encoding="utf-8")
+    yield "build_image.sh maps the checkout directory to `.` in file names", all(line in build for line in (
+        'CFLAGS="-ffile-prefix-map=$(pwd -P)=. -ffile-prefix-map=$(pwd -L)=."\n', "CXXFLAGS=$CFLAGS\n",
+        "export CFLAGS CXXFLAGS\n")) and build.index("export CFLAGS") < build.rindex("fprime-util generate")
     yield "--pi-run names a directory of pisensor-campaign", yamcs_bench.pi_directory("fth-uut") == "pisensor-campaign/fth-uut"
     yield "--pi-run with a / is refused", refused("a/b") and refused("") and refused("..")
     yield "--pi-dir by hand wins", yamcs_bench.pi_directory("sys-run", "x/y") == "x/y"
