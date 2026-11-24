@@ -205,7 +205,7 @@
     "wait 20 s",
     "piCamera.CAPTURE()",
     "wait event dpWriter.FileWritten",
-    "wait 1 sample of piCamera.CapturesCompleted",
+    "wait 2 samples of piCamera.CapturesCompleted",
     "bracket (2 Heartbeat samples)",
     "MARK(31)"
    ],
