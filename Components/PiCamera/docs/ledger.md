@@ -314,3 +314,24 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 - Runs made at d50ceb1 with fth 3c4ab8e before this change, for information only and superseded: clean run 3 of 3 PASS (record `84b7b0f2…`); planted `c1_second_capture`, C-1 FAIL as declared (`ac8a39a1…`); planted `c2_capture_before_hold`, C-2 FAIL on its 2 declared checks (`c1715a4f…`). First runs over TCP: the image, the bridge and the recorder work together.
 - Tool from here: fth `linux-host-coverage`@ecbd11f.
 
+
+## Release over TCP (2026-11-23)
+
+- UUT pin `comp/picam`@45b005904b1f1e323eea0ce16f6086cd00154abc; tool fth `linux-host-coverage`@ecbd11f. Hub builds from scratch; pure image `b5a7133c886c7eece5e13edf16ac53277a19137e9d20e02954223d4ab9d360e0`, coverage image `e4adb3909356beb1451f5ee002b1e7e68b3f37f5a69ca741127d01763d10a548`, dictionary `c2e5c7e6d876d2a8c16a88a2f43dc818eb18372fba1b02ae2648e83a860b009f`. The coverage image is not reproduced bit for bit by a second build (an earlier build of the same commit gave `3324c26b…`); the pure image is.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `801a34a6…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `f6d6f375…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `a71d26fd…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, 2 of its 3 declared checks | `6d513c29…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `483dc724…` |
+
+- dry-4: the declared check `last(piCamera.CapturesCompleted) == 1` did not fail. The image of `deploy/base` sends this channel every 5 s; the sample inside the window fell between the two captures and read 1, and the sample reading 2 came 0.33 s after the end marker. The planted fault is caught by the two event counts. Not corrected in this delivery: the predicate depends on the telemetry period.
+- Link: every command was sent once (no resend); the only sequence count jumps on the ground are the two of the restart of C-3 in each run (new count 0).
+- Sensors: no `TemperatureUnavailable`; `AttitudeUnavailable` and `LocationUnavailable` in every capture (MPU6050 `I2cError` 61 to 100 per run, GPS without fix). Pictures 5 501 to 5 514 bytes over 22 captures; none was decoded.
+- `fth dev-campaign --gcda-dir`: CLEAN; on the target lines 76.1% (429 of 564), functions 83.0% (39 of 47), branches 56.8% (319 of 562), 289 `.gcda` files. Unit tests rerun at this commit on the development machine: 22 pass, lines 99.3% (266 of 268); the report in the package (`inputs/coverage/ut/`) is still the one produced at 89357e5.
+- `fth deliver --harness uut --tool harness`: OK, 33 pinned files; `rfr-input.zip` sha256 `1536efff513bcb9c0c86c0d7033404d6d54d72c7dac8ed15f0a65ea93eedbf3c`, manifest sha256 `29ec9c0fec6b972adf4bc5b8c27905057a6caa5f85a59e09bc42fecb7bd9a2b6`.
+- `fth rfr --dry-run`: rehearsal OK, 37 preflight checks, the three serial checks "not applicable: bench declares no serial device"; `rfr.log` sha256 `f6cf93246e69d2f6190a1b9a04ff2ec5fd0c42f28c6481f01256e7f9b93fa093`.
+- `fth audit --unsealed --tests`: dry-1 ok, 15 steps; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed.
+- No seed was requested and no run for record was made.
