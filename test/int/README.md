@@ -322,5 +322,5 @@ and the pure image and the dictionary are the same bytes from any checkout direc
 absolute directory about 480 times, and a build in another directory gave another sha256. Nothing under `lib/` is
 changed. The coverage build is left as it was: its `-DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage` take
 the place of the exported flags, so the coverage image, its `.gcno` files and the `.gcda` paths keep the absolute
-directory that `gcov` and `fth dev-campaign --gcda-dir` read. Build the coverage image in the directory of the
-campaign checkout.
+directory that `gcov` and `fth dev-campaign --gcda-dir` read. Keep the directory the coverage image was built in
+until the counts are read. Two coverage builds of one commit in one directory already differ in sha256.
