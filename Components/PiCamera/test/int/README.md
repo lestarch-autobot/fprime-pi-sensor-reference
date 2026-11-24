@@ -89,7 +89,7 @@ python3 uut/test/int/bench/yamcs_bench.py collect-gcda <dir>
 fth dev-campaign ... --gcda-dir <dir> --gcno-root <build tree> --gcov gcov --gcovr <gcovr 8.8> --sdd <SDD in the pinned checkout>
 ```
 
-With fth `no-serial-device`@`ad79b65` (2026-11-24, system session, not reviewed):
+With fth `no-serial-device`@`2aa8586` (2026-11-24, system session, not reviewed):
 `--skip-stimulus-check` because the static stimulus check of fth does not see a send made inside a helper;
 `--gcovr` because gcovr 8.2 stops on a negative count and 8.8 takes it as 0; the system minimum is judged
 over `coverage.system.scope` of the plan (`Components/PiCamera`), so no `--filter`; `--sdd` ships the files

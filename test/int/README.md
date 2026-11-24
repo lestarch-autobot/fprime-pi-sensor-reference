@@ -328,10 +328,11 @@ the place of the exported flags, so the coverage image, its `.gcno` files and th
 directory that `gcov` and `fth dev-campaign --gcda-dir` read. Keep the directory the coverage image was built in
 until the counts are read. Two coverage builds of one commit in one directory already differ in sha256.
 
-### fth `no-serial-device`@`ad79b65` (2026-11-24; ordered by the project anchor, not reviewed)
+### fth `no-serial-device`@`2aa8586` (2026-11-24; ordered by the project anchor, not reviewed)
 
 The tool is [fprime-testing-harness](https://github.com/lestarch-autobot/fprime-testing-harness), branch
-`no-serial-device` at `ad79b654ad45807472b1285d940f1dea887fbb4f`. Against the command lines used before:
+`no-serial-device` at `2aa8586530a07cade1db2c85c67af620dd6ea278` (`ad79b65` until `fth deliver` refused the
+scoped report there, see `docs/ledger.md`). Against the command lines used before:
 
 ```
 fth verify-plan … --tests test/int/stimulus --bench test/int/bench.json --skip-stimulus-check
