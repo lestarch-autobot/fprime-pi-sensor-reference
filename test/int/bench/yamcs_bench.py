@@ -365,11 +365,26 @@ def cmd_send(args) -> None:
         f"{entry['opcode']},{json.dumps(logged)}\n", encoding="utf-8")
 
 
+PI_ROOT = "pisensor-campaign"  # in the home directory of the ssh user on the Pi
+
+
+def pi_directory(run: str, directory: str | None = None) -> str:
+    """Directory on the Pi owned by the adapter: `--pi-dir` when given, else PI_ROOT/<--pi-run>."""
+    if directory:
+        return directory
+    if not run or "/" in run or run in (".", ".."):
+        raise SystemExit(f"--pi-run {run!r}: a directory name without `/` (it is put under {PI_ROOT}/)")
+    return f"{PI_ROOT}/{run}"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--pi", default="pi", help="ssh host of the Raspberry Pi")
-    parser.add_argument("--pi-dir", default="pisensor-campaign/sys-run",
-                        help="directory on the Pi, owned by the adapter (the default of --remote-dir of uut.py)")
+    parser.add_argument("--pi-run", default="sys-run", metavar="NAME",
+                        help=f"the adapter owns the directory {PI_ROOT}/NAME on the Pi; no `/` in NAME, so that a bench "
+                             "recipe can name it (fth rfr refuses a path outside its checkouts). The default is the "
+                             "default of --remote-dir of uut.py")
+    parser.add_argument("--pi-dir", help="directory on the Pi instead of the one of --pi-run, for use by hand")
     parser.add_argument("--image-args", default="", help="arguments of the image on the Pi, comma separated")
     parser.add_argument("--deployment", default="PiSensor")
     parser.add_argument("--yamcs", default="localhost:8190")
@@ -405,6 +420,7 @@ def main() -> None:
     p.add_argument("command"); p.add_argument("args", nargs="*")
     p.set_defaults(fn=cmd_send)
     args = parser.parse_args()
+    args.pi_dir = pi_directory(args.pi_run, args.pi_dir)
     args.fn(args)
 
 

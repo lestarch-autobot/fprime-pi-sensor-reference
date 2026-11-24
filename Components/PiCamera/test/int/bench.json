@@ -7,7 +7,7 @@
   "uart": null,
   "prm": "uut/test/int/bench/PrmDb.dat",
   "python": "python3",
-  "adapter": "uut/test/int/bench/yamcs_bench.py --image-args=-a,192.168.10.1,-p,50000",
+  "adapter": "uut/test/int/bench/yamcs_bench.py --pi-run=fth-uut --image-args=-a,192.168.10.1,-p,50000",
   "bridge": "uut/test/int/bench/tcp_bridge.py",
   "yamcs_config": "yamcs-config",
   "tcp_port": "50000"

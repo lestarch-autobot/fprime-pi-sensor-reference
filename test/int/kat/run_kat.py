@@ -22,6 +22,7 @@ import sim  # noqa: E402
 import lost_frames  # noqa: E402
 import verify_stimulus  # noqa: E402
 import yamcs_recorder as recorder  # noqa: E402
+import yamcs_bench  # noqa: E402
 import pisensor_record as rec  # noqa: E402
 
 BASE = ["-p", "fth.pytest_plugin", "-p", "no:cacheprovider", "-q", "--fth-plan", str(INT / "stimulus" / "plan.json"),
@@ -111,9 +112,32 @@ def recipe_paths(path):
     return True
 
 
+def recipe_pi_dir(path):
+    """Directory on the Pi that the adapter of a bench recipe owns, from the options of its flash line."""
+    bench = json.loads(Path(path).read_text(encoding="utf-8"))
+    words = bench["flash"].format(**{**bench["vars"], "image": "X"}).split()
+    run = [w.split("=", 1)[1] for w in words if w.startswith("--pi-run=")]
+    return "--pi-dir" not in " ".join(words) and yamcs_bench.pi_directory(run[0] if run else "sys-run")
+
+
+def refused(run):
+    try:
+        yamcs_bench.pi_directory(run)
+    except SystemExit:
+        return True
+    return False
+
+
 def units():
+    picam = INT.parent.parent / "Components" / "PiCamera" / "test" / "int"
     for name in ("bench.json", "bench-coverage.json"):
         yield f"recipe_paths {name}", recipe_paths(INT / name)
+        yield f"recipe_paths PiCamera {name}", recipe_paths(picam / name)
+        yield f"Pi directory of {name}", recipe_pi_dir(INT / name) == "pisensor-campaign/sys-run"
+        yield f"Pi directory of PiCamera {name}", recipe_pi_dir(picam / name) == "pisensor-campaign/fth-uut"
+    yield "--pi-run names a directory of pisensor-campaign", yamcs_bench.pi_directory("fth-uut") == "pisensor-campaign/fth-uut"
+    yield "--pi-run with a / is refused", refused("a/b") and refused("") and refused("..")
+    yield "--pi-dir by hand wins", yamcs_bench.pi_directory("sys-run", "x/y") == "x/y"
     yield "PrmDb.dat is the file of the runs since 2026-11-19", __import__("hashlib").sha256(
         (INT / "bench" / "PrmDb.dat").read_bytes()).hexdigest() == "a31359bad537b7ce62b055d72068068884d39c63f1d775df32ca27e575f47527"
     ev = {"type": "CdhCore.cmdDisp.NoOpStringReceived", "message": "[NoOpStringReceived] Received a NO-OP string=10",

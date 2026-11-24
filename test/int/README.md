@@ -288,8 +288,9 @@ TCP, and continue development w/o the radio". The project anchor ordered the cha
   every run since 2026-11-19), because `fth rfr` accepts only paths in the package or the pinned checkouts.
   Rebuild it after a change of `PiSensor/project/config/PrmDb.json` with `fprime-prm-write dat
   PiSensor/project/config/PrmDb.json --dictionary <dictionary of the image> -o test/int/bench/PrmDb.dat`.
-- The directory on the Pi (`pisensor-campaign/sys-run`) is the default of `yamcs_bench.py --pi-dir` and of
-  `uut.py --remote-dir`, and the recorder takes the YAMCS space system without its leading `/`
+- The directory on the Pi is `pisensor-campaign/<NAME>` of `yamcs_bench.py --pi-run NAME` (no `/` in NAME). The
+  default `sys-run` is also the default of `uut.py --remote-dir`; the PiCamera recipes pass `--pi-run=fth-uut`,
+  because `flash` deletes `run/` in its directory. The recorder takes the YAMCS space system without its leading `/`
   (`--root PiSensor_PiSensor`): `fth rfr --dry-run` refuses both spellings in a recipe as host paths.
 - `"vars": {"uart": null}` in both recipes declares to fth that this bench has no serial device (the link is
   TCP); without it `fth rfr` refuses a recipe that names no UART.

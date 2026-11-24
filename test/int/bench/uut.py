@@ -96,7 +96,7 @@ def main(argv=None) -> int:
     s = sub.add_parser("action")
     s.add_argument("--ssh", required=True, help="ssh host alias of the Pi")
     s.add_argument("--remote-dir", default="pisensor-campaign/sys-run",
-                   help="directory on the Pi owned by yamcs_bench.py (its --pi-dir default)")
+                   help="directory on the Pi owned by yamcs_bench.py (the default of its --pi-run)")
     s.add_argument("name", choices=("platform", "sockets", "clock", "clean_products", "final_state", "wait_cfdp"))
     s.add_argument("--logs", required=True)
     s.add_argument("--timeout", type=float, default=600.0)
