@@ -281,3 +281,67 @@ Written after the freeze; the package pins `comp/picam`@4a10a1a1c66c0b8d773db513
 - `fth deliver --harness uut --tool harness` (fth f57cce6): OK, 0 findings. `rfr-input.zip` sha256 `33f7f126f693d20104d18634f02c851e07a8a83e78b96dcf3a07502b5ca553a9`, manifest sha256 `b63e0625535abff90fb249b27b41d01707e3e2e1db5072bf785aac4f8c05e6b5`, 33 pinned files.
 - Seed-free rehearsal: OK, 39 preflight checks; `rfr.log` sha256 `0dc39b6aff07694150f34ddc3eaac64b4d06d6df1e384438fb73393c1146f531`.
 - No seed was requested and no run for record was made.
+
+## Link changed to TCP (2026-11-23)
+
+- Ruling of Michael Starch, 2026-11-23 13:18 PST, relayed by the project: "Ok, please switch to TCP, and continue development w/o the radio" and "Yes, close this out." The flight RFM69 of the bench failed, so the fifth delivery, whose runs went over the radio, cannot be run for record.
+- `comp/picam` was fast-forwarded from 57c31ec to `deploy/base`@c7c1e96 (the deployment with `PISENSOR_COM=TCP` as default) by instruction of the project; the bench changes are on top. The UUT pin moves from 4a10a1a to the head of this branch because the image must be built from a tree that has the TCP topology.
+- The component did not change: `git diff --stat 4a10a1a c7c1e96 -- Components/PiCamera` lists `Components/PiCamera/docs/ledger.md` only. Unit tests and their coverage were not rerun.
+- Bench files taken by path from `sys/harness`@aed818d, as instructed (`git checkout aed818d -- <path>`): `test/int/bench/tcp_bridge.py` and `test/int/bench/yamcs_bench.py`. Nothing else of the system harness or plan was taken.
+- Bench description (`bench.json`, `bench-coverage.json`): the bridge is `test/int/bench/tcp_bridge.py` on TCP port 50000, the image is started with `-a 192.168.10.1 -p 50000`, and `flash` copies `inputs/PrmDb.dat` as the system bench does, so the image runs with the project parameters.
+- Tool: fth `linux-host-coverage`@3c4ab8e. `fth verify-plan --tests` passes with both bench files (31 named checks); the 4 known-answer checks pass; the replay of the last radio clean-run record passes 3 of 3.
+- Texts that named the radio, corrected; not reviewed:
+
+| File | Old | New |
+|---|---|---|
+| `plan.json`, `plan.md`, setup of C-1 | "camera free, GPS fix, RFM69 link up." | "camera free, TCP link to the ground workstation up." |
+| `README.md` | "fprime-yamcs behind the RFM69 bridge" | "fprime-yamcs behind the TCP bridge `test/int/bench/tcp_bridge.py`, which the image connects to" |
+| `README.md` | "The radio uplink has no retransmission. The sender sends a command again, ..." | "The link is TCP and loses no command. The sender still sends a command again, ..." |
+| `README.md` | "`python3` (with `yamcs-client` and `pyserial`)" | "`python3` (with `yamcs-client`)" |
+| `README.md` | "`inputs/`: the image and its dictionary." | adds `PrmDb.dat` and how it is built |
+| `bench.json`, `bench-coverage.json`, notes | "soakee behind the RFM69 link; ground is fprime-yamcs on the workstation." | "soakee on a TCP link: the image connects to the bench bridge on the workstation, which passes its frames to fprime-yamcs; ..." |
+
+- Left as written: the SDD rationale of `JPEG_QUALITY` speaks of "the radio link" and 128 file bytes per second. The constant is unchanged and the project said not to change the component; the sentence describes why the value was chosen.
+- The setup text of C-1 also said "GPS fix", untrue since the ruling of 2026-11-20; it is removed with the radio wording.
+
+## Bench recipes made to pass the rehearsal on a TCP bench (2026-11-23)
+
+- The project reported four refusals `fth rfr` gives a TCP bench at 3c4ab8e. Checked against `fth/rfr.py` and the two bench files: two apply here.
+  - Applies: the preflight requires a serial device. Both bench files now declare `"vars": {"uart": null}`, the syntax of fth `linux-host-coverage`@ecbd11f; no recipe line uses `{uart}`.
+  - Applies: `flash --prm inputs/PrmDb.dat` names a path outside the package roots. `test/int/bench/PrmDb.dat` is taken by path from `sys/harness`@8432b44 (sha256 `a31359bad537b7ce62b055d72068068884d39c63f1d775df32ca27e575f47527`, the same bytes the hub built from `PiSensor/project/config/PrmDb.json` and the dictionary of d50ceb1), and `flash` names it as `uut/test/int/bench/PrmDb.dat`.
+  - Does not apply: no recipe line passes `--pi-dir` (the adapter default `pisensor-campaign/fth-uut` is used), and the recorder line has no `--root`.
+- `test/int/bench/yamcs_bench.py` stays as taken from aed818d; the later change on `sys/harness` only moves the default Pi directory to that of the system campaign.
+- Runs made at d50ceb1 with fth 3c4ab8e before this change, for information only and superseded: clean run 3 of 3 PASS (record `84b7b0f2…`); planted `c1_second_capture`, C-1 FAIL as declared (`ac8a39a1…`); planted `c2_capture_before_hold`, C-2 FAIL on its 2 declared checks (`c1715a4f…`). First runs over TCP: the image, the bridge and the recorder work together.
+- Tool from here: fth `linux-host-coverage`@ecbd11f.
+
+
+## Release over TCP (2026-11-23)
+
+- UUT pin `comp/picam`@45b005904b1f1e323eea0ce16f6086cd00154abc; tool fth `linux-host-coverage`@ecbd11f. Hub builds from scratch; pure image `b5a7133c886c7eece5e13edf16ac53277a19137e9d20e02954223d4ab9d360e0`, coverage image `e4adb3909356beb1451f5ee002b1e7e68b3f37f5a69ca741127d01763d10a548`, dictionary `c2e5c7e6d876d2a8c16a88a2f43dc818eb18372fba1b02ae2648e83a860b009f`. The coverage image is not reproduced bit for bit by a second build (an earlier build of the same commit gave `3324c26b…`); the pure image is.
+
+| Run | Image | Planted fault | C-1 | C-2 | C-3 | Record |
+|---|---|---|---|---|---|---|
+| dry-1 | pure | none | PASS | PASS | PASS | `801a34a6…` |
+| dry-2 | pure | `c1_second_capture` | FAIL, its 3 declared checks | PASS | PASS | `f6d6f375…` |
+| dry-3 | pure | `c2_capture_before_hold` | PASS | FAIL, its 2 declared checks | PASS | `a71d26fd…` |
+| dry-4 | pure | `c3_capture_after_restart` | PASS | PASS | FAIL, 2 of its 3 declared checks | `6d513c29…` |
+| cov-1 | coverage | none | PASS | PASS | PASS | `483dc724…` |
+
+- dry-4: the declared check `last(piCamera.CapturesCompleted) == 1` did not fail. The image of `deploy/base` sends this channel every 5 s; the sample inside the window fell between the two captures and read 1, and the sample reading 2 came 0.33 s after the end marker. The planted fault is caught by the two event counts. Not corrected in this delivery: the predicate depends on the telemetry period.
+- Link: every command was sent once (no resend); the only sequence count jumps on the ground are the two of the restart of C-3 in each run (new count 0).
+- Sensors: no `TemperatureUnavailable`; `AttitudeUnavailable` and `LocationUnavailable` in every capture (MPU6050 `I2cError` 61 to 100 per run, GPS without fix). Pictures 5 501 to 5 514 bytes over 22 captures; none was decoded.
+- `fth dev-campaign --gcda-dir`: CLEAN; on the target lines 76.1% (429 of 564), functions 83.0% (39 of 47), branches 56.8% (319 of 562), 289 `.gcda` files. Unit tests rerun at this commit on the development machine: 22 pass, lines 99.3% (266 of 268); the report in the package (`inputs/coverage/ut/`) is still the one produced at 89357e5.
+- `fth deliver --harness uut --tool harness`: OK, 33 pinned files; `rfr-input.zip` sha256 `1536efff513bcb9c0c86c0d7033404d6d54d72c7dac8ed15f0a65ea93eedbf3c`, manifest sha256 `29ec9c0fec6b972adf4bc5b8c27905057a6caa5f85a59e09bc42fecb7bd9a2b6`.
+- `fth rfr --dry-run`: rehearsal OK, 37 preflight checks, the three serial checks "not applicable: bench declares no serial device"; `rfr.log` sha256 `f6cf93246e69d2f6190a1b9a04ff2ec5fd0c42f28c6481f01256e7f9b93fa093`.
+- `fth audit --unsealed --tests`: dry-1 ok, 15 steps; dry-2 to dry-4: runner and replay agree on every test, and only the two steps a planted development run must fail are failed.
+- No seed was requested and no run for record was made.
+
+
+## Sample timing of `CapturesCompleted` (2026-11-23)
+
+- Ruling of the project anchor on dry-4 above: fix, do not accept; a declared check that depends on where a 5 s telemetry sample falls is a racy declaration. The release over TCP at 45b0059 is superseded.
+- `planted_faults.py`: `c3_capture_after_restart` no longer declares `last(piCamera.CapturesCompleted) == 1`; it declares the two event counts. `c1_second_capture` and `c2_capture_before_hold` declare event counts only and are unchanged. `faults-menu.json` regenerated.
+- The same check in the clean C-3 had the same dependence: in the four runs at 45b0059 the second capture completed 24.5 s after start, the sample came at 25.0 s and the end marker at 27.7 s. C-3 now waits for one sample of `piCamera.CapturesCompleted` after the second capture (`test_picam.py`, procedure of C-3 in `plan.json`, `plan.md`). The check itself is unchanged. Not reviewed.
+- SDD: the rationale of `JPEG_QUALITY` names the CFDP downlink (about 128 file bytes per second on either link) in place of the radio link.
+- Offline checks with fth `linux-host-coverage`@ecbd11f: known-answer checks 4 pass; `verify-plan --tests` ok with `bench.json` and `bench-coverage.json` (31 named checks); `render-sdd-tests --check` agrees. No bench run.
+- Contract 9.4: the component and system packages are to be delivered from one project commit. The system session merges this branch into `sys/harness`; the recipe is run again at that commit, with the unit-test coverage regenerated there.

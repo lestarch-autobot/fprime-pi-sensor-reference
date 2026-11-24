@@ -182,7 +182,7 @@ constant METRIC_MAX_AGE_MS = 2000
 
 Picture size, largest JPEG, longest wait for the frame, longest time from command to response, frames discarded while exposure settles, the libjpeg quality setting, and the largest difference between a sample time and the capture time.
 
-`JPEG_QUALITY` is set for the downlink, not for the picture: the radio link carries about 128 file bytes per second (`docs/link-budget.md` of the project), so the design target is a picture under 32 kB, about 20 kB for a typical scene, which downlinks in about 3 to 4 minutes. The resolution stays at 640 x 480 (REQ-PiCamera-002); `PICTURE_MAX_SIZE` stays the bound that fails a capture.
+`JPEG_QUALITY` is set for the downlink, not for the picture: the CFDP downlink of the deployment carries about 128 file bytes per second on either link, radio or TCP (`docs/link-budget.md` of the project), so the design target is a picture under 32 kB, about 20 kB for a typical scene, which downlinks in about 3 to 4 minutes. The resolution stays at 640 x 480 (REQ-PiCamera-002); `PICTURE_MAX_SIZE` stays the bound that fails a capture.
 
 ```fpp
 instance piCamera: PiSensor.PiCamera base id 0x10008000 queue size 5 stack size 1048576 priority 30

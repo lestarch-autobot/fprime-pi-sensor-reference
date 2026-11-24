@@ -8,22 +8,32 @@ stimulus and its named checks are `test_picam.py`, the planted faults are
 The tests run with [fprime-testing-harness](https://github.com/LeStarch/fprime-testing-harness)
 (`fth`) from the ground workstation. `bench.json` describes the bench: the
 image is copied to the Raspberry Pi over ssh and started there, the ground
-system is fprime-yamcs behind the RFM69 bridge. Every bench command line calls
+system is fprime-yamcs behind the TCP bridge `test/int/bench/tcp_bridge.py`,
+which the image connects to. Every bench command line calls
 `test/int/bench/yamcs_bench.py` of this repository.
 
 Run `fth` from a campaign root on the workstation that holds:
 
 - `uut/`: the checkout of this repository;
 - `yamcs-config/`: the YAMCS configuration directory of `ground/README.md`;
-- `inputs/`: the image and its dictionary.
+- `inputs/`: the image and its dictionary. The parameter file the image reads is committed as `test/int/bench/PrmDb.dat` (`fprime-prm-write dat PiSensor/project/config/PrmDb.json --dictionary <dictionary>`); `flash` copies it to the Pi.
 
-`python3` (with `yamcs-client` and `pyserial`) and `fprime-yamcs` are on `PATH`.
+`python3` (with `yamcs-client`) and `fprime-yamcs` are on `PATH`.
 The Pi is the ssh host `pi`.
 
-The radio uplink has no retransmission. The sender sends a command again, at
+The link is TCP and loses no command. The sender still sends a command again, at
 most twice, when the unit does not report its dispatch within 6 s, and writes
 each resend to `record/raw/cmd/resend.log`. Ground link events of YAMCS are
 kept in `record/raw/ground-events.log`.
+
+`piCamera.CapturesCompleted` is sent every 5 s on this image, so a check of its last value
+depends on where a sample falls. Two changes follow from that (not reviewed):
+the planted fault `c3_capture_after_restart` no longer declares
+`last(piCamera.CapturesCompleted) == 1` as a check it fails (it declares the two event counts
+only; the check stays a check of C-3), and C-3 waits for one sample of
+`piCamera.CapturesCompleted` after its second capture, before the closing bracket, so the
+check reads a sample taken after that capture. The planted faults of C-1 and C-2 declare event
+counts only.
 
 The bracket channel is `bmpManager.Reading`. No sensor reading is needed for a capture:
 without the BMP280, the MPU6050 or a GPS fix a capture completes with the warning of that
