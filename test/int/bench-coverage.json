@@ -7,7 +7,7 @@
   "dump": "{python} {adapter} dump {readback}",
   "gds": "{python} {adapter} gds --dictionary {dictionary} --logs {logs} --bridge {bridge} --tcp-port {tcp_port} --yamcs-config {yamcs_config}",
   "recorder": "{python} {bench}/yamcs_recorder.py --url {yamcs_url} --instance {yamcs_instance} --root {yamcs_root} --deployment PiSensor --dictionary {dictionary} --logs {logs} --gen-offset {gen_offset}",
-  "send": "{python} {adapter} send --dictionary {dictionary} --logs {logs} {command} {args}",
+  "send": "{python} {adapter} send --resend 0 --dictionary {dictionary} --logs {logs} {command} {args}",
   "actions": {
     "platform": "{python} {bench}/uut.py action platform --ssh {uut_ssh} --logs {logs}",
     "sockets": "{python} {bench}/uut.py action sockets --ssh {uut_ssh} --logs {logs}",

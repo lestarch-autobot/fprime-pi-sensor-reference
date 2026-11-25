@@ -87,21 +87,6 @@ for i in range(1, 15):
     assert len(cov[k]) >= 2, (k, cov[k]); req[k] = {"tests": cov[k], "verification": ", ".join(cov[k]), "note": ""}
 STD = ["both markers present", "event cmdDisp.OpCodeError count == 0 for every opcode but piCamera.CAPTURE (a failed capture is judged by the test, as FAIL)", "TM frames received by YAMCS between the markers; the frames lost, modulo 256, in the virtual channel frame count are counted and noted on the test, never refused (record/raw/frames.json)",
        "event cmdDisp.TooManyCommands count == 0", "event comQueue.QueueOverflow count == 0", "Heartbeat samples >= 2"]
-GPS_REASON = "GPS receiver has no fix on the bench; the human cannot give it sky view"
-GPS_PLAUSIBLE = "GPS readings plausible for a bench at rest"
-gps_metric = lambda test_id: [m["text"] for x in T if x["id"] == test_id for m in x["metrics"] if m["text"].startswith("for gpsManager.Reading in")]
-IMU_REASON = "MPU6050 does not answer on I2C (SDA stuck low); the human ordered to continue without it"
-IMU_PLAUSIBLE = "MPU6050 readings plausible for a bench at rest"
-imu_metric = lambda test_id: [m["text"] for x in T if x["id"] == test_id for m in x["metrics"] if m["text"].startswith("for imuManager.Reading in")]
-KNOWN = {"ruling": 'Michael Starch, 2026-11-18 19:52 PST: "If GPS doesn\'t fix, wait 30min, try again, and if not deliver the RDD with the failing tests and I\'ll source a new GPS"; '
-                   '2026-11-20 10:51 PST: "I cannot.  Please update the design to allow for missing data across all sensors and the GET THIS RUN DONE"; '
-                   '2026-11-19 10:50 PST: "You are just going to have to continue without it.  Put placeholder values in the data product and move on"',
-         "tests": {"L2-1": {"checks": gps_metric("L2-1") + [GPS_PLAUSIBLE] + imu_metric("L2-1") + [IMU_PLAUSIBLE], "reason": GPS_REASON + ". " + IMU_REASON},
-                   "L2-2": {"checks": gps_metric("L2-2") + [GPS_PLAUSIBLE] + imu_metric("L2-2") + [IMU_PLAUSIBLE], "reason": GPS_REASON + ". " + IMU_REASON},
-                   "L2-7": {"checks": imu_metric("L2-7"), "reason": IMU_REASON},
-                   "L2-8": {"checks": imu_metric("L2-8"), "reason": IMU_REASON},
-                   "L2-9": {"checks": gps_metric("L2-9"), "reason": GPS_REASON}}}
-assert [len(v["checks"]) for v in KNOWN["tests"].values()] == [4, 4, 1, 1, 1]
 plan = {
  "name": "PiSensor system test plan",
  "markers": {"command": "cmdDisp.CMD_NO_OP_STRING", "event": "cmdDisp.NoOpStringReceived", "arg": "arg1", "reserved_min": 4294901760},
@@ -120,7 +105,6 @@ plan = {
  "final_state": {"accepted_evidence": "bench sha256sum of the L7-1 product file, taken over ssh after the run into record/raw/final-state.txt, compared by the auditor with the sha256 of the ground file in record/raw/files/",
                  "rationale": "The on-board CRC command runs inside the UUT process; the bench reads the file itself, outside the UUT's reporting path."},
  "requirements": req,
- "known_failures": KNOWN,
  "scope": ["L0: desk-checked; bench confirmation pending. Marker: `cmdDisp.CMD_NO_OP_STRING(arg1)` -> event `cmdDisp.NoOpStringReceived`, the id sent as a decimal string. Link (revision 4): TCP between the Pi and the ground host; the link budget of the RFM69 (`docs/link-budget.md`) does not apply and the downlink time of a product over TCP is measured, not budgeted.",
            "- UUT: the PiSensor deployment of `docs/ssdd.md` on the Raspberry Pi 5 `soakee`, 64-bit Raspberry Pi OS.",
            "- Test deployment: the deployment itself. No component is added for testing. Markers use `cmdDisp`, the on-board file check uses `fileManager.CalculateCrc`, the directory listing uses `fileManager.ListDirectory`, product names come from `dpWriter.FileWritten`, platform identity is a bench action over ssh.",
@@ -165,7 +149,8 @@ plan = {
                   "5. 2026-11-19 harness builder, revision 2 — see the changelog in `test/int/README.md`: per-channel telemetry period metrics, Heartbeat on `bmpManager.Reading`, command count with marker commands apart and logged resends, clock action in the L0-1 procedure, IMU bounds stated in the units of the channel, roll and pitch validity as a check of its own.",
                   "6. 2026-11-20 harness builder, revision 3 (REQ-PiSensor-005 as amended by the human ruling of 2026-11-20) — see the changelog in `test/int/README.md`: product metrics judged valid or not valid per sensor, the sensor-unavailable event check in every window, the GPS item of REQ-PiSensor-012 in its own test L2-9.",
                   "7. 2026-11-23 harness builder, revision 4, not reviewed (human ruling of 2026-11-23 13:18 PST: TCP link, no radio) — see the changelog in `test/int/README.md`: the three checks of REQ-PiSensor-010 removed and the requirement not verified; texts that named the RFM69 or the radio corrected.",
-                  "8. 2026-11-24 harness builder, not reviewed (order of the project anchor of 2026-11-24, fth `no-serial-device`@`ad79b65`) — `coverage.system.scope` declared as `Components` and `PiSensor`: the system minimum is judged over the sources of this project, the same directories the report was filtered to before (`--filter Components/ --filter PiSensor/`); generated files in the build cache are not counted, and the inherited libraries under `lib/` stay in the whole-image figures. No test, check or threshold changed."],
+                  "8. 2026-11-24 harness builder, not reviewed (order of the project anchor of 2026-11-24, fth `no-serial-device`@`ad79b65`) — `coverage.system.scope` declared as `Components` and `PiSensor`: the system minimum is judged over the sources of this project, the same directories the report was filtered to before (`--filter Components/ --filter PiSensor/`); generated files in the build cache are not counted, and the inherited libraries under `lib/` stay in the whole-image figures. No test, check or threshold changed.",
+                  "9. 2026-11-24 harness builder, not reviewed (order of the project anchor of 2026-11-24 17:03 PST) — the Captain restored MPU6050 power and repositioned the GPS antenna on 24 Nov about 17:00 PST; both sensors answer since (direct reads on the Pi, `docs/ledger.md`). The 11 `known_failures` declarations (GPS and MPU6050 checks of L2-1, L2-2, L2-7, L2-8, L2-9) are withdrawn: every check is judged as written. No check, tolerance or procedure changed; the missing-data design (REQ-PiSensor-005 as amended) and its checks stay."],
  "tests": T,
 }
 json.dump(plan, open("stimulus/plan.json", "w"), indent=1, ensure_ascii=False)
