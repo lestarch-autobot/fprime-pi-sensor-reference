@@ -16,7 +16,7 @@
  "dump": "{python} {adapter} dump {readback}",
  "gds": "{python} {adapter} gds --dictionary {dictionary} --logs {logs} --bridge {bridge} --tcp-port {tcp_port} --yamcs-config {yamcs_config}",
  "recorder": "{python} {adapter} recorder --dictionary {dictionary} --logs {logs}",
- "send": "{python} {adapter} send --dictionary {dictionary} --logs {logs} {command} {args}",
+ "send": "{python} {adapter} send --resend 0 --dictionary {dictionary} --logs {logs} {command} {args}",
  "actions": {
   "camera_hold": "{python} {adapter} action camera-hold --seconds 120",
   "camera_release": "{python} {adapter} action camera-release",
